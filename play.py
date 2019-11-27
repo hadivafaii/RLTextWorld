@@ -28,40 +28,41 @@ def play(agent, path, max_step=100, nb_episodes=10, verbose=True):
 
     avg_moves, avg_scores, avg_norm_scores = [], [], []
     play_stats = defaultdict()
-    scores_dict = {}
+    scores_dict = defaultdict(list)
     for no_episode in range(nb_episodes):
         obs, infos = env.reset()  # Start new episode.
 
         score = 0
         done = False
         nb_moves = 0
+        scores_ = []
         while not done:
             command = agent.act(obs, score, done, infos)
             obs, score, done, infos = env.step(command)
 
+            scores_.append(score)
             nb_moves += 1
 
-            _key = "episode:%d_move:%d" % (no_episode, nb_moves)
-            scores_dict.update({_key: score})
-
+        scores_dict['episode_%d' % no_episode] = scores_
         agent.act(obs, score, done, infos)  # Let the agent know the game is done.
 
         if verbose:
             print(".", end="")
-            avg_moves.append(nb_moves)
-            avg_scores.append(score)
-            avg_norm_scores.append(score / infos["max_score"])
+        avg_moves.append(nb_moves)
+        avg_scores.append(score)
+        avg_norm_scores.append(score / infos["max_score"])
 
-        play_stats["scores"] = scores_dict
-        play_stats["max_score"] = infos["max_score"]
-        play_stats["nb_episodes"] = nb_episodes
+    play_stats["scores"] = scores_dict
+    play_stats["max_score"] = infos["max_score"]
+    play_stats["nb_episodes"] = nb_episodes
+    play_stats["max_step"] = max_step
 
-        env.close()
-        msg = "  \tavg. steps: {:5.1f}; avg. score: {:4.1f} / {}."
-        if verbose:
-            if os.path.isdir(path):
-                print(msg.format(np.mean(avg_moves), np.mean(avg_norm_scores), 1))
-            else:
-                print(msg.format(np.mean(avg_moves), np.mean(avg_scores), infos["max_score"]))
+    env.close()
+    msg = "  \tavg. steps: {:5.1f}; avg. score: {:4.1f} / {}."
+    if verbose:
+        if os.path.isdir(path):
+            print(msg.format(np.mean(avg_moves), np.mean(avg_norm_scores), 1))
+        else:
+            print(msg.format(np.mean(avg_moves), np.mean(avg_scores), infos["max_score"]))
 
     return play_stats
