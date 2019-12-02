@@ -14,7 +14,6 @@ from torch import optim
 import torch.nn.functional as F
 
 
-
 class RandomAgent(textworld.gym.Agent):
     """ Agent that randomly selects a command from the admissible ones. """
 
@@ -31,6 +30,7 @@ class RandomAgent(textworld.gym.Agent):
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class CommandScorer(nn.Module):
     def __init__(self, input_size, hidden_size):
@@ -61,7 +61,8 @@ class CommandScorer(nn.Module):
         _, cmds_encoding_last_states = self.cmd_encoder_gru.forward(cmds_embedding)  # 1 x cmds x hidden
 
         # Same observed state for all commands.
-        cmd_selector_input = torch.stack([state_hidden] * nb_cmds, 2)  # 1 x batch x cmds x hidden
+        # cmd_selector_input = torch.stack([state_hidden] * nb_cmds, 2)  # 1 x batch x cmds x hidden
+        cmd_selector_input = torch.stack([self.state_hidden] * nb_cmds, 2)
 
         # Same command choices for the whole batch.
         cmds_encoding_last_states = torch.stack([cmds_encoding_last_states] * batch_size, 1)  # 1 x batch x cmds x hidden
@@ -80,14 +81,14 @@ class CommandScorer(nn.Module):
         self.state_hidden = torch.zeros(1, batch_size, self.hidden_size, device=device)
 
 
-class NeuralAgent:
+class SoftActorCritic:
     """ Simple Neural Agent for playing TextWorld games. """
     MAX_VOCAB_SIZE = 1000
     UPDATE_FREQUENCY = 10
     LOG_FREQUENCY = 1000
     GAMMA = 0.9
 
-    def __init__(self) -> None:
+    def __init__(self, hidden_size=128) -> None:
         self._initialized = False
         self._epsiode_has_started = False
         self.transitions = []
@@ -98,7 +99,7 @@ class NeuralAgent:
         self.id2word = ["<PAD>", "<UNK>"]
         self.word2id = {w: i for i, w in enumerate(self.id2word)}
 
-        self.model = CommandScorer(input_size=self.MAX_VOCAB_SIZE, hidden_size=128).to(device)
+        self.model = CommandScorer(input_size=self.MAX_VOCAB_SIZE, hidden_size=hidden_size).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), 0.00003)
 
         self.mode = "test"
@@ -129,6 +130,7 @@ class NeuralAgent:
     def _tokenize(self, text):
         # Simple tokenizer: strip out all non-alphabetic characters.
         text = re.sub("[^a-zA-Z0-9\- ]", " ", text)
+        # text = re.sub("[^a-zA-Z0-9-'.]", " ", text)
         word_ids = list(map(self._get_word_id, text.split()))
         return word_ids
 
