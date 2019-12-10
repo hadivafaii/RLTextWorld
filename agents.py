@@ -239,13 +239,8 @@ class SoftActorCritic:
         return action
 
 
-##############################################################################################################
-##############################################################################################################
-##############################################################################################################
-##############################################################################################################
-
 class CommandScorerBERT(nn.Module):
-    def __init__(self, hidden_size, reduced_dim=None):
+    def __init__(self, hidden_size, reduced_dim=None, bidirectional=False):
         super(CommandScorerBERT, self).__init__()
         torch.manual_seed(42)  # For reproducibility
 
@@ -261,8 +256,8 @@ class CommandScorerBERT(nn.Module):
         else:
             self.fc_dim_reduction = None
 
-        self.obs_encoder_gru = nn.GRU(input_size, hidden_size)
-        self.cmd_encoder_gru = nn.GRU(input_size, hidden_size)
+        self.obs_encoder_gru = nn.GRU(input_size, hidden_size, bidirectional=bidirectional)
+        self.cmd_encoder_gru = nn.GRU(input_size, hidden_size, bidirectional=bidirectional)
         self.state_gru = nn.GRU(hidden_size, hidden_size)
         self.hidden_size = hidden_size
         self.state_hidden = torch.zeros(1, 1, hidden_size, device=device)
@@ -306,8 +301,8 @@ class CommandScorerBERT(nn.Module):
             obs_embedded = self.fc_dim_reduction(obs_embedded)
             cmds_embedded = self.fc_dim_reduction(cmds_embedded)
 
-        _, obs_encoder_hidden = self.obs_encoder_gru(obs_embedded) # 1 x 1 x hidden_size (since batch = 1)
-        _, cmds_encoder_hidden = self.cmd_encoder_gru.forward(cmds_embedded) # 1 x nb_cmds x hidden_size
+        _, obs_encoder_hidden = self.obs_encoder_gru(obs_embedded) # num_dir x 1 x hidden_size (since batch = 1)
+        _, cmds_encoder_hidden = self.cmd_encoder_gru.forward(cmds_embedded) # nun_dir x nb_cmds x hidden_size
 
         state_output, state_hidden = self.state_gru(obs_encoder_hidden, self.state_hidden)
         self.state_hidden = state_hidden
@@ -341,7 +336,7 @@ class SoftActorCriticBERT:
     LOG_FREQUENCY = 1000
     GAMMA = 0.9
 
-    def __init__(self, hidden_size=128, reduced_dim=None) -> None:
+    def __init__(self, hidden_size=128, reduced_dim=None, bidirectional=False) -> None:
         self._initialized = False
         self._epsiode_has_started = False
         self.transitions = []
@@ -349,7 +344,9 @@ class SoftActorCriticBERT:
         self.last_score = 0
         self.no_train_step = 0
 
-        self.model = CommandScorerBERT(hidden_size=hidden_size, reduced_dim=reduced_dim).to(device)
+        self.model = CommandScorerBERT(
+            hidden_size=hidden_size, reduced_dim=reduced_dim,
+            bidirectional=bidirectional).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), 0.00003)
 
         self.mode = "test"

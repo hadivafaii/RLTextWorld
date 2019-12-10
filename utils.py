@@ -13,7 +13,7 @@ def convert_time(time_in_secs):
 
     print("\nd / hh:mm:ss   --->   %d / %d:%d:%d\n" % (d, h, m, s))
 
-def plot_results(stats, labels=None, normalize=True, savefig=False):
+def plot_results(stats, labels=None, normalize=True, figsize=(12, 6), savefig=None):
     if type(stats) is not list:
         stats = [stats]
     if type(labels) is not list:
@@ -44,7 +44,7 @@ def plot_results(stats, labels=None, normalize=True, savefig=False):
             data_to_plot = pd.concat([data_to_plot, df], axis=0)
         data_to_plot_list.append(data_to_plot)
 
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=figsize)
     for indx, df in enumerate(data_to_plot_list):
         sns.lineplot(x="step", y="score", data=df, label=labels[indx])
     plt.xlabel("Steps", fontsize=20)
@@ -52,8 +52,8 @@ def plot_results(stats, labels=None, normalize=True, savefig=False):
     plt.grid()
     if None not in labels:
         plt.legend(loc='upper left')
-    if savefig:
-        plt.savefig("result.png", facecolor="white")
+    if savefig is not None:
+        plt.savefig(savefig, facecolor="white")
     plt.show()
 
     return data_list, data_to_plot_list
