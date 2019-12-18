@@ -31,6 +31,19 @@ class RandomAgent(textworld.gym.Agent):
         return self.rng.choice(infos["admissible_commands"])
 
 
+class ExpertAgent(textworld.gym.Agent):
+    """ Agent """
+
+    def __init__(self):
+        print('Step aside, StrawExpert coming')
+    @property
+    def infos_to_request(self) -> textworld.EnvInfos:
+        return textworld.EnvInfos(policy_commands=True)
+
+    def act(self, obs: str, score: int, done: bool, infos: Mapping[str, Any]) -> str:
+        return infos["policy_commands"][0]
+
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -52,15 +65,21 @@ class CommandScorer(nn.Module):
         batch_size = obs.size(1)
         nb_cmds = commands.size(1)
 
+        #batch_size = len(obs)
+
         embedded = self.embedding(obs)
-        encoder_output, encoder_hidden = self.encoder_gru(embedded)
+
+        obs_h_0 = torch.zeros(1, batch_size, self.hidden_size, device=device)
+        cmds_h_0 = torch.zeros(1, nb_cmds, self.hidden_size, device=device)
+
+        encoder_output, encoder_hidden = self.encoder_gru(embedded, obs_h_0)
         state_output, state_hidden = self.state_gru(encoder_hidden, self.state_hidden)
         self.state_hidden = state_hidden
         value = self.critic(state_output)
 
         # Attention network over the commands.
         cmds_embedding = self.embedding.forward(commands)
-        _, cmds_encoding_last_states = self.cmd_encoder_gru.forward(cmds_embedding)  # 1 x cmds x hidden
+        _, cmds_encoding_last_states = self.cmd_encoder_gru.forward(cmds_embedding, cmds_h_0)  # 1 x cmds x hidden
 
         # Same observed state for all commands.
         # cmd_selector_input = torch.stack([state_hidden] * nb_cmds, 2)  # 1 x batch x cmds x hidden
@@ -90,7 +109,7 @@ class SoftActorCritic:
     LOG_FREQUENCY = 1000
     GAMMA = 0.9
 
-    def __init__(self, hidden_size=128) -> None:
+    def __init__(self, hidden_size=128, reg=None) -> None:
         self._initialized = False
         self._epsiode_has_started = False
         self.transitions = []
@@ -103,6 +122,13 @@ class SoftActorCritic:
 
         self.model = CommandScorer(input_size=self.MAX_VOCAB_SIZE, hidden_size=hidden_size).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), 0.00003)
+
+        if reg is None:
+            self.reg = {'lambda_pol': 1.0, 'lambda_val': 0.5, 'lambda_ent': 0.1}
+        else:
+            self.reg = reg
+
+        self.huber_loss = nn.SmoothL1Loss(reduction='sum')
 
         self.mode = "test"
 
@@ -117,7 +143,7 @@ class SoftActorCritic:
     @property
     def infos_to_request(self) -> EnvInfos:
         return EnvInfos(description=True, inventory=True, admissible_commands=True,
-                        has_won=True, has_lost=True)
+                        won=True, lost=True)
 
     def _get_word_id(self, word):
         if word not in self.word2id:
@@ -183,9 +209,9 @@ class SoftActorCritic:
         if self.transitions:
             reward = score - self.last_score  # Reward is the gain/loss in score.
             self.last_score = score
-            if infos["has_won"]:
+            if infos["won"]:
                 reward += 100
-            if infos["has_lost"]:
+            if infos["lost"]:
                 reward -= 100
 
             self.transitions[-1][0] = reward  # Update reward information.
@@ -204,9 +230,12 @@ class SoftActorCritic:
                 log_probs = torch.log(probs)
                 log_action_probs = log_probs.gather(2, indexes_)
                 policy_loss = (-log_action_probs * advantage).sum()
-                value_loss = (.5 * (values_ - ret) ** 2.).sum()
+                # value_loss = (.5 * (values_ - ret) ** 2.).sum()
+                value_loss = self.huber_loss(values_, ret)
                 entropy = (-probs * log_probs).sum()
-                loss += policy_loss + 0.5 * value_loss - 0.1 * entropy
+                loss += (self.reg['lambda_pol'] * policy_loss +
+                         self.reg['lambda_val'] * value_loss -
+                         self.reg['lambda_ent'] * entropy)
 
                 self.stats["mean"]["reward"].append(reward)
                 self.stats["mean"]["policy"].append(policy_loss.item())
@@ -267,9 +296,9 @@ class CommandScorerBERT(nn.Module):
     def _process(self, doc):
         # get list of tokenized sentences in doc
         if type(doc) is not list:
-            # doc_resub = re.sub("[^a-zA-Z0-9\-'.]", " ", doc).strip()
-            doc = [re.sub("[^a-zA-Z0-9\-']", " ", doc).strip()]
-            #doc = list(filter(None, doc_resub.split(".")))
+            doc_resub = re.sub("[^a-zA-Z0-9\-'.]", " ", doc).strip()
+            # doc = [re.sub("[^a-zA-Z0-9\-']", " ", doc).strip()]
+            doc = list(filter(None, doc_resub.split(".")))
         tokenized_doc = [self.tokenizer.tokenize("[CLS]" + sentence + "[SEP]") for sentence in doc]
 
         # pad
@@ -301,8 +330,11 @@ class CommandScorerBERT(nn.Module):
             obs_embedded = self.fc_dim_reduction(obs_embedded)
             cmds_embedded = self.fc_dim_reduction(cmds_embedded)
 
-        _, obs_encoder_hidden = self.obs_encoder_gru(obs_embedded) # num_dir x 1 x hidden_size (since batch = 1)
-        _, cmds_encoder_hidden = self.cmd_encoder_gru.forward(cmds_embedded) # nun_dir x nb_cmds x hidden_size
+        obs_h_0 = torch.zeros(1, batch_size, self.hidden_size, device=device)
+        cmds_h_0 = torch.zeros(1, nb_cmds, self.hidden_size, device=device)
+
+        _, obs_encoder_hidden = self.obs_encoder_gru(obs_embedded, obs_h_0) # num_dir x 1 x hidden_size (since batch = 1)
+        _, cmds_encoder_hidden = self.cmd_encoder_gru.forward(cmds_embedded, cmds_h_0) # num_dir * nb_cmds x 1 x hidden_size
 
         state_output, state_hidden = self.state_gru(obs_encoder_hidden, self.state_hidden)
         self.state_hidden = state_hidden

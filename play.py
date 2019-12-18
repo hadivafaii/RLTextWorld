@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import random
 from glob import glob
 from collections import defaultdict
 
@@ -7,17 +8,23 @@ import gym
 import textworld.gym
 
 
-def play(agent, path, max_step=100, nb_episodes=10, verbose=True):
+def play(agent, path, batch_size=16, max_step=100, nb_episodes=10, nb_games=None, verbose=True):
     infos_to_request = agent.infos_to_request
     infos_to_request.max_score = True  # Needed to normalize the scores.
 
     gamefiles = [path]
     if os.path.isdir(path):
-        gamefiles = glob(os.path.join(path, "*.ulx"))
+        if nb_games is not None:
+            gamefiles = random.sample(glob(os.path.join(path, "*.ulx")), nb_games)
+        else:
+            gamefiles = glob(os.path.join(path, "*.ulx"))
 
-    env_id = textworld.gym.register_games(gamefiles,
-                                          request_infos=infos_to_request,
-                                          max_episode_steps=max_step)
+    env_id = textworld.gym.register_games(
+        gamefiles, request_infos=infos_to_request, max_episode_steps=max_step)
+
+    if batch_size is not None:
+        env_id = textworld.gym.utils.make_batch(env_id, batch_size)
+
     env = gym.make(env_id)  # Create a Gym environment to play the text game.
 
     if verbose:
@@ -29,6 +36,7 @@ def play(agent, path, max_step=100, nb_episodes=10, verbose=True):
     avg_moves, avg_scores, avg_norm_scores = [], [], []
     play_stats = defaultdict()
     scores_dict = defaultdict(list)
+    max_scores_dict = defaultdict(int)
     for no_episode in range(nb_episodes):
         obs, infos = env.reset()  # Start new episode.
 
@@ -44,6 +52,8 @@ def play(agent, path, max_step=100, nb_episodes=10, verbose=True):
             nb_moves += 1
 
         scores_dict['episode_%d' % no_episode] = scores_
+        max_scores_dict['episode_%d' % no_episode] = infos['max_score']
+
         agent.act(obs, score, done, infos)  # Let the agent know the game is done.
 
         if verbose:
@@ -53,9 +63,11 @@ def play(agent, path, max_step=100, nb_episodes=10, verbose=True):
         avg_norm_scores.append(score / infos["max_score"])
 
     play_stats["scores"] = scores_dict
-    play_stats["max_score"] = infos["max_score"]
+    play_stats["max_score"] = max_scores_dict
     play_stats["nb_episodes"] = nb_episodes
     play_stats["max_step"] = max_step
+    play_stats["avg_moves"] = avg_moves
+    play_stats["avg_scores"] = avg_scores
 
     env.close()
     msg = "  \tavg. steps: {:5.1f}; avg. score: {:4.1f} / {}."

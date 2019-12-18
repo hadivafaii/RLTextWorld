@@ -13,7 +13,8 @@ def convert_time(time_in_secs):
 
     print("\nd / hh:mm:ss   --->   %d / %d:%d:%d\n" % (d, h, m, s))
 
-def plot_results(stats, labels=None, normalize=True, figsize=(12, 6), savefig=None):
+
+def plot_results(stats, labels=None, normalize=True, figsize=(12, 6), legend_loc='lower right', savefig=None):
     if type(stats) is not list:
         stats = [stats]
     if type(labels) is not list:
@@ -26,10 +27,11 @@ def plot_results(stats, labels=None, normalize=True, figsize=(12, 6), savefig=No
         nb_episodes = stat["nb_episodes"]
         max_step = stat["max_step"]
 
-        data = pd.DataFrame()
+        data = pd.DataFrame(index=range(max_step))
         for t in range(nb_episodes):
             if normalize:
-                scores_in_episode = np.array(stat['scores']['episode_%d' % t]) / stat["max_score"] * 100
+                scores_in_episode = (np.array(stat['scores']['episode_%d' % t]) /
+                                     stat['max_score']['episode_%d' % t] * 100)
             else:
                 scores_in_episode = np.array(stat['scores']['episode_%d' % t]).astype(float)
 
@@ -51,7 +53,7 @@ def plot_results(stats, labels=None, normalize=True, figsize=(12, 6), savefig=No
     plt.ylabel("Score %s" % "%", fontsize=20)
     plt.grid()
     if None not in labels:
-        plt.legend(loc='upper left')
+        plt.legend(loc=legend_loc, fontsize=20)
     if savefig is not None:
         plt.savefig(savefig, facecolor="white")
     plt.show()
