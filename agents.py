@@ -368,7 +368,7 @@ class SoftActorCriticBERT:
     LOG_FREQUENCY = 1000
     GAMMA = 0.9
 
-    def __init__(self, hidden_size=128, reduced_dim=None, bidirectional=False) -> None:
+    def __init__(self, hidden_size=128, reduced_dim=None, reg=None, bidirectional=False) -> None:
         self._initialized = False
         self._epsiode_has_started = False
         self.transitions = []
@@ -380,6 +380,13 @@ class SoftActorCriticBERT:
             hidden_size=hidden_size, reduced_dim=reduced_dim,
             bidirectional=bidirectional).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), 0.00003)
+
+        if reg is None:
+            self.reg = {'lambda_pol': 1.0, 'lambda_val': 1.0, 'lambda_ent': 0}
+        else:
+            self.reg = reg
+
+        self.huber_loss = nn.SmoothL1Loss(reduction='sum')
 
         self.mode = "test"
 
@@ -394,7 +401,7 @@ class SoftActorCriticBERT:
     @property
     def infos_to_request(self) -> EnvInfos:
         return EnvInfos(description=True, inventory=True, admissible_commands=True,
-                        has_won=True, has_lost=True)
+                        won=True, lost=True)
 
     def _discount_rewards(self, last_values):
         returns, advantages = [], []
@@ -427,9 +434,9 @@ class SoftActorCriticBERT:
         if self.transitions:
             reward = score - self.last_score  # Reward is the gain/loss in score.
             self.last_score = score
-            if infos["has_won"]:
+            if infos["won"]:
                 reward += 100
-            if infos["has_lost"]:
+            if infos["lost"]:
                 reward -= 100
 
             self.transitions[-1][0] = reward  # Update reward information.
@@ -448,9 +455,12 @@ class SoftActorCriticBERT:
                 log_probs = torch.log(probs)
                 log_action_probs = log_probs.gather(2, indexes_)
                 policy_loss = (-log_action_probs * advantage).sum()
-                value_loss = (.5 * (values_ - ret) ** 2.).sum()
+                # value_loss = (.5 * (values_ - ret) ** 2.).sum()
+                value_loss = self.huber_loss(values_, ret)
                 entropy = (-probs * log_probs).sum()
-                loss += policy_loss + 0.5 * value_loss - 0.1 * entropy
+                loss += (self.reg['lambda_pol'] * policy_loss +
+                         self.reg['lambda_val'] * value_loss -
+                         self.reg['lambda_ent'] * entropy)
 
                 self.stats["mean"]["reward"].append(reward)
                 self.stats["mean"]["policy"].append(policy_loss.item())

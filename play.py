@@ -22,8 +22,8 @@ def play(agent, path, batch_size=16, max_step=100, nb_episodes=10, nb_games=None
     env_id = textworld.gym.register_games(
         gamefiles, request_infos=infos_to_request, max_episode_steps=max_step)
 
-    if batch_size is not None:
-        env_id = textworld.gym.utils.make_batch(env_id, batch_size)
+   # if batch_size is not None:
+   #     env_id = textworld.gym.utils.make_batch(env_id, batch_size)
 
     env = gym.make(env_id)  # Create a Gym environment to play the text game.
 
