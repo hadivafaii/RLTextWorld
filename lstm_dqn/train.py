@@ -15,7 +15,7 @@ AVAILABLE_INFORMATION = EnvInfos(
     description=True, inventory=True,
     max_score=True, objective=True, entities=True, verbs=True,
     command_templates=True, admissible_commands=True,
-    has_won=True, has_lost=True,
+    won=True, lost=True,
     extras=["recipe"]
 )
 

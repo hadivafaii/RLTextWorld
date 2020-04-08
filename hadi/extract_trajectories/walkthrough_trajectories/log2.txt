@@ -1,0 +1,230 @@
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:20629): Gdk-CRITICAL **: 01:00:49.742: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 0,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 0:444, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=0,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:11:59
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:26769): Gdk-CRITICAL **: 01:12:52.095: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 1,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 444:888, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=1,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:13:45
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:2130): Gdk-CRITICAL **: 01:26:40.860: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 2,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 888:1332, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=2,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:12:55
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:9093): Gdk-CRITICAL **: 01:39:39.309: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 3,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 1332:1776, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=3,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:13:11
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:16627): Gdk-CRITICAL **: 01:52:54.017: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 4,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 1776:2220, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=4,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:15:0
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:24692): Gdk-CRITICAL **: 02:07:57.442: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 5,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 2220:2664, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=5,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:13:28
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:31757): Gdk-CRITICAL **: 02:21:29.106: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 6,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 2664:3108, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=6,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:12:54
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:6472): Gdk-CRITICAL **: 02:34:26.868: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 7,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 3108:3552, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=7,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:12:39
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:13571): Gdk-CRITICAL **: 02:47:09.108: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 8,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 3552:3996, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=8,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:13:57
+
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(gen_traj.py:21536): Gdk-CRITICAL **: 03:01:09.483: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+verbosity is on
+[PROGRESS] data generation initiated.	 iter. # 9,	 mode: walkthrough,	 epsilon: 0.800000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 111,	 batch_size: 4
+[PROGRESS] using games 3996:4440, total num_games: 4440
+[PROGRESS]   . . .   9.91 % done
+[PROGRESS]   . . .   19.82 % done
+[PROGRESS]   . . .   29.73 % done
+[PROGRESS]   . . .   39.64 % done
+[PROGRESS]   . . .   49.55 % done
+[PROGRESS]   . . .   59.46 % done
+[PROGRESS]   . . .   69.37 % done
+[PROGRESS]   . . .   79.28 % done
+[PROGRESS]   . . .   89.19 % done
+[PROGRESS]   . . .   99.10 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_[step=9,eps=0.80].npy
+
+d / hh:mm:ss   --->   0 / 0:13:54
+
