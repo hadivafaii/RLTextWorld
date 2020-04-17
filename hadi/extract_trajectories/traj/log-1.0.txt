@@ -1,0 +1,18 @@
+verbosity is on
+[PROGRESS] data generation initiated.	 mode: walkthrough,	 epsilon: 1.000000
+[PROGRESS] using parameters 	 max_steps: 100,	 episodes: 1110,	 batch_size: 4
+[PROGRESS]   . . .   10.00 % done
+[PROGRESS]   . . .   20.00 % done
+[PROGRESS]   . . .   30.00 % done
+[PROGRESS]   . . .   40.00 % done
+[PROGRESS]   . . .   50.00 % done
+[PROGRESS]   . . .   60.00 % done
+[PROGRESS]   . . .   70.00 % done
+[PROGRESS]   . . .   80.00 % done
+[PROGRESS]   . . .   90.00 % done
+[PROGRESS]   . . .   100.00 % done
+[PROGRESS] done!
+[PROGRESS] file saved:  walkthrough_traj_eps=1.00.npy
+
+d / hh:mm:ss   --->   0 / 6:45:37
+
