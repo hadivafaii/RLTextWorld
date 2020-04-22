@@ -8,13 +8,13 @@ class TransformerConfig(object):
         num_hidden_layers=3,
         num_attention_heads=2,
         intermediate_size=512,
-        max_position_embeddings=8192,
+        max_position_embeddings=4096,
         hidden_act="gelu",
         hidden_dropout_prob=0.0,
         attention_probs_dropout_prob=0.1,
         initializer_range=0.02,
         layer_norm_eps=1e-12,
-        padding_id=0,
+        pad_id=0,
         obs_id=1,
         act_id=2,
         unk_id=3,
@@ -34,7 +34,7 @@ class TransformerConfig(object):
         self.attention_probs_dropout_prob = attention_probs_dropout_prob
         self.initializer_range = initializer_range
         self.layer_norm_eps = layer_norm_eps
-        self.padding_id = padding_id
+        self.pad_id = pad_id
         self.obs_id = obs_id
         self.act_id = act_id
         self.unk_id = unk_id

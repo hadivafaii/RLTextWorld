@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+import numpy as np
 import math
 
 
@@ -21,21 +22,22 @@ class Embeddings(nn.Module):
 
     def __init__(self, config):
         super().__init__()
+        self.embedding_size = config.embedding_size
 
         self.word_embeddings = nn.Embedding(
             config.vocab_size,
             config.embedding_size,
-            padding_idx=config.padding_id,
+            padding_idx=config.pad_id,
         )
         self.type_embeddings = nn.Embedding(
             config.type_vocab_size,
             config.embedding_size,
-            padding_idx=config.padding_id,
+            padding_idx=config.pad_id,
         )
         self.position_embeddings = nn.Embedding(
             config.max_position_embeddings,
             config.embedding_size,
-            padding_idx=config.padding_id,
+            padding_idx=config.pad_id,
         )
 
         pe = _get_postitional_embeddings(config.max_position_embeddings - 1, config.embedding_size)
@@ -46,21 +48,23 @@ class Embeddings(nn.Module):
         self.LayerNorm = nn.LayerNorm(config.embedding_size, eps=config.layer_norm_eps, elementwise_affine=True)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, input_ids, type_ids, position_ids=None):
-        batch_size, seq_length = input_ids.size()
+    def forward(self, token_ids, type_ids, position_ids=None):
+        batch_size, seq_length = token_ids.size()
 
-        input_embeddings = self.word_embeddings(input_ids)
+        token_embeddings = self.word_embeddings(token_ids)
         type_embeddings = self.type_embeddings(type_ids)
 
-        device = input_ids.device
+        device = token_ids.device
         if position_ids is None:
             position_ids = torch.arange(seq_length, dtype=torch.long, device=device)
-            position_embeddings = self.position_embeddings(position_ids).expand(input_embeddings.size())
+            position_embeddings = self.position_embeddings(position_ids).expand(token_embeddings.size())
 
         position_embeddings = self.position_embeddings(position_ids)
 
         embeddings = (
-            np.sqrt(config.embedding_size) * (input_embeddings + type_embeddings) + position_embeddings)
+            np.sqrt(self.embedding_size) * (token_embeddings + type_embeddings)
+            + position_embeddings
+        )
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
         return embeddings

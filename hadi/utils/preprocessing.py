@@ -157,7 +157,28 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
         if tok not in w2i:
             w2i.update({tok: len(w2i)})
 
+    # first update w2i to add extra verbose
+    for verb in list(verb_counts.keys()):
+        if verb not in w2i:
+            w2i.update({verb: len(w2i)})
+
     i2w = {w2i[tok]: tok for tok in w2i}
+
+
+    ### Get entity and verb to indx and vice versa
+    entities_tokenized = [tuple(w2i[x] for x in preproc(ent, get_nlp().tokenizer)) for ent in list(entity_counts.keys())]
+    entity2indx = {}
+    for ent in entities_tokenized:
+        entity2indx.update({ent: len(entity2indx)})
+    indx2entity = {entity2indx[ent]: ent for ent in entity2indx}
+
+    verbs_tokenized = [tuple(w2i[x] for x in preproc(verb, get_nlp().tokenizer)) for verb in list(verb_counts.keys())]
+    verb2indx = {}
+    for verb in verbs_tokenized:
+        verb2indx.update({verb: len(verb2indx)})
+    indx2verb = {verb2indx[verb]: verb for verb in verb2indx}
+
+
 
 
     ### Turn string based data into integer based
@@ -216,10 +237,13 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
 
     data = {
         'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids, 'trajectory_segment_ids': trajectory_segment_ids,
-        'sequence_ids': sequences_all.astype(int), 'segment_ids': segments_all.astype(int),
-        'position_ids': positions_all.astype(int), 'masks': masks_all.astype(int), 'type_ids': token_types_all.astype(int),
+        'sequence_ids': sequences_all.astype(int), 'type_ids': token_types_all.astype(int),
+        'position_ids': positions_all.astype(int), 'masks': masks_all.astype(int),
+        'segment_ids': segments_all.astype(int), 'walkthroughs_len_counts': walkthroughs_len_counts,
         'verb_counts': verb_counts, 'entity_counts': entity_counts, 'unigram_counts': unigram_counts,
-        'walkthroughs_len_counts': walkthroughs_len_counts, 'w2i': w2i, 'i2w': i2w,
+        'entity2indx': entity2indx, 'indx2entity': indx2entity,
+        'verb2indx': verb2indx, 'indx2verb':indx2verb,
+        'w2i': w2i, 'i2w': i2w,
     }
 
     return data
