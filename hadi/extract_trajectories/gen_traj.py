@@ -1,50 +1,7 @@
-import argparse
-parser = argparse.ArgumentParser()
-
-parser.add_argument("iter", help="iteration step", type=int)
-parser.add_argument("num_groups", help="how many subgroups to divide to", type=int)
-parser.add_argument(
-    "--exploration_mode", help="exploration mode: random or walkthrough. default: walkthrough",
-    type=str, default='walkthrough',
-    )
-parser.add_argument(
-    "--epsilon", help="walkthrough to random cutoff portion. default: 1",
-    type=float, default=1.0,
-    )
-parser.add_argument(
-    "--max_steps", help="maximum number of steps per episode. default: 100",
-    type=int, default=100,
-    )
-parser.add_argument(
-    "--extra_episodes", help="number of extra episodes per game. default: 1",
-    type=int, default=1,
-    )
-parser.add_argument(
-    "--batch_size", help="batch_size. defaults to 32",
-    type=int, default=32,
-    )
-parser.add_argument(
-    "--seed", help="Random seed. default: 665",
-    type=int, default=665,
-    )
-parser.add_argument(
-    "--silent", help="add this flag to force silence output verbosity",
-    action="store_true",
-    )
-
-args = parser.parse_args()
-
-if not args.silent:
-    print("verbosity is on")
-
-assert 0 <= args.epsilon <= 1, 'epsilon is a float in [0, 1]'
-
-
-
 import numpy as np
-import random
-random.seed(args.seed)
-np.random.seed(args.seed)
+#import random
+#random.seed(args.seed)
+#np.random.seed(args.seed)
 
 import os
 import sys
@@ -57,15 +14,15 @@ from utils.preprocessing import get_nlp, preproc
 from textworld import EnvInfos
 from textworld.gym import envs
 from collections import Counter
-import itertools
+
 
 def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                         batch_size=111, mode='walkthrough', epsilon=1, SEED=0):
     rng = np.random.RandomState(SEED)
 
     requested_infos = EnvInfos(
-        max_score=True, verbs=True, entities=True,
-        admissible_commands=True, moves=True, game=True)
+        max_score=True, verbs=True, entities=True, moves=True,
+        admissible_commands=True, policy_commands=True, game=True)
 
     env = envs.textworld_batch.TextworldBatchGymEnv(
         game_files, request_infos=requested_infos,
@@ -99,17 +56,19 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
             [cmd for cmd in cmd_list if cmd not in ['look']]
             for cmd_list in infos["admissible_commands"]]
 
+        if mode == 'policy' and min([len(x) for x in infos["policy_commands"]]) == 0:
+            print('warning, policy mode activated but no policy commands found')
+
         trajectory = [['[OBS]'] + preproc(x, tokenizer) for x in obs]
 
         nb_moves_this_episode = [0] * batch_size
         dones = [False] * batch_size
         trajectory_dones = [False] * batch_size
         while not all(dones):
-            if mode=='walkthrough':
-                walkthrough_commands = [
-                    tup[1][min(len(tup[1])-1, tup[0])] for tup in
-                    zip(nb_moves_this_episode, walkthroughs)]
-                random_numbers = [rng.uniform(0, 1) for i in range(batch_size)]
+            random_numbers = rng.uniform(0, 1, batch_size)
+            if mode == 'walkthrough':
+                walkthrough_commands = [tup[1][min(len(tup[1])-1, tup[0])]
+                                        for tup in zip(nb_moves_this_episode, walkthroughs)]
                 commands = []
                 for i in range(batch_size):
                     if epsilon >= random_numbers[i]:
@@ -119,10 +78,16 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                         commands.append(rng.choice(admissible_commands[i]))
                         nb_moves_this_episode[i] = rng.choice(range(2 * (nb_moves_this_episode[i] // 3),
                                                                     nb_moves_this_episode[i]+1))
-            elif mode=='random':
-                commands = [rng.choice(x) for x in admissible_commands]
+            elif mode == 'policy':
+                policy_commands = infos['policy_commands']
+                commands = []
+                for i in range(batch_size):
+                    if epsilon >= random_numbers[i]:
+                        commands.append(policy_commands[i])
+                    else:
+                        commands.append(rng.choice(admissible_commands[i]))
             else:
-                raise(NotImplementedError)
+                raise NotImplementedError
 
             obs, scores, dones, infos = env.step(commands)
 
@@ -147,20 +112,73 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
 
 
 if __name__ == "__main__":
-    games_dir = "/home/hadivafa/Documents/FTWP/DATA/games"
+    import argparse
+    parser = argparse.ArgumentParser()
 
-    trn_dir = os.path.join(games_dir, 'train')
-    val_dir = os.path.join(games_dir, 'valid')
+    parser.add_argument("game_type", help="(str) game type. (e.g. tw_cooking/train)", type=str)
+    parser.add_argument("iter", help="iteration step", type=int)
+    parser.add_argument("num_groups", help="how many subgroups to divide to", type=int)
 
-    trn_game_files = os.listdir(trn_dir)
-    trn_game_files = [os.path.join(trn_dir, g) for g in trn_game_files if '.ulx' in g]
+    parser.add_argument(
+        "--exploration_mode", help="exploration mode: policy or walkthrough. default: walkthrough",
+        type=str, default='walkthrough',
+        )
+    parser.add_argument(
+        "--epsilon", help="walkthrough to random cutoff portion. default: 1",
+        type=float, default=1.0,
+        )
+    parser.add_argument(
+        "--max_steps", help="maximum number of steps per episode. default: 100",
+        type=int, default=100,
+        )
+    parser.add_argument(
+        "--extra_episodes", help="number of extra episodes per game. default: 1",
+        type=int, default=1,
+        )
+    parser.add_argument(
+        "--batch_size", help="batch_size. defaults to 32",
+        type=int, default=32,
+        )
+    parser.add_argument(
+        "--seed", help="Random seed. default: 665",
+        type=int, default=665,
+        )
+    parser.add_argument(
+        "--load_dir", help="dir where games are. default: ~/game_type",
+        type=str, default=''
+        )
+    parser.add_argument(
+        "--save_dir", help="dir to save extracted trajectories. default: ~/game_type/raw_trajectories",
+        type=str, default='raw_trajectories',
+        )
+    parser.add_argument(
+        "--silent", help="add this flag to force silence output verbosity",
+        action="store_true",
+        )
 
-    group_size = int(np.ceil(len(trn_game_files) / args.num_groups))
+    args = parser.parse_args()
+
+    base_load_dir = os.path.join('/home/hadivafa/Documents/FTWP/games', args.game_type)
+    base_save_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type)
+
+    load_dir = os.path.join(base_load_dir, args.load_dir)
+    save_dir = os.path.join(base_save_dir, args.save_dir)
+
+    if not args.silent:
+        print("verbosity is on")
+
+    assert 0 <= args.epsilon <= 1, 'epsilon is a float in [0, 1]'
+
+
+    game_files = os.listdir(load_dir)
+    game_files = [os.path.join(load_dir, g) for g in game_files if '.ulx' in g]
+
+    group_size = int(np.ceil(len(game_files) / args.num_groups))
 
     a = args.iter * group_size
     b = (args.iter + 1) * group_size
 
-    game_files = trn_game_files[a:b]
+    game_files = game_files[a:b]
     num_games = len(game_files)
 
     episodes =  int(np.ceil(num_games / args.batch_size))
@@ -177,22 +195,24 @@ if __name__ == "__main__":
     tokenizer = get_nlp().tokenizer
 
     start_time = time()
-    trn_data = generate_trajectory(
+    raw_trajectories = generate_trajectory(
         game_files, tokenizer,
         max_steps=args.max_steps, episodes=episodes, batch_size=args.batch_size,
         mode=args.exploration_mode, epsilon=args.epsilon, SEED=args.seed)
     end_time = time()
 
     ### save data
-    dir_ = '/home/hadivafa/Dropbox/git/RLnTextWorld/hadi/extract_trajectories'
-    save_dir = os.path.join(dir_, 'eps={:.2f}'.format(args.epsilon))
-    os.makedirs(save_dir, exist_ok=True)
-    file_name = '{:s}_traj_iter={:d}.npy'.format(args.exploration_mode, args.iter)
-    save_ = os.path.join(save_dir, file_name)
-    np.save(save_, trn_data)
+    save_ = os.path.join(save_dir, 'eps={:.2f}'.format(args.epsilon))
+    os.makedirs(save_, exist_ok=True)
+    file_name = 'iter={:d}.npy'.format(args.iter)
+    np.save(
+        os.path.join(save_, file_name),
+        raw_trajectories)
 
     if not args.silent:
         print('[PROGRESS] done!')
         print('[PROGRESS] file saved: ', file_name)
 
     convert_time(end_time - start_time)
+
+    print('Done!')

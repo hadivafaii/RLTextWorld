@@ -1,12 +1,14 @@
 import numpy as np
+import os
 import re
 import spacy
-from spacy.util import compile_infix_regex
 from collections import Counter
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('darkgrid')
+
+
 
 def get_nlp():
     """
@@ -254,29 +256,43 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
+        "game_type", help="(str) game type. (e.g. tw_cooking/train)",
+        type=str
+    )
+    parser.add_argument(
         "max_length", help="max length of trajectories. default: 512",
         type=int, default=512,
-        )
+    )
     parser.add_argument(
-        "--save_dir", help="save directory. default: '/home/hadivafa/Documents/FTWP/processed_data'",
-        type=str, default="/home/hadivafa/Documents/FTWP/processed_data",
-        )
+        "--load_dir", help="save directory. default: '~/game_type/raw_trajectories'",
+        type=str, default="raw_trajectories",
+    )
+    parser.add_argument(
+        "--save_dir", help="save directory. default: '~/game_type/processed_trajectories'",
+        type=str, default="processed_trajectories",
+    )
 
     args = parser.parse_args()
+
+    base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type)
+
+    args.load_dir = os.path.join(base_dir, args.load_dir)
+    args.save_dir = os.path.join(base_dir, args.save_dir)
 
     data_all = {}
 
     import os
     from tqdm import tqdm
     for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_length)):
-        dir_ = '/home/hadivafa/Dropbox/git/RLnTextWorld/hadi/extract_trajectories/eps={:.2f}'.format(eps)
-        files_ = ['walkthrough_traj_iter={}.npy'.format(x) for x in np.arange(20)]
+        dir_ = os.path.join(args.load_dir, 'eps={:.2f}'.format(eps))
+        files_ = ['iter={}.npy'.format(x) for x in np.arange(20)]
         data_files = [os.path.join(dir_, x) for x in files_]
 
         data_ = process_data(data_files, max_length=args.max_length)
         data_all.update({'eps={:.2f}'.format(eps): data_})
 
-    dir_ = os.path.join(args.save_dir, 'data_max_len={:d}.npy'.format(args.max_length))
+    os.makedirs(args.save_dir, exist_ok=True)
+    dir_ = os.path.join(args.save_dir, 'max_len={:d}.npy'.format(args.max_length))
     np.save(dir_, data_all)
 
     print('Done!')

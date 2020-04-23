@@ -2,13 +2,291 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/make_games.sh" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/utils.py" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/model/configuration.py" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/model/embeddings.py" afterPath="$PROJECT_DIR$/hadi/model/embeddings.py" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.00/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.10/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.20/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.30/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.40/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.50/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.60/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.70/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.80/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=0.90/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=10.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=11.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=12.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=13.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=14.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=15.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=16.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=17.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=18.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=19.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=2.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=3.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=4.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=5.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=6.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=7.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=8.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/eps=1.00/walkthrough_traj_iter=9.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/traj/log-0.9.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/traj/log-1.0.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/traj/walkthrough_traj_eps=0.90.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/traj/walkthrough_traj_eps=1.00.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/log.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/log2.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/log3.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/log4.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/log5.txt" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=0,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=0,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=0,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=0,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=0,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=1,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=1,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=1,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=1,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=1,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=2,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=2,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=2,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=2,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=2,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=3,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=3,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=3,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=3,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=3,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=4,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=4,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=4,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=4,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=4,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=5,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=5,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=5,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=5,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=5,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=6,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=6,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=6,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=6,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=6,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=7,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=7,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=7,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=7,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=7,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=8,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=8,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=8,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=8,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=8,eps=1.00].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=9,eps=0.20].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=9,eps=0.40].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=9,eps=0.60].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=9,eps=0.80].npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/walkthrough_trajectories/walkthrough_traj_[step=9,eps=1.00].npy" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.py" afterPath="$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.sh" afterPath="$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.sh" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/utils/preprocessing.py" afterPath="$PROJECT_DIR$/hadi/utils/preprocessing.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/utils/utils.py" afterPath="$PROJECT_DIR$/hadi/utils/utils.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lstm_dqn/.idea/workspace.xml" afterPath="$PROJECT_DIR$/lstm_dqn/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/hadi/utils/process_traj.sh" afterPath="$PROJECT_DIR$/hadi/utils/process_traj.sh" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -29,23 +307,35 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="gen_pretrain_data.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py">
+      <file leaf-file-name="gen_traj.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
-              <caret line="11" column="0" lean-forward="true" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
+            <state relative-caret-position="607">
+              <caret line="177" column="30" lean-forward="true" selection-start-line="177" selection-start-column="30" selection-end-line="177" selection-end-column="30" />
               <folding>
-                <element signature="e#0#9#0" expanded="true" />
+                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="agents.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/agents.py">
+      <file leaf-file-name="preprocessing.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/hadi/utils/preprocessing.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3435">
-              <caret line="244" column="0" lean-forward="false" selection-start-line="244" selection-start-column="0" selection-end-line="244" selection-end-column="0" />
+            <state relative-caret-position="286">
+              <caret line="277" column="0" lean-forward="true" selection-start-line="277" selection-start-column="0" selection-end-line="277" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#18#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="gen_pretrain_data.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="45">
+              <caret line="238" column="0" lean-forward="true" selection-start-line="238" selection-start-column="0" selection-end-line="238" selection-end-column="0" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -71,6 +361,9 @@
       <find>tran</find>
       <find>has_w</find>
       <find>agent</find>
+      <find>sys</find>
+      <find>args.dir</find>
+      <find>nb_moves_this_episode</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -82,12 +375,15 @@
         <option value="$PROJECT_DIR$/utils.py" />
         <option value="$PROJECT_DIR$/agents.py" />
         <option value="$PROJECT_DIR$/play.py" />
+        <option value="$PROJECT_DIR$/hadi/utils/preprocessing.py" />
+        <option value="$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.py" />
+        <option value="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-1564" />
-    <option name="y" value="-73" />
+    <option name="x" value="-1775" />
+    <option name="y" value="-38" />
     <option name="width" value="1433" />
     <option name="height" value="833" />
   </component>
@@ -158,6 +454,12 @@
               <item name="hadi" type="462c0819:PsiDirectoryNode" />
               <item name="pretrain" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
+              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
+              <item name="hadi" type="462c0819:PsiDirectoryNode" />
+              <item name="utils" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
@@ -199,11 +501,13 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1564" y="-73" width="1433" height="833" extended-state="0" />
+    <frame x="-1775" y="-38" width="1433" height="833" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.13012221" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.13012221" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Inspection Results" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32791328" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -211,13 +515,12 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32997844" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Inspection Results" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3287483" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
@@ -230,38 +533,12 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="20" column="0" lean-forward="false" selection-start-line="20" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/agents.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15">
-          <caret line="14" column="0" lean-forward="true" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/play.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/agents.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -287,7 +564,7 @@
         <state relative-caret-position="45">
           <caret line="3" column="0" lean-forward="true" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -313,7 +590,7 @@
         <state relative-caret-position="54">
           <caret line="3" column="0" lean-forward="true" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -331,7 +608,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -357,7 +634,7 @@
         <state relative-caret-position="-808">
           <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -383,7 +660,7 @@
         <state relative-caret-position="54">
           <caret line="3" column="0" lean-forward="true" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -401,7 +678,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -419,7 +696,7 @@
         <state relative-caret-position="205">
           <caret line="18" column="5" lean-forward="false" selection-start-line="18" selection-start-column="5" selection-end-line="18" selection-end-column="5" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -453,7 +730,7 @@
         <state relative-caret-position="54">
           <caret line="18" column="5" lean-forward="false" selection-start-line="18" selection-start-column="5" selection-end-line="18" selection-end-column="5" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -479,7 +756,7 @@
         <state relative-caret-position="15">
           <caret line="14" column="0" lean-forward="true" selection-start-line="14" selection-start-column="0" selection-end-line="14" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -497,7 +774,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -523,7 +800,7 @@
         <state relative-caret-position="45">
           <caret line="3" column="0" lean-forward="true" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -549,7 +826,7 @@
         <state relative-caret-position="54">
           <caret line="3" column="0" lean-forward="true" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -567,7 +844,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -593,7 +870,7 @@
         <state relative-caret-position="-808">
           <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -619,7 +896,7 @@
         <state relative-caret-position="54">
           <caret line="3" column="0" lean-forward="true" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -637,7 +914,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -660,18 +937,46 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/agents.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3435">
+        <state relative-caret-position="1967">
           <caret line="244" column="0" lean-forward="false" selection-start-line="244" selection-start-column="0" selection-end-line="244" selection-end-column="0" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Library/Caches/PyCharmCE2017.2/python_stubs/520788495/builtins.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="865">
+          <caret line="4782" column="8" lean-forward="false" selection-start-line="4782" selection-start-column="8" selection-end-line="4782" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/hadi/utils/preprocessing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="286">
+          <caret line="277" column="0" lean-forward="true" selection-start-line="277" selection-start-column="0" selection-end-line="277" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="607">
+          <caret line="177" column="30" lean-forward="true" selection-start-line="177" selection-start-column="30" selection-end-line="177" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="11" column="0" lean-forward="true" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
+        <state relative-caret-position="45">
+          <caret line="238" column="0" lean-forward="true" selection-start-line="238" selection-start-column="0" selection-end-line="238" selection-end-column="0" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
