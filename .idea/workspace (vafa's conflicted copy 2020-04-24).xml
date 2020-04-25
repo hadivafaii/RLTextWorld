@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/extract_trajectories/test.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/utils/preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/preprocessing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/make_games.sh" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>forward</find>
+      <find>CommandScorer</find>
+      <find>encoder_output</find>
+      <find>zero_</find>
+      <find>tran</find>
+      <find>has_w</find>
+      <find>agent</find>
+      <find>sys</find>
+      <find>args.dir</find>
+      <find>nb_moves_this_episode</find>
+    </findStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1b08KTo1asJk2vGN0GBNv05aXBv" />
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State>
+            <id />
+          </State>
+          <State>
+            <id>Internationalization issues</id>
+          </State>
+          <State>
+            <id>RELAX NG</id>
+          </State>
+          <State>
+            <id>Spelling</id>
+          </State>
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>SpellCheckingInspection</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
+              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
+              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
+              <item name="hadi" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
+              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
+              <item name="hadi" type="462c0819:PsiDirectoryNode" />
+              <item name="model" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
+              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
+              <item name="hadi" type="462c0819:PsiDirectoryNode" />
+              <item name="pretrain" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
+              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
+              <item name="hadi" type="462c0819:PsiDirectoryNode" />
+              <item name="utils" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scratches" />
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="" />
+      <created>1574881965539</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1574881965539</updated>
+    </task>
+    <servers />
+  </component>
+</project>

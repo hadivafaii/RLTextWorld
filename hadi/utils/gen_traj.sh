@@ -1,12 +1,22 @@
+### Enter parameters
+game_type="tw_cooking/test"
+num_groups=16
+
+
+
+### main code
+start=0
+stop=$((num_groups-1))
+
 for eps in $(seq 0.00 0.10 1.00)
 do
   echo "extracting trajectories for eps = $eps"
 
   ### Run the loop
-  for ii in {0..19..1}
+  for ii in $(seq $start 1 $stop)
   do
     screen -dmS "iter_$ii-eps_$eps"
-    screen -S "iter_$ii-eps_$eps" -X stuff "python3 gen_traj.py $ii 20 --exploration_mode walkthrough --epsilon $eps --max_steps 70 --extra_episodes 1 --batch_size 2 ^M"
+    screen -S "iter_$ii-eps_$eps" -X stuff "python3 gen_traj.py $game_type $ii $num_groups --exploration_mode walkthrough --epsilon $eps --max_steps 70 --extra_episodes 1 --batch_size 2 ^M" 2> /dev/null
   done
 done
 

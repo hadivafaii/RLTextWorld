@@ -1,15 +1,9 @@
-import numpy as np
-#import random
-#random.seed(args.seed)
-#np.random.seed(args.seed)
-
 import os
-import sys
-sys.path.append("..")
+import numpy as np
 
 from time import time
-from utils.utils import convert_time
-from utils.preprocessing import get_nlp, preproc
+from utils import convert_time
+from preprocessing import get_nlp, preproc
 
 from textworld import EnvInfos
 from textworld.gym import envs
@@ -17,12 +11,12 @@ from collections import Counter
 
 
 def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
-                        batch_size=111, mode='walkthrough', epsilon=1, SEED=0):
-    rng = np.random.RandomState(SEED)
+                        batch_size=111, mode='walkthrough', epsilon=1, seed=0):
+    rng = np.random.RandomState(seed)
 
     requested_infos = EnvInfos(
         max_score=True, verbs=True, entities=True, moves=True,
-        admissible_commands=True, policy_commands=True, game=True)
+        admissible_commands=True, policy_commands=True, intermediate_reward=True, game=True)
 
     env = envs.textworld_batch.TextworldBatchGymEnv(
         game_files, request_infos=requested_infos,
@@ -31,12 +25,12 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
 
     ### initialize the datas you want to save
     all_trajectories = list()
+    all_intermediate_rewards = list()
     verb_counts = Counter()
     entity_counts = Counter()
     walkthroughs_len_counts = Counter()
 
     ### Get trajectories
-    total_nb_moves = 0
     for ep in range(episodes):
         obs, infos = env.reset()
 
@@ -60,6 +54,7 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
             print('warning, policy mode activated but no policy commands found')
 
         trajectory = [['[OBS]'] + preproc(x, tokenizer) for x in obs]
+        intermediate_rewards = [list() for _ in range(batch_size)]
 
         nb_moves_this_episode = [0] * batch_size
         dones = [False] * batch_size
@@ -96,16 +91,18 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                     trajectory[i] = (trajectory[i] +
                             ['[ACT]'] + preproc(commands[i], tokenizer) +
                             ['[OBS]'] + preproc(obs[i], tokenizer))
+                    intermediate_rewards[i] = infos['intermediate_rewards'][i]
                     if dones[i]:
                         trajectory_dones[i] = True
 
         all_trajectories.extend(trajectory)
+        all_intermediate_rewards.extend(intermediate_rewards)
 
         if not args.silent and (ep + 1) % (episodes // 10) == 0:
             print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (ep + 1) / episodes, '%'), end='\n')
 
-    data = {'trajectories': all_trajectories, 'verb_counts': verb_counts,
-            'entity_counts': entity_counts, 'walkthrough_len_counts': walkthroughs_len_counts}
+    data = {'trajectories': all_trajectories, 'intermediate_rewards': all_intermediate_rewards,
+            'verb_counts': verb_counts, 'entity_counts': entity_counts, 'walkthrough_len_counts': walkthroughs_len_counts}
 
     return data
 

@@ -30,7 +30,7 @@ def preproc(string, tokenizer):
     if string is None:
         return [None]
 
-    pattern = r"[_\\|/$>,.!?>]"
+    pattern = r"[_\\|/$>,>]"
     s = re.sub(pattern, '', string).replace("\n", ' ').strip().lower()
 
     if '-=' in s:
