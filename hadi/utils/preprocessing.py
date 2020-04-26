@@ -125,6 +125,7 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
         data_files = [data_files]
 
     trajectories = []
+    intermediate_rewards = []
     verb_counts = Counter()
     entity_counts = Counter()
     walkthroughs_len_counts = Counter()
@@ -138,6 +139,7 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
                 print('num trajectories found: ', len(data_['trajectories']))
 
             trajectories.extend(data_['trajectories'])
+            intermediate_rewards.extend(data_['intermediate_rewards'])
             for k, v in data_['verb_counts'].most_common():
                 verb_counts[k] += v
             for k, v in data_['entity_counts'].most_common():
@@ -228,27 +230,31 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
         plt.show()
 
     ### so that the padding index will be 0
-    # segment in [1, 1, 1, 2, 2, 3, ..., 0] and positions in
+    # segment in [1, 1, 1, 2, 2, 3, 3, 3, ..., 0] and positions in
     segments_all += 1
     # position in [1, 2, 3, ..., 0] and positions in
     positions_all += 1
 
     # make token type ids also
+    # type is [1, 1, 1, 2, 2, 1, 1, 1, ..., 0]
     token_types_all = segments_all.astype(int).copy()
     token_types_all[token_types_all > 0] = 1 - ((token_types_all[token_types_all > 0] % 2) - 1)
 
-    data = {
-        'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids, 'trajectory_segment_ids': trajectory_segment_ids,
+    traj_data = {
+        'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids,
+        'trajectory_segment_ids': trajectory_segment_ids, 'intermediate_rewards': intermediate_rewards,
         'sequence_ids': sequences_all.astype(int), 'type_ids': token_types_all.astype(int),
         'position_ids': positions_all.astype(int), 'masks': masks_all.astype(int),
         'segment_ids': segments_all.astype(int), 'walkthroughs_len_counts': walkthroughs_len_counts,
+    }
+    lang_data = {
         'verb_counts': verb_counts, 'entity_counts': entity_counts, 'unigram_counts': unigram_counts,
         'entity2indx': entity2indx, 'indx2entity': indx2entity,
         'verb2indx': verb2indx, 'indx2verb':indx2verb,
         'w2i': w2i, 'i2w': i2w,
     }
 
-    return data
+    return traj_data, lang_data
 
 
 if __name__ == "__main__":
@@ -279,7 +285,8 @@ if __name__ == "__main__":
     args.load_dir = os.path.join(base_dir, args.load_dir)
     args.save_dir = os.path.join(base_dir, args.save_dir)
 
-    data_all = {}
+    traj_data_all = {}
+    lang_data_all ={}
 
     import os
     from tqdm import tqdm
@@ -288,11 +295,16 @@ if __name__ == "__main__":
         files_ = ['iter={}.npy'.format(x) for x in np.arange(20)]
         data_files = [os.path.join(dir_, x) for x in files_]
 
-        data_ = process_data(data_files, max_length=args.max_length)
-        data_all.update({'eps={:.2f}'.format(eps): data_})
+        traj_data_, lang_data_ = process_data(data_files, max_length=args.max_length)
+       # data_ = process_data(data_files, max_length=args.max_length)
+        traj_data_all.update({'eps={:.2f}'.format(eps): traj_data_})
+        lang_data_all.update({'eps={:.2f}'.format(eps): lang_data_})
 
     os.makedirs(args.save_dir, exist_ok=True)
-    dir_ = os.path.join(args.save_dir, 'max_len={:d}.npy'.format(args.max_length))
-    np.save(dir_, data_all)
+    traj_dir_ = os.path.join(args.save_dir, 'traj_data_max_len={:d}.npy'.format(args.max_length))
+    lang_dir_ = os.path.join(args.save_dir, 'lang_data_max_len={:d}.npy'.format(args.max_length))
+
+    np.save(traj_dir_, traj_data_all)
+    np.save(lang_dir_, lang_data_all)
 
     print('Done!')

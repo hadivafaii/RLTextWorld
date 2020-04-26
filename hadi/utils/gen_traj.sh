@@ -1,8 +1,7 @@
 ### Enter parameters
-game_type="tw_cooking/test"
-num_groups=16
-
-
+# game type is string, eg: tw_cooking_train. num_groups is integer larger than 0. e.g.: 20
+game_type=$1
+num_groups=$2
 
 ### main code
 start=0

@@ -78,7 +78,10 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                 commands = []
                 for i in range(batch_size):
                     if epsilon >= random_numbers[i]:
-                        commands.append(policy_commands[i])
+                        try:
+                            commands.append(policy_commands[i][0])
+                        except IndexError:
+                            commands.append([])
                     else:
                         commands.append(rng.choice(admissible_commands[i]))
             else:
@@ -91,15 +94,15 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                     trajectory[i] = (trajectory[i] +
                             ['[ACT]'] + preproc(commands[i], tokenizer) +
                             ['[OBS]'] + preproc(obs[i], tokenizer))
-                    intermediate_rewards[i] = infos['intermediate_rewards'][i]
+                    intermediate_rewards[i].append(infos['intermediate_reward'][i])
                     if dones[i]:
                         trajectory_dones[i] = True
 
         all_trajectories.extend(trajectory)
         all_intermediate_rewards.extend(intermediate_rewards)
 
-        if not args.silent and (ep + 1) % (episodes // 10) == 0:
-            print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (ep + 1) / episodes, '%'), end='\n')
+      #  if not args.silent and (ep + 1) % (episodes // 10) == 0:
+      #      print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (ep + 1) / episodes, '%'), end='\n')
 
     data = {'trajectories': all_trajectories, 'intermediate_rewards': all_intermediate_rewards,
             'verb_counts': verb_counts, 'entity_counts': entity_counts, 'walkthrough_len_counts': walkthroughs_len_counts}
@@ -195,7 +198,7 @@ if __name__ == "__main__":
     raw_trajectories = generate_trajectory(
         game_files, tokenizer,
         max_steps=args.max_steps, episodes=episodes, batch_size=args.batch_size,
-        mode=args.exploration_mode, epsilon=args.epsilon, SEED=args.seed)
+        mode=args.exploration_mode, epsilon=args.epsilon, seed=args.seed)
     end_time = time()
 
     ### save data

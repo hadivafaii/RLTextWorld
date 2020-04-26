@@ -7,7 +7,7 @@ hello () {
   for i in {1..5..1}
   do
     echo "num $i - hello $1 and $2"
-    sem -j 4 ./loop_fn.sh $2 $1
+    sem --jobs 60% ./loop_fn.sh $2 $1
   done
 }
 

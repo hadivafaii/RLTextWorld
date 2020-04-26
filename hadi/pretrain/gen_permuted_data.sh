@@ -1,4 +1,5 @@
-game_type="tw_cooking/train"
+# game_type e.g. tw_cooking/train
+game_type=$1
 
 for pretrain_mode in 'ACT_ORDER' 'OBS_ORDER'
 do

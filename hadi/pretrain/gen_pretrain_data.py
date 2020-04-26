@@ -191,7 +191,7 @@ def fix_inputs(x, starting_position_id=1, S=512):
     position_ids = np.arange(starting_position_id, starting_position_id + len(x[x > 0]))
     position_ids = np.pad(position_ids, (0, S - len(position_ids)), constant_values=0)
 
-    return x, type_ids, position_ids
+    return x[:S], type_ids[:S], position_ids[:S]
 
 
 def generate_corrupted_data(inputs, config, conversion_dict,
@@ -241,11 +241,11 @@ def generate_corrupted_data(inputs, config, conversion_dict,
 # ------------------------------------------------------------------------------------------------------- #
 def save_data(save_dir, token_ids, type_ids, position_ids,
               labels=None, permutations_used=None, object_ranges_labels=None,
-              pretrain_type='ACT_ORDER', S=512, eps=1.00):
-    save_ = os.path.join(save_dir, "{:s}_{:s}.hdf5".format(pretrain_type, datetime.datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
+              pretrain_mode='ACT_ORDER', S=512, eps=1.00):
+    save_ = os.path.join(save_dir, "{:s}_{:s}.hdf5".format(pretrain_mode, datetime.datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
     f = h5py.File(save_, "w")
-    f.create_group(pretrain_type).create_group('S={:d}'.format(S)).create_group('eps={:.2f}'.format(eps))
-    subgroup = f[pretrain_type]['S={:d}'.format(S)]['eps={:.2f}'.format(eps)]
+    f.create_group(pretrain_mode).create_group('S={:d}'.format(S)).create_group('eps={:.2f}'.format(eps))
+    subgroup = f[pretrain_mode]['S={:d}'.format(S)]['eps={:.2f}'.format(eps)]
 
     subgroup.create_dataset('token_ids', data=token_ids)
     subgroup.create_dataset('type_ids', data=type_ids)
@@ -274,24 +274,24 @@ def save_data(save_dir, token_ids, type_ids, position_ids,
     f.close()
 
 
-def load_data(game_type, pretrain_type, mask_prob=None, k=None, S=512, eps=1.00, file_name=None):
+def load_data(game_type, pretrain_mode, mask_prob=None, k=None, S=512, eps=1.00, file_name=None):
 
     base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', game_type, 'pretraining_data')
-    if pretrain_type in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB'] and mask_prob is None:
+    if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB'] and mask_prob is None:
         dir_list = sorted([x for x in os.listdir(base_dir) if 'mask_prob=' in x])
-    elif pretrain_type in ['ACT_ORDER', 'OBS_ORDER'] and k is None:
+    elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER'] and k is None:
         dir_list = sorted([x for x in os.listdir(base_dir) if 'k=' in x])
     else:
-        raise ValueError("Wrong pretrain type entered.  Allowed options:\n{}".format(_allowed_pretrain_types))
+        raise ValueError("Wrong pretrain type entered.  Allowed options:\n{}".format(ALLOWED_MODES))
 
-    assert len(dir_list) > 0, 'no dirs found for pretrain type {:s}'.format(pretrain_type)
+    assert len(dir_list) > 0, 'no dirs found for pretrain type {:s}'.format(pretrain_mode)
     print('Found these dirs:\n', dir_list)
     load_dir = os.path.join(base_dir, dir_list[-1])
 
     if file_name is None:
         file_list = os.listdir(load_dir)
-        file_list = sorted([x for x in file_list if '{:s}'.format(pretrain_type) in x])
-        assert len(file_list) > 0, 'no files found for pretrain type {:s}'.format(pretrain_type)
+        file_list = sorted([x for x in file_list if '{:s}'.format(pretrain_mode) in x])
+        assert len(file_list) > 0, 'no files found for pretrain type {:s}'.format(pretrain_mode)
         print('Found these fils:\n', file_list)
         file_name = file_list[-1]
 
@@ -299,7 +299,7 @@ def load_data(game_type, pretrain_type, mask_prob=None, k=None, S=512, eps=1.00,
     print('\nLoading data from {:s}'.format(load_))
 
     f = h5py.File(load_, "r")
-    subgroup = f[pretrain_type]['S={:d}'.format(S)]['eps={:.2f}'.format(eps)]
+    subgroup = f[pretrain_mode]['S={:d}'.format(S)]['eps={:.2f}'.format(eps)]
 
     token_ids = np.array(subgroup['token_ids'])
     type_ids = np.array(subgroup['type_ids'])
@@ -349,7 +349,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("game_type", help="(str) game type. (e.g. tw_cooking/train", type=str)
-    parser.add_argument("pretrain_type", help="(str) pretrain data type", type=str)
+    parser.add_argument("pretrain_mode", help="(str) pretrain data type", type=str)
     parser.add_argument("--k", help="(integer >= 2) will have k! permutations.  defautl: 3", type=int, default=3)
     parser.add_argument("--mask_prob", help="(float) portion of data to distort.  defautl: 0.25", type=float, default=0.25)
     parser.add_argument("--S", help="(integer) sequence length. default: 512", type=int, default=512)
@@ -362,12 +362,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    _allowed_pretrain_types = [
+    ALLOWED_MODES = [
         'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
         'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB',]
 
-    if args.pretrain_type not in _allowed_pretrain_types:
-        raise ValueError('enter correct pretrain type.  allowed opetions: \n{}'.format(_allowed_pretrain_types))
+    if args.pretrain_mode not in ALLOWED_MODES:
+        raise ValueError('enter correct pretrain type.  allowed opetions: \n{}'.format(ALLOWED_MODES))
 
     base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type)
 
@@ -391,36 +391,39 @@ if __name__ == "__main__":
         return outputs, object_ranges_labels
 
 
-    load_ = os.path.join(args.load_dir, 'max_len={:d}.npy'.format(args.S))
-    data_all = np.load(load_, allow_pickle=True).item()
-    data = data_all['eps={:.2f}'.format(args.eps)]
+    traj_load_ = os.path.join(args.load_dir, 'traj_data_max_len={:d}.npy'.format(args.S))
+    lang_load_ = os.path.join(args.load_dir, 'lang_data_max_len={:d}.npy'.format(args.S))
+    traj_data_all = np.load(traj_load_, allow_pickle=True).item()
+    lang_data_all = np.load(lang_load_, allow_pickle=True).item()
+    traj_data = traj_data_all['eps={:.2f}'.format(args.eps)]
+    lang_data = lang_data_all['eps={:.2f}'.format(args.eps)]
 
-    token_ids = data['sequence_ids']
-    type_ids = data['type_ids']
-    segment_ids = data['segment_ids']
-    position_ids = data['position_ids']
-    masks = data['masks']
+    token_ids = traj_data['sequence_ids']
+    type_ids = traj_data['type_ids']
+    segment_ids = traj_data['segment_ids']
+    position_ids = traj_data['position_ids']
+    masks = traj_data['masks']
 
     inputs = (token_ids, type_ids, position_ids)
     config = TransformerConfig()
 
     generated_data_ = []
 
-    if args.pretrain_type in ['ACT_ORDER', 'OBS_ORDER']:
+    if args.pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
         outputs, labels, permutations_used = generate_permutated_data(
-            inputs, config, k=args.k, mode=args.pretrain_type[:3].lower()
+            inputs, config, k=args.k, mode=args.pretrain_mode[:3].lower()
         )
         save_dir = os.path.join(args.save_dir, "k={:d}".format(args.k))
         os.makedirs(save_dir, exist_ok=True)
         save_data(save_dir, *outputs, labels=labels, permutations_used=permutations_used,
-                  pretrain_type=args.pretrain_type, S=args.S, eps=args.eps)
+                  pretrain_mode=args.pretrain_mode, S=args.S, eps=args.eps)
 
-    elif args.pretrain_type in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
+    elif args.pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
         for seed in args.seeds:
             print('[PROGRESS] generating corrupted data using seed = {:d}'.format(seed))
             outputs, object_ranges_labels = generate_corrupted_data(
-                inputs, config, data['{:s}2indx'.format(args.pretrain_type[4:].lower())],
-                S=args.S, mask_prob=args.mask_prob, mode=args.pretrain_type[:3].lower(), seed=seed
+                inputs, config, lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())],
+                S=args.S, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed
             )
             generated_data_.append((outputs, object_ranges_labels))
         outputs, object_ranges_labels = _corrupted_data_processing(generated_data_)
@@ -428,7 +431,7 @@ if __name__ == "__main__":
         save_dir = os.path.join(args.save_dir, "mask_prob={:.2f}".format(args.mask_prob))
         os.makedirs(save_dir, exist_ok=True)
         save_data(save_dir, *outputs, object_ranges_labels=object_ranges_labels,
-                  pretrain_type=args.pretrain_type, S=args.S, eps=args.eps)
+                  pretrain_mode=args.pretrain_mode, S=args.S, eps=args.eps)
     else:
         raise NotImplementedError
 

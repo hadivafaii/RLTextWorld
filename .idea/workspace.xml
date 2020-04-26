@@ -20,20 +20,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Users:hv:Dropbox:git:RLnTex.textClipping" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/extract_trajectories/gen_traj.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/extract_trajectories/test.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/kill_screens.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/kill_screens.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_corrupted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_corrupted_data.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_permuted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_permuted_data.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/loop_fn.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/loop_fn.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/custom_games_loop.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/custom_games_loop.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/test.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/utils/preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/preprocessing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/process_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/process_traj.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/make_games.sh" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,27 +45,8 @@
       </list>
     </option>
   </component>
-  <component name="FindInProjectRecents">
-    <findStrings>
-      <find>forward</find>
-      <find>CommandScorer</find>
-      <find>encoder_output</find>
-      <find>zero_</find>
-      <find>tran</find>
-      <find>has_w</find>
-      <find>agent</find>
-      <find>sys</find>
-      <find>args.dir</find>
-      <find>nb_moves_this_episode</find>
-    </findStrings>
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
-  </component>
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="y" value="23" />
-    <option name="width" value="1433" />
-    <option name="height" value="833" />
   </component>
   <component name="ProjectId" id="1b1PMFp2zx2PC6z2QXDHQpot1ZY" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
