@@ -21,19 +21,9 @@
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/do_it.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/do_it.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/kill_screens.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/kill_screens.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/custom_games_loop.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/test.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/preprocessing.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/process_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/process_traj.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,47 +43,6 @@
   <component name="ProjectId" id="1b1PMFp2zx2PC6z2QXDHQpot1ZY" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
-  </component>
-  <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1">
-      <flattenPackages />
-      <showMembers />
-      <showModules />
-      <showLibraryContents />
-      <hideEmptyPackages />
-      <abbreviatePackageNames />
-      <autoscrollToSource />
-      <autoscrollFromSource />
-      <sortByType />
-      <manualOrder />
-      <foldersAlwaysOnTop value="true" />
-    </navigator>
-    <panes>
-      <pane id="Scope" />
-      <pane id="Scratches" />
-      <pane id="ProjectPane">
-        <subPane>
-          <expand>
-            <path>
-              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
-              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
-              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
-              <item name="hadi" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
-              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
-              <item name="hadi" type="462c0819:PsiDirectoryNode" />
-              <item name="utils" type="462c0819:PsiDirectoryNode" />
-            </path>
-          </expand>
-          <select />
-        </subPane>
-      </pane>
-    </panes>
   </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -122,9 +71,5 @@
       <screen x="64" y="27" width="1856" height="1053" />
     </state>
     <state x="530" y="138" width="1022" height="737" key="SettingsEditor/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1587796657916" />
-    <state width="600" height="428" key="javadoc.popup" timestamp="1587952194089">
-      <screen x="64" y="27" width="1856" height="1053" />
-    </state>
-    <state width="600" height="428" key="javadoc.popup/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1587952194089" />
   </component>
 </project>

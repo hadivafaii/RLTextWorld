@@ -66,12 +66,14 @@ class PretrainConfig(object):
 
         ALLOWED_MODES = [
             'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
-            'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB', ]
+            'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB',
+            'MLM', ]
         # TODO: add 'ALL' here and figure out a way to jointly train on all datasets
+        # TODO: add MLM also
 
         if pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
             pretrain_dir = 'k={:d}'.format(k)
-        elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
+        elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
             pretrain_dir = 'mask_prob={:.2f}'.format(mask_prob)
         else:
             raise ValueError('incorrect pretrain type.  allowed opetions: \n{}'.format(ALLOWED_MODES))

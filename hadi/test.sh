@@ -1,40 +1,39 @@
 #!/bin/bash
 
-person1="ahole"
-person2='mfoocker'
 
-hello () {
-  for i in {1..5..1}
-  do
-    echo "num $i - hello $1 and $2"
-    sem --jobs 60% ./loop_fn.sh $2 $1
+# base dir to save games
+base_dir="/home/$USER/Documents/FTWP/games/custom"
+
+for world_size in 5 10 20 30; do
+  for nb_objects in 10 20 40 60; do
+    max_quest_length=$( [ $world_size -le $nb_objects ] && echo "$world_size" || echo "$nb_objects" )
+    echo $world_size $nb_objects $max_quest_length
   done
-}
-
-hello $person1 $person2
-
+done
 
 : '
-num_groups=5
-start=0
-stop=$((num_groups-1))
+num=$1
 
-for ii in $(seq $start 1 $stop)
+# get commands cat
+save_dir="/home/hadi/Documents/"
+declare -a cmds
+for i in $(seq 1 1 $num)
 do
-  echo $ii
+#  tw-make custom --world-size 6 --nb-objects 13 --quest-length 7\
+#  --only-last-action --output $save_dir --seed $i
+  cmds+=("tw-make custom --world-size 6 --nb-objects 13 --quest-length 7\
+  --only-last-action --output $save_dir --seed $i; ")
 done
 
-base_dir="/home/hadivafa/Documents/FTWP/games/tw_simple"
-var="dense"
+commands="$(IFS=; echo "${cmds[*]}")"
+IFS=" "
 
-for rewards in 'dense' 'balanced' 'sparse'
-do
-  if [ "${rewards}" == "dense" ]; then
-    echo "${rewards}"
-    echo 'hi it was dense all along'
-  else
-    echo "${rewards}"
-    echo 'fuck me it wasnt dense'
-  fi
-done
+echo $commands
+printf "running sem...\n\n"
+
+sem -j $num $commands; sem --wait
+echo wait was used. done
+
+
+var="tw-make custom --world-size 6 --nb-objects 13 --quest-length 7 --output /home/hadi/Documents/ --seed 4; tw-make custom --world-size 6 --nb-objects 13 --quest-length 7 --output /home/hadi/Documents/ --seed 8; tw-make custom --world-size 6 --nb-objects 13 --quest-length 7 --output /home/hadi/Documents/ --seed 12"
 '

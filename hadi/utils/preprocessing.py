@@ -292,11 +292,10 @@ if __name__ == "__main__":
     from tqdm import tqdm
     for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_length)):
         dir_ = os.path.join(args.load_dir, 'eps={:.2f}'.format(eps))
-        files_ = ['iter={}.npy'.format(x) for x in np.arange(20)]
-        data_files = [os.path.join(dir_, x) for x in files_]
+        files_ = os.listdir(dir_)
+        data_files = [os.path.join(dir_, x) for x in sorted(files_)]
 
-        traj_data_, lang_data_ = process_data(data_files, max_length=args.max_length)
-       # data_ = process_data(data_files, max_length=args.max_length)
+        traj_data_, lang_data_ = process_data(data_files, max_length=args.max_length, do_plot=False, verbose=True)
         traj_data_all.update({'eps={:.2f}'.format(eps): traj_data_})
         lang_data_all.update({'eps={:.2f}'.format(eps): lang_data_})
 

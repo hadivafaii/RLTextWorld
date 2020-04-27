@@ -12,9 +12,9 @@ make_train_games () {
   do
     save_dir="${1}/train/${2}/wsz=${3}-nbobj=${4}-qlen=${5}/"
     if [ "${2}" == "brief" ]; then
-      sem --will-cite -j +0 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --only-last-action --output $save_dir --seed $i
+      sem -j 150 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --only-last-action --output $save_dir --seed $i
     else
-      sem --will-cite -j +0 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --output $save_dir --seed $i
+      sem -j 150 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --output $save_dir --seed $i
     fi
   done
 }

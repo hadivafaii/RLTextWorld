@@ -1,18 +1,24 @@
 #!/bin/bash
+stop=$1
 
-# base dir to save games
-base_dir="/home/hadivafa/Documents/FTWP/games/custom"
+cat_cmds () {
+  save_dir="/home/hadi/Documents/"
+  for i in $(seq 1 1 $stop)
+  do
+    var="tw-make custom --world-size 6 --nb-objects 13 --quest-length 7 \
+    --only-last-action --output $save_dir --seed $i"
+    $cmd=$cmd; $var
+  done
 
-world_size=5
-nb_objects=10
-quest_length=5
-goal='brief'
-sem --will-cite -j 1 ./ttteeesssttt.sh $base_dir $goal $world_size $nb_objects $quest_length
+  return $cmd
+}
 
 
-
-
-
+#for i in *.log ; do
+#  echo $i
+#  sem -j+0 gzip $i ";" echo done
+#done
+#sem --wait
 
 
 

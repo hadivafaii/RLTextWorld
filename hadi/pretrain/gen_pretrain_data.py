@@ -202,7 +202,7 @@ def generate_corrupted_data(inputs, config, conversion_dict,
     masked_token_ids = []
     masked_type_ids = []
     masked_position_ids = []
-    object_ranges_labels = []
+    unk_positions_lbls = []
 
     obs_ranges, act_ranges = _get_ranges(token_ids, config)
 
@@ -227,10 +227,13 @@ def generate_corrupted_data(inputs, config, conversion_dict,
         masked_token_ids.append(outputs_[0])
         masked_type_ids.append(outputs_[1])
         masked_position_ids.append(outputs_[2])
-        object_ranges_labels.append(detected_ranges)
+
+        unk_positions = np.where(outputs_[0] == config.unk_id)[0]
+        gold_labels = [tup[1] for tup in detected_ranges]
+        unk_positions_lbls.append((unk_positions, gold_labels))
 
     outputs = (np.array(masked_token_ids), np.array(masked_type_ids), np.array(masked_position_ids))
-    return outputs, object_ranges_labels
+    return outputs, unk_positions_lbls
 # ------------------------------------------------------------------------------------------------------- #
 
 
@@ -320,9 +323,11 @@ def load_data(game_type, pretrain_mode, mask_prob=None, k=None, S=512, eps=1.00,
         outputs += (permutations_used,)
         print('permutations_used added to outputs')
 
-    if 'object_ranges_labels' in subgroup.keys():
+    # TODO: fix this
+    # reminder: unk_positions_lbls.append((unk_positions, gold_labels))
+    if 'unk_positions_lbls' in subgroup.keys():
         grp = subgroup['object_ranges_labels']
-        object_ranges_labels = []
+        unk_positions_lbls = []
         for i in range(len(grp)):
             local_list = []
             subgrp = grp['i={:d}'.format(i)]
@@ -332,9 +337,11 @@ def load_data(game_type, pretrain_mode, mask_prob=None, k=None, S=512, eps=1.00,
                 object_range = range(object_range[0], object_range[-1] + 1)
                 object_index = np.array(subsubgrp['object_index']).item()
                 local_list.append((object_range, object_index))
-            object_ranges_labels.append(local_list)
-        outputs += (object_ranges_labels,)
-        print('object_ranges_labels added to outputs')
+            unk_positions_lbls.append(local_list)
+        outputs += (unk_positions_lbls,)
+        print('unk_positions_lbls added to outputs')
+
+        # TODO: fix this to decouple unk position and labels
 
     f.close()
     return outputs
@@ -351,7 +358,7 @@ if __name__ == "__main__":
     parser.add_argument("game_type", help="(str) game type. (e.g. tw_cooking/train", type=str)
     parser.add_argument("pretrain_mode", help="(str) pretrain data type", type=str)
     parser.add_argument("--k", help="(integer >= 2) will have k! permutations.  defautl: 3", type=int, default=3)
-    parser.add_argument("--mask_prob", help="(float) portion of data to distort.  defautl: 0.25", type=float, default=0.25)
+    parser.add_argument("--mask_prob", help="(float) portion of data to distort.  defautl: 0.30", type=float, default=0.30)
     parser.add_argument("--S", help="(integer) sequence length. default: 512", type=int, default=512)
     parser.add_argument("--eps", help="(float) epsilon. default: 1.00", type=float, default=1.00)
     parser.add_argument("--seeds", help="(integers) random seeds, used only for corrupted data generation. default: [665]", type=int, nargs='+', default=665)
@@ -364,7 +371,7 @@ if __name__ == "__main__":
 
     ALLOWED_MODES = [
         'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
-        'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB',]
+        'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB', 'MLM']
 
     if args.pretrain_mode not in ALLOWED_MODES:
         raise ValueError('enter correct pretrain type.  allowed opetions: \n{}'.format(ALLOWED_MODES))
@@ -411,7 +418,7 @@ if __name__ == "__main__":
 
     if args.pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
         outputs, labels, permutations_used = generate_permutated_data(
-            inputs, config, k=args.k, mode=args.pretrain_mode[:3].lower()
+            inputs, config, k=args.k, mode=args.pretrain_mode[:3].lower(),
         )
         save_dir = os.path.join(args.save_dir, "k={:d}".format(args.k))
         os.makedirs(save_dir, exist_ok=True)
@@ -423,7 +430,7 @@ if __name__ == "__main__":
             print('[PROGRESS] generating corrupted data using seed = {:d}'.format(seed))
             outputs, object_ranges_labels = generate_corrupted_data(
                 inputs, config, lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())],
-                S=args.S, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed
+                S=args.S, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed,
             )
             generated_data_.append((outputs, object_ranges_labels))
         outputs, object_ranges_labels = _corrupted_data_processing(generated_data_)

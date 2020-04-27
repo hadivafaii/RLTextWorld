@@ -21,17 +21,17 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
     env = envs.textworld_batch.TextworldBatchGymEnv(
         game_files, request_infos=requested_infos,
         batch_size=batch_size, max_episode_steps=max_steps,
-        auto_reset=False, asynchronous=True)
+        auto_reset=False, asynchronous=False)
 
     ### initialize the datas you want to save
     all_trajectories = list()
-    all_intermediate_rewards = list()
+    all_teacher_tuples = list()
     verb_counts = Counter()
     entity_counts = Counter()
     walkthroughs_len_counts = Counter()
 
     ### Get trajectories
-    for ep in range(episodes):
+    for _ in range(episodes):
         obs, infos = env.reset()
 
         verbs = [vrb for game_verbs in infos['verbs'] for vrb in game_verbs]
@@ -54,7 +54,7 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
             print('warning, policy mode activated but no policy commands found')
 
         trajectory = [['[OBS]'] + preproc(x, tokenizer) for x in obs]
-        intermediate_rewards = [list() for _ in range(batch_size)]
+        teacher_tuples = [list() for _ in range(batch_size)]
 
         nb_moves_this_episode = [0] * batch_size
         dones = [False] * batch_size
@@ -62,7 +62,7 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
         while not all(dones):
             random_numbers = rng.uniform(0, 1, batch_size)
             if mode == 'walkthrough':
-                walkthrough_commands = [tup[1][min(len(tup[1])-1, tup[0])]
+                walkthrough_commands = [tup[1][min(len(tup[1]) - 1, tup[0])]
                                         for tup in zip(nb_moves_this_episode, walkthroughs)]
                 commands = []
                 for i in range(batch_size):
@@ -72,7 +72,7 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                     else:
                         commands.append(rng.choice(admissible_commands[i]))
                         nb_moves_this_episode[i] = rng.choice(range(2 * (nb_moves_this_episode[i] // 3),
-                                                                    nb_moves_this_episode[i]+1))
+                                                                    nb_moves_this_episode[i] + 1))
             elif mode == 'policy':
                 policy_commands = infos['policy_commands']
                 commands = []
@@ -92,20 +92,35 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
             for i in range(batch_size):
                 if not trajectory_dones[i]:
                     trajectory[i] = (trajectory[i] +
-                            ['[ACT]'] + preproc(commands[i], tokenizer) +
-                            ['[OBS]'] + preproc(obs[i], tokenizer))
-                    intermediate_rewards[i].append(infos['intermediate_reward'][i])
+                                     ['[ACT]'] + preproc(commands[i], tokenizer) +
+                                     ['[OBS]'] + preproc(obs[i], tokenizer))
+
+                    # create teacher tuples
+                    if mode == 'policy':
+                        if infos['intermediate_reward'][i] == 1:
+                            correct_command = commands[i]
+                        else:
+                            correct_command = infos['policy_commands'][i][0]
+                        teacher_tuples[i].append(
+                            (
+                                preproc(commands[i], tokenizer),
+                                infos['intermediate_reward'][i],
+                                preproc(correct_command, tokenizer)
+                            )
+                        )
+
                     if dones[i]:
                         trajectory_dones[i] = True
 
         all_trajectories.extend(trajectory)
-        all_intermediate_rewards.extend(intermediate_rewards)
+        all_teacher_tuples.extend(teacher_tuples)
 
-      #  if not args.silent and (ep + 1) % (episodes // 10) == 0:
-      #      print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (ep + 1) / episodes, '%'), end='\n')
+        if not args.silent and (ep + 1) % (episodes // 10) == 0:
+            print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (ep + 1) / episodes, '%'), end='\n')
 
-    data = {'trajectories': all_trajectories, 'intermediate_rewards': all_intermediate_rewards,
-            'verb_counts': verb_counts, 'entity_counts': entity_counts, 'walkthrough_len_counts': walkthroughs_len_counts}
+    data = {'trajectories': all_trajectories, 'teacher_tuples': all_teacher_tuples,
+            'verb_counts': verb_counts, 'entity_counts': entity_counts,
+            'walkthrough_len_counts': walkthroughs_len_counts}
 
     return data
 
@@ -145,7 +160,7 @@ if __name__ == "__main__":
         )
     parser.add_argument(
         "--load_dir", help="dir where games are. default: ~/game_type",
-        type=str, default=''
+        type=str, default='',
         )
     parser.add_argument(
         "--save_dir", help="dir to save extracted trajectories. default: ~/game_type/raw_trajectories",
