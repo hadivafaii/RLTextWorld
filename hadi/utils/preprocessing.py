@@ -125,7 +125,7 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
         data_files = [data_files]
 
     trajectories = []
-    intermediate_rewards = []
+    teacher_tuples = []
     verb_counts = Counter()
     entity_counts = Counter()
     walkthroughs_len_counts = Counter()
@@ -139,7 +139,7 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
                 print('num trajectories found: ', len(data_['trajectories']))
 
             trajectories.extend(data_['trajectories'])
-            intermediate_rewards.extend(data_['intermediate_rewards'])
+            teacher_tuples.extend(data_['teacher_tuples'])
             for k, v in data_['verb_counts'].most_common():
                 verb_counts[k] += v
             for k, v in data_['entity_counts'].most_common():
@@ -161,7 +161,14 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
         if tok not in w2i:
             w2i.update({tok: len(w2i)})
 
-    # first update w2i to add extra verbose
+    # update w2i to add extra entities and verbose
+    tokenizer = get_nlp().tokenizer
+    for entity in list(entity_counts.keys()):
+        entity_tokens = preproc(entity, tokenizer)
+        for ent_toks in entity_tokens:
+            if ent_toks not in w2i:
+                w2i.update({ent_toks: len(w2i)})
+
     for verb in list(verb_counts.keys()):
         if verb not in w2i:
             w2i.update({verb: len(w2i)})
@@ -170,13 +177,13 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
 
 
     ### Get entity and verb to indx and vice versa
-    entities_tokenized = [tuple(w2i[x] for x in preproc(ent, get_nlp().tokenizer)) for ent in list(entity_counts.keys())]
+    entities_tokenized = [tuple(w2i[x] for x in preproc(ent, tokenizer)) for ent in list(entity_counts.keys())]
     entity2indx = {}
     for ent in entities_tokenized:
         entity2indx.update({ent: len(entity2indx)})
     indx2entity = {entity2indx[ent]: ent for ent in entity2indx}
 
-    verbs_tokenized = [tuple(w2i[x] for x in preproc(verb, get_nlp().tokenizer)) for verb in list(verb_counts.keys())]
+    verbs_tokenized = [tuple(w2i[x] for x in preproc(verb, tokenizer)) for verb in list(verb_counts.keys())]
     verb2indx = {}
     for verb in verbs_tokenized:
         verb2indx.update({verb: len(verb2indx)})
@@ -242,7 +249,7 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
 
     traj_data = {
         'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids,
-        'trajectory_segment_ids': trajectory_segment_ids, 'intermediate_rewards': intermediate_rewards,
+        'trajectory_segment_ids': trajectory_segment_ids, 'teacher_tuples': teacher_tuples,
         'sequence_ids': sequences_all.astype(int), 'type_ids': token_types_all.astype(int),
         'position_ids': positions_all.astype(int), 'masks': masks_all.astype(int),
         'segment_ids': segments_all.astype(int), 'walkthroughs_len_counts': walkthroughs_len_counts,
@@ -270,8 +277,8 @@ if __name__ == "__main__":
         type=int, default=512,
     )
     parser.add_argument(
-        "--load_dir", help="save directory. default: '~/game_type/raw_trajectories'",
-        type=str, default="raw_trajectories",
+        "--game_specs", help="game specifics such as brief or detailed goal, quest length and so on. default is None",
+        type=str, default="",
     )
     parser.add_argument(
         "--save_dir", help="save directory. default: '~/game_type/processed_trajectories'",
@@ -280,10 +287,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type)
+    base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type, args.game_specs)
 
-    args.load_dir = os.path.join(base_dir, args.load_dir)
-    args.save_dir = os.path.join(base_dir, args.save_dir)
+    load_dir = os.path.join(base_dir, 'raw_trajectories')
+    save_dir = os.path.join(base_dir, args.save_dir)
 
     traj_data_all = {}
     lang_data_all ={}
@@ -291,17 +298,17 @@ if __name__ == "__main__":
     import os
     from tqdm import tqdm
     for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_length)):
-        dir_ = os.path.join(args.load_dir, 'eps={:.2f}'.format(eps))
+        dir_ = os.path.join(load_dir, 'eps={:.2f}'.format(eps))
         files_ = os.listdir(dir_)
         data_files = [os.path.join(dir_, x) for x in sorted(files_)]
 
-        traj_data_, lang_data_ = process_data(data_files, max_length=args.max_length, do_plot=False, verbose=True)
+        traj_data_, lang_data_ = process_data(data_files, max_length=args.max_length, do_plot=False, verbose=False)
         traj_data_all.update({'eps={:.2f}'.format(eps): traj_data_})
         lang_data_all.update({'eps={:.2f}'.format(eps): lang_data_})
 
-    os.makedirs(args.save_dir, exist_ok=True)
-    traj_dir_ = os.path.join(args.save_dir, 'traj_data_max_len={:d}.npy'.format(args.max_length))
-    lang_dir_ = os.path.join(args.save_dir, 'lang_data_max_len={:d}.npy'.format(args.max_length))
+    os.makedirs(save_dir, exist_ok=True)
+    traj_dir_ = os.path.join(save_dir, 'traj_data_max_len={:d}.npy'.format(args.max_length))
+    lang_dir_ = os.path.join(save_dir, 'lang_data_max_len={:d}.npy'.format(args.max_length))
 
     np.save(traj_dir_, traj_data_all)
     np.save(lang_dir_, lang_data_all)

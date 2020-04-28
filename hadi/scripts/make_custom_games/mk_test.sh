@@ -12,9 +12,9 @@ make_test_games () {
   do
     save_dir="${1}/test/${2}/wsz=${3}-nbobj=${4}-qlen=${5}/"
     if [ "${2}" == "brief" ]; then
-      sem -j 60 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --only-last-action --output $save_dir --seed $i
+      sem -j +0 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --only-last-action --output $save_dir --seed $i
     else
-      sem -j 60 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --output $save_dir --seed $i
+      sem -j +0 tw-make custom --world-size $3 --nb-objects $4 --quest-length $5 --output $save_dir --seed $i
     fi
   done
 }

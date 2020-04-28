@@ -21,11 +21,8 @@
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/do_it.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/do_it.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/kill_screens.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/kill_screens.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/custom_games_loop.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/kill_screens.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/make_custom_games.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/make_custom_games.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" afterDir="false" />

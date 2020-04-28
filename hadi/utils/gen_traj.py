@@ -2,6 +2,7 @@ import os
 import numpy as np
 
 from time import time
+from tqdm import tqdm
 from utils import convert_time
 from preprocessing import get_nlp, preproc
 
@@ -31,7 +32,7 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
     walkthroughs_len_counts = Counter()
 
     ### Get trajectories
-    for _ in range(episodes):
+    for _ in tqdm(range(episodes), desc='extracting trajectories'):
         obs, infos = env.reset()
 
         verbs = [vrb for game_verbs in infos['verbs'] for vrb in game_verbs]
@@ -115,9 +116,6 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
         all_trajectories.extend(trajectory)
         all_teacher_tuples.extend(teacher_tuples)
 
-        if not args.silent and (ep + 1) % (episodes // 10) == 0:
-            print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (ep + 1) / episodes, '%'), end='\n')
-
     data = {'trajectories': all_trajectories, 'teacher_tuples': all_teacher_tuples,
             'verb_counts': verb_counts, 'entity_counts': entity_counts,
             'walkthrough_len_counts': walkthroughs_len_counts}
@@ -159,9 +157,9 @@ if __name__ == "__main__":
         type=int, default=665,
         )
     parser.add_argument(
-        "--load_dir", help="dir where games are. default: ~/game_type",
-        type=str, default='',
-        )
+        "--game_specs", help="game specifics such as brief or detailed goal, quest length and so on. default is None",
+        type=str, default="",
+    )
     parser.add_argument(
         "--save_dir", help="dir to save extracted trajectories. default: ~/game_type/raw_trajectories",
         type=str, default='raw_trajectories',
@@ -173,11 +171,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    base_load_dir = os.path.join('/home/hadivafa/Documents/FTWP/games', args.game_type)
-    base_save_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type)
-
-    load_dir = os.path.join(base_load_dir, args.load_dir)
-    save_dir = os.path.join(base_save_dir, args.save_dir)
+    load_dir = os.path.join('/home/hadivafa/Documents/FTWP/games', args.game_type, args.game_specs)
+    save_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type, args.game_specs, args.save_dir)
 
     if not args.silent:
         print("verbosity is on")
