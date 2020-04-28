@@ -134,7 +134,7 @@ def detect_objects(x, ranges, conversion_dict):
 
         for tuple_ in list(conversion_dict.keys()):
             detected = False
-            if len(tuple_) == 1:
+            if len(tuple_) == 1 and not detected:
                 try:
                     start_idx = list(unigram).index(tuple_[0])
                     detected = True
@@ -176,9 +176,7 @@ def detect_objects(x, ranges, conversion_dict):
                 except ValueError:
                     continue
             else:
-                #TODO:
-                print(tuple_)
-                raise(ValueError('Max entity len should be 4'))
+                raise ValueError('Max entity len should be 6')
 
             if detected:
                 detected_range_ = range(list(range_)[start_idx], list(range_)[start_idx] + len(tuple_))

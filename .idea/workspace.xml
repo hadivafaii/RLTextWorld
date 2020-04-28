@@ -21,16 +21,9 @@
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_corrupted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_corrupted_data.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_permuted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_permuted_data.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/make_custom_games.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/make_custom_games.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_test.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_train.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/mk_valid.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/test.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/process_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/process_traj.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/utils/preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/preprocessing.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,47 +43,6 @@
   <component name="ProjectId" id="1b1PMFp2zx2PC6z2QXDHQpot1ZY" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
-  </component>
-  <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1">
-      <flattenPackages />
-      <showMembers />
-      <showModules />
-      <showLibraryContents />
-      <hideEmptyPackages />
-      <abbreviatePackageNames />
-      <autoscrollToSource />
-      <autoscrollFromSource />
-      <sortByType />
-      <manualOrder />
-      <foldersAlwaysOnTop value="true" />
-    </navigator>
-    <panes>
-      <pane id="Scope" />
-      <pane id="Scratches" />
-      <pane id="ProjectPane">
-        <subPane>
-          <expand>
-            <path>
-              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
-              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
-              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
-              <item name="hadi" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="RLnTextWorld" type="b2602c69:ProjectViewProjectNode" />
-              <item name="RLnTextWorld" type="462c0819:PsiDirectoryNode" />
-              <item name="hadi" type="462c0819:PsiDirectoryNode" />
-              <item name="utils" type="462c0819:PsiDirectoryNode" />
-            </path>
-          </expand>
-          <select />
-        </subPane>
-      </pane>
-    </panes>
   </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />

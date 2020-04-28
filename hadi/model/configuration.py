@@ -64,7 +64,7 @@ class PretrainConfig(object):
     ):
         super().__init__()
 
-        ALLOWED_MODES = [
+        _allowed_modes = [
             'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
             'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB',
             'MLM', ]
@@ -76,7 +76,7 @@ class PretrainConfig(object):
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
             pretrain_dir = 'mask_prob={:.2f}'.format(mask_prob)
         else:
-            raise ValueError('incorrect pretrain type.  allowed opetions: \n{}'.format(ALLOWED_MODES))
+            raise ValueError('incorrect pretrain type.  allowed opetions: \n{}'.format(_allowed_modes))
 
         self.pretrain_mode = pretrain_mode
 

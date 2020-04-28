@@ -48,12 +48,12 @@ def preproc(string, tokenizer):
 
 
 
-def _exract_data_for_modeling(seq_, segment_, S):
-    sequences, segments = np.empty((0, S)), np.empty((0, S)),
-    positions, masks = np.empty((0, S)), np.empty((0, S))
+def _exract_data_for_modeling(seq_, segment_, max_len):
+    sequences, segments = np.empty((0, max_len)), np.empty((0, max_len)),
+    positions, masks = np.empty((0, max_len)), np.empty((0, max_len))
     extracted_data = []
 
-    num = int(np.ceil(len(seq_) / S))
+    num = int(np.ceil(len(seq_) / max_len))
     tmp = np.concatenate([np.expand_dims(seq_, 0), np.expand_dims(segment_, 0), np.expand_dims(np.arange(len(seq_)), 0)])
 
     if num == 1:
@@ -61,7 +61,7 @@ def _exract_data_for_modeling(seq_, segment_, S):
 
     elif num == 2:
         # extract first chunk
-        first_chunk = tmp[:, :S]
+        first_chunk = tmp[:, :max_len]
         if first_chunk[1, -1] % 2 == 1:
             threshold_id = sorted(np.unique(first_chunk[1, :]))[-1]
         else:
@@ -71,7 +71,7 @@ def _exract_data_for_modeling(seq_, segment_, S):
         extracted_data.append(selected)
 
         # extract last chunk
-        last_chunk = tmp[:, -S:]
+        last_chunk = tmp[:, -max_len:]
         if last_chunk[1, 0] % 2 == 1:
             threshold_id = sorted(np.unique(last_chunk[1, :]))[0]
         else:
@@ -82,7 +82,7 @@ def _exract_data_for_modeling(seq_, segment_, S):
 
     elif num >= 3:
         for i in range(num - 1):
-            first_chunk = tmp[:, :S]
+            first_chunk = tmp[:, :max_len]
             if first_chunk[1, -1] % 2 == 1:
                 threshold_id = sorted(np.unique(first_chunk[1, :]))[-1]
             else:
@@ -95,7 +95,7 @@ def _exract_data_for_modeling(seq_, segment_, S):
                 tmp = np.delete(tmp, delete_indxs, axis=1)
 
         # extract last chunk
-        last_chunk = tmp[:, -S:]
+        last_chunk = tmp[:, -max_len:]
         if last_chunk[1, 0] % 2 == 1:
             threshold_id = sorted(np.unique(last_chunk[1, :]))[0]
         else:
@@ -106,10 +106,10 @@ def _exract_data_for_modeling(seq_, segment_, S):
 
 
     for x in extracted_data:
-        seq_arr = np.pad(x[0], (0, S - x.shape[1]), constant_values=0)
-        seg_arr = np.pad(x[1], (0, S - x.shape[1]), constant_values=-1)
-        pos_arr = np.pad(x[2], (0, S - x.shape[1]), constant_values=-1)
-        mask_arr = np.ones(S)
+        seq_arr = np.pad(x[0], (0, max_len - x.shape[1]), constant_values=0)
+        seg_arr = np.pad(x[1], (0, max_len - x.shape[1]), constant_values=-1)
+        pos_arr = np.pad(x[2], (0, max_len - x.shape[1]), constant_values=-1)
+        mask_arr = np.ones(max_len)
         mask_arr[x.shape[1]:] = 0
 
         sequences = np.concatenate([sequences, np.expand_dims(seq_arr, 0)])
@@ -120,7 +120,7 @@ def _exract_data_for_modeling(seq_, segment_, S):
     return sequences, segments, positions, masks
 
 
-def process_data(data_files, max_length=512, do_plot=True, verbose=False):
+def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     if type(data_files) is not list:
         data_files = [data_files]
 
@@ -210,13 +210,13 @@ def process_data(data_files, max_length=512, do_plot=True, verbose=False):
 
 
     ### extract and pad data, ready for modeling
-    sequences_all = np.empty((0, max_length))
-    segments_all = np.empty((0, max_length))
-    positions_all = np.empty((0, max_length))
-    masks_all = np.empty((0, max_length))
+    sequences_all = np.empty((0, max_len))
+    segments_all = np.empty((0, max_len))
+    positions_all = np.empty((0, max_len))
+    masks_all = np.empty((0, max_len))
     for i in range(len(trajectory_token_ids)):
         assert len(trajectory_token_ids[i]) == len(trajectory_segment_ids[i]), 'otherwise there is a serious problem'
-        seqs_, segs_, poss_, msks_ = _exract_data_for_modeling(trajectory_token_ids[i], trajectory_segment_ids[i], max_length)
+        seqs_, segs_, poss_, msks_ = _exract_data_for_modeling(trajectory_token_ids[i], trajectory_segment_ids[i], max_len)
 
         sequences_all = np.concatenate([sequences_all, seqs_])
         segments_all = np.concatenate([segments_all, segs_])
@@ -273,7 +273,7 @@ if __name__ == "__main__":
         type=str
     )
     parser.add_argument(
-        "max_length", help="max length of trajectories. default: 512",
+        "max_len", help="max length of trajectories. default: 512",
         type=int, default=512,
     )
     parser.add_argument(
@@ -297,18 +297,18 @@ if __name__ == "__main__":
 
     import os
     from tqdm import tqdm
-    for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_length)):
+    for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_len)):
         dir_ = os.path.join(load_dir, 'eps={:.2f}'.format(eps))
         files_ = os.listdir(dir_)
         data_files = [os.path.join(dir_, x) for x in sorted(files_)]
 
-        traj_data_, lang_data_ = process_data(data_files, max_length=args.max_length, do_plot=False, verbose=False)
+        traj_data_, lang_data_ = process_data(data_files, max_len=args.max_len, do_plot=False, verbose=False)
         traj_data_all.update({'eps={:.2f}'.format(eps): traj_data_})
         lang_data_all.update({'eps={:.2f}'.format(eps): lang_data_})
 
     os.makedirs(save_dir, exist_ok=True)
-    traj_dir_ = os.path.join(save_dir, 'traj_data_max_len={:d}.npy'.format(args.max_length))
-    lang_dir_ = os.path.join(save_dir, 'lang_data_max_len={:d}.npy'.format(args.max_length))
+    traj_dir_ = os.path.join(save_dir, 'traj_data_max_len={:d}.npy'.format(args.max_len))
+    lang_dir_ = os.path.join(save_dir, 'lang_data_max_len={:d}.npy'.format(args.max_len))
 
     np.save(traj_dir_, traj_data_all)
     np.save(lang_dir_, lang_data_all)
