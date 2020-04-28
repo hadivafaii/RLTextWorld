@@ -1,5 +1,44 @@
 #!/bin/bash
 
+
+
+
+declare -a game_specs
+declare -a joke tiny small medium large xlarge xxlarge ultra
+
+joke=(1 5 1)
+tiny=(5 10 5)
+small=(10 20 5)
+medium=(15 30 10)
+large=(20 40 10)
+xlarge=(25 50 20)
+xxlarge=(30 70 30)
+ultra=(50 100 50)
+
+# base dir to save games
+declare -a game_specs
+base_dir="/home/$USER/Documents/FTWP/games/custom"
+
+### joke
+game_specs=(1 5 1)
+save_dir="$base_dir/joke"
+
+for goal in 'brief' 'detailed'; do
+  ./mk_train.sh $save_dir $goal ${game_specs[0]} ${game_specs[1]} ${game_specs[2]}
+  ./mk_valid.sh $save_dir $goal ${game_specs[0]} ${game_specs[1]} ${game_specs[2]}
+  ./mk_test.sh $save_dir $goal ${game_specs[0]} ${game_specs[1]} ${game_specs[2]}
+done
+
+sem --wait
+echo "[PROGRESS] all 'joke' games done - specs: wsz=${game_specs[0]} nbobj=${game_specs[1]} qlen=${game_specs[2]}"
+
+
+
+
+
+: '
+
+
 # base dir to save games
 base_dir="/home/$USER/Documents/FTWP/games/custom"
 
@@ -19,7 +58,7 @@ done
 echo $ctr
 
 
-: '
+
 
 game_type=$1
 num_groups=$2

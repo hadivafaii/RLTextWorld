@@ -1,4 +1,5 @@
 # game_type e.g. tw_cooking/train
+# game type is string, eg: tw_cooking_train. num_groups is integer larger than 0. e.g.: 20
 game_type=$1
 
 # get correct exploration mode
@@ -6,16 +7,14 @@ if [[ $game_type =~ "tw_cooking" ]]; then
    game_specs=""
 
  elif [[ $game_type =~ "tw_simple" ]]; then
-   exploration_mode=policy
-   echo enter goal and rewards values
+   echo "enter goal {detailed, brief, none} and rewards {dense,balanced,sparse} values"
    read goal rewards
    game_specs="goal=$goal-rewards=$rewards"
 
  elif [[ $game_type =~ "custom" ]]; then
-   exploration_mode=policy
-   echo enter goal, world size, nb objects, and quest length
-   read goal wsz nbobj qlen
-   game_specs="$goal/wsz=$wsz-nbobj=$nbobj-qlen=$qlen"
+   echo "enter goal {detailed, brief} game spec (e.g. small large etc)"
+   read goal spec
+   game_specs="/$goal/$spec"
 fi
 
 echo "loading from .../$game_type/$game_specs"

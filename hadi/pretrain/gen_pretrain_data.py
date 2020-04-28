@@ -128,6 +128,9 @@ def detect_objects(x, ranges, conversion_dict):
         unigram = x[range_]
         bigrams = list(zip(unigram, unigram[1:]))
         trigrams = list(zip(unigram, unigram[1:], unigram[2:]))
+        quadrograms = list(zip(unigram, unigram[1:], unigram[2:], unigram[3:]))
+        pentagrams = list(zip(unigram, unigram[1:], unigram[2:], unigram[3:], unigram[4:]))
+        hexagrams = list(zip(unigram, unigram[1:], unigram[2:], unigram[3:], unigram[4:], unigram[5:]))
 
         for tuple_ in list(conversion_dict.keys()):
             detected = False
@@ -137,20 +140,45 @@ def detect_objects(x, ranges, conversion_dict):
                     detected = True
                 except ValueError:
                     continue
+
             elif len(tuple_) == 2:
                 try:
                     start_idx = bigrams.index(tuple_)
                     detected = True
                 except ValueError:
                     continue
+
             elif len(tuple_) == 3:
                 try:
                     start_idx = trigrams.index(tuple_)
                     detected = True
                 except ValueError:
                     continue
+
+            elif len(tuple_) == 4:
+                try:
+                    start_idx = quadrograms.index(tuple_)
+                    detected = True
+                except ValueError:
+                    continue
+
+            elif len(tuple_) == 5:
+                try:
+                    start_idx = pentagrams.index(tuple_)
+                    detected = True
+                except ValueError:
+                    continue
+
+            elif len(tuple_) == 6:
+                try:
+                    start_idx = hexagrams.index(tuple_)
+                    detected = True
+                except ValueError:
+                    continue
             else:
-                raise(ValueError('Max entity len should be 3'))
+                #TODO:
+                print(tuple_)
+                raise(ValueError('Max entity len should be 4'))
 
             if detected:
                 detected_range_ = range(list(range_)[start_idx], list(range_)[start_idx] + len(tuple_))
@@ -159,10 +187,9 @@ def detect_objects(x, ranges, conversion_dict):
     return sorted(detected_ranges, key=lambda tup: tup[0].start)
 
 
-def get_masked_input(x, ranges, m, unk_id=3):
+def _get_masked_input(x, ranges, unk_id=3):
     extras = []
-    for i in m:
-        range_ = ranges[i][0]
+    for range_, _ in ranges:
         x = np.delete(x, range_)
         x = np.insert(x, range_.start, [unk_id] * len(range_))
         extras.append(range(range_.start + 1, range_.stop))
@@ -171,9 +198,9 @@ def get_masked_input(x, ranges, m, unk_id=3):
 
 
 
-def fix_inputs(x, starting_position_id=1, S=512):
+def fix_inputs(x, starting_position_id=1, max_len=512):
     # pad token_ids so it gets to max
-    x = np.pad(x, (0, S - len(x)), constant_values=0)
+    x = np.pad(x, (0, max_len - len(x)), constant_values=0)
 
     # get the obs and act ranges for x
     obs_ranges, act_ranges = _get_ranges([x], config)
@@ -185,24 +212,26 @@ def fix_inputs(x, starting_position_id=1, S=512):
         type_ids.extend([config.obs_id] * len(obs_ranges[i]))
         type_ids.extend([config.act_id] * len(act_ranges[i]))
     type_ids.extend([config.obs_id] * (len(obs_ranges[-1])))
-    type_ids = np.pad(type_ids, (0, S - len(type_ids)), constant_values=0)
+    type_ids = np.pad(type_ids, (0, max_len - len(type_ids)), constant_values=0)
 
     # get position_ids
     position_ids = np.arange(starting_position_id, starting_position_id + len(x[x > 0]))
-    position_ids = np.pad(position_ids, (0, S - len(position_ids)), constant_values=0)
+    position_ids = np.pad(position_ids, (0, max_len - len(position_ids)), constant_values=0)
 
-    return x[:S], type_ids[:S], position_ids[:S]
+    return x[:max_len], type_ids[:max_len], position_ids[:max_len]
 
 
-def generate_corrupted_data(inputs, config, conversion_dict,
-                            S=512, mask_prob=0.25, mode='act', seed=665):
+def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_prob=0.25, mode='act', seed=665):
     rng = np.random.RandomState(seed)
     token_ids, type_ides, position_ids = inputs
+
+    assert token_ids.shape[-1] == type_ides.shape[-1] == position_ids.shape[-1] == max_len, "otherwise something is wrong"
 
     masked_token_ids = []
     masked_type_ids = []
     masked_position_ids = []
-    unk_positions_lbls = []
+    unk_positions = []
+    gold_labels = []
 
     obs_ranges, act_ranges = _get_ranges(token_ids, config)
 
@@ -212,28 +241,29 @@ def generate_corrupted_data(inputs, config, conversion_dict,
             detected_ranges = detect_objects(token_ids[ii], act_ranges[ii], conversion_dict)
         elif mode == 'obs':
             detected_ranges = detect_objects(token_ids[ii], obs_ranges[ii], conversion_dict)
+        elif mode == 'mlm':
+            detected_ranges = [(range(j, j + 1), token_ids[ii][j]) for j in range(np.sum(token_ids[ii] != config.pad_id))]
         else:
             raise NotImplementedError
 
         # randomly select form detected objects
         num_ = len(detected_ranges)
         random_numbers = rng.uniform(0, 1, num_)
-        m = np.where(random_numbers < mask_prob)[0]
+        m = sorted(np.where(random_numbers < mask_prob)[0])
         # mask the selected objects
-        x_masked = get_masked_input(token_ids[ii], detected_ranges, m, config.unk_id)
+        x_masked = _get_masked_input(token_ids[ii], [detected_ranges[x] for x in m], config.unk_id)
         # fix the masked inputs to have correct length, position and type ids etc
-        outputs_ = fix_inputs(x_masked, position_ids[ii][0], S=S)
+        outputs_ = fix_inputs(x_masked, position_ids[ii][0], max_len=max_len)
 
         masked_token_ids.append(outputs_[0])
         masked_type_ids.append(outputs_[1])
         masked_position_ids.append(outputs_[2])
 
-        unk_positions = np.where(outputs_[0] == config.unk_id)[0]
-        gold_labels = [tup[1] for tup in detected_ranges]
-        unk_positions_lbls.append((unk_positions, gold_labels))
+        unk_positions.append(np.where(outputs_[0] == config.unk_id)[0])
+        gold_labels.append([[tup[1] for tup in detected_ranges][x] for x in m])
 
     outputs = (np.array(masked_token_ids), np.array(masked_type_ids), np.array(masked_position_ids))
-    return outputs, unk_positions_lbls
+    return outputs, unk_positions, gold_labels
 # ------------------------------------------------------------------------------------------------------- #
 
 
@@ -243,19 +273,25 @@ def generate_corrupted_data(inputs, config, conversion_dict,
 # ----------------------------------------------- Save & Load ------------------------------------------- #
 # ------------------------------------------------------------------------------------------------------- #
 def save_data(save_dir, token_ids, type_ids, position_ids,
-              labels=None, permutations_used=None, object_ranges_labels=None,
-              pretrain_mode='ACT_ORDER', S=512, eps=1.00):
+              labels=None, permutations_used=None, unk_positions=None,
+              pretrain_mode='ACT_ORDER', max_len=512, eps=1.00):
     save_ = os.path.join(save_dir, "{:s}_{:s}.hdf5".format(pretrain_mode, datetime.datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
     f = h5py.File(save_, "w")
-    f.create_group(pretrain_mode).create_group('S={:d}'.format(S)).create_group('eps={:.2f}'.format(eps))
-    subgroup = f[pretrain_mode]['S={:d}'.format(S)]['eps={:.2f}'.format(eps)]
+    f.create_group(pretrain_mode).create_group('max_len={:d}'.format(max_len)).create_group('eps={:.2f}'.format(eps))
+    subgroup = f[pretrain_mode]['max_len={:d}'.format(max_len)]['eps={:.2f}'.format(eps)]
 
     subgroup.create_dataset('token_ids', data=token_ids)
     subgroup.create_dataset('type_ids', data=type_ids)
     subgroup.create_dataset('position_ids', data=position_ids)
 
     if labels is not None:
-        subgroup.create_dataset('labels', data=labels)
+        if type(labels) == list:
+            dset = subgroup.create_dataset('labels', (len(labels),),
+                                           dtype=h5py.vlen_dtype(np.dtype('int32')))
+            for i in range(len(labels)):
+                dset[i] = labels[i]
+        else:
+            subgroup.create_dataset('labels', data=np.array(labels))
 
     if permutations_used is not None:
         dset = subgroup.create_dataset('permutations_used', (len(permutations_used),),
@@ -263,23 +299,19 @@ def save_data(save_dir, token_ids, type_ids, position_ids,
         for i in range(len(permutations_used)):
             dset[i] = permutations_used[i]
 
-    if object_ranges_labels is not None:
-        grp = subgroup.create_group('object_ranges_labels')
-
-        for i in range(len(object_ranges_labels)):
-            subgrp = grp.create_group('i={:d}'.format(i))
-            for j in range(len(object_ranges_labels[i])):
-                subsubgrp = subgrp.create_group('j={:d}'.format(j))
-                subsubgrp.create_dataset('object_range', data=object_ranges_labels[i][j][0])
-                subsubgrp.create_dataset('object_index', data=object_ranges_labels[i][j][1])
+    if unk_positions is not None:
+        dset = subgroup.create_dataset('unk_positions', (len(unk_positions),),
+                                       dtype=h5py.vlen_dtype(np.dtype('int32')))
+        for i in range(len(unk_positions)):
+            dset[i] = unk_positions[i]
 
     print('Data saved at {:s}'.format(save_))
     f.close()
 
 
-def load_data(game_type, pretrain_mode, mask_prob=None, k=None, S=512, eps=1.00, file_name=None):
+def load_data(game_type, pretrain_mode, game_specs='', mask_prob=None, k=None, max_len=512, eps=1.00, file_name=None):
 
-    base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', game_type, 'pretraining_data')
+    base_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/trajectories', game_type, game_specs, 'pretraining_data')
     if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB'] and mask_prob is None:
         dir_list = sorted([x for x in os.listdir(base_dir) if 'mask_prob=' in x])
     elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER'] and k is None:
@@ -302,7 +334,7 @@ def load_data(game_type, pretrain_mode, mask_prob=None, k=None, S=512, eps=1.00,
     print('\nLoading data from {:s}'.format(load_))
 
     f = h5py.File(load_, "r")
-    subgroup = f[pretrain_mode]['S={:d}'.format(S)]['eps={:.2f}'.format(eps)]
+    subgroup = f[pretrain_mode]['max_len={:d}'.format(max_len)]['eps={:.2f}'.format(eps)]
 
     token_ids = np.array(subgroup['token_ids'])
     type_ids = np.array(subgroup['type_ids'])
@@ -311,7 +343,13 @@ def load_data(game_type, pretrain_mode, mask_prob=None, k=None, S=512, eps=1.00,
     outputs = (token_ids, type_ids, position_ids)
 
     if 'labels' in subgroup.keys():
-        labels = np.array(subgroup['labels'])
+        if subgroup['labels'].dtype == 'object':
+            dset = subgroup['labels']
+            labels = []
+            for pp in dset:
+                labels.append(list(pp))
+        else:
+            labels = np.array(subgroup['labels'])
         outputs += (labels,)
         print('labels added to outputs')
 
@@ -323,30 +361,38 @@ def load_data(game_type, pretrain_mode, mask_prob=None, k=None, S=512, eps=1.00,
         outputs += (permutations_used,)
         print('permutations_used added to outputs')
 
-    # TODO: fix this
-    # reminder: unk_positions_lbls.append((unk_positions, gold_labels))
-    if 'unk_positions_lbls' in subgroup.keys():
-        grp = subgroup['object_ranges_labels']
-        unk_positions_lbls = []
-        for i in range(len(grp)):
-            local_list = []
-            subgrp = grp['i={:d}'.format(i)]
-            for j in range(len(subgrp)):
-                subsubgrp = subgrp['j={:d}'.format(j)]
-                object_range = list(subsubgrp['object_range'])
-                object_range = range(object_range[0], object_range[-1] + 1)
-                object_index = np.array(subsubgrp['object_index']).item()
-                local_list.append((object_range, object_index))
-            unk_positions_lbls.append(local_list)
-        outputs += (unk_positions_lbls,)
-        print('unk_positions_lbls added to outputs')
-
-        # TODO: fix this to decouple unk position and labels
+    if 'unk_positions' in subgroup.keys():
+        dset = subgroup['unk_positions']
+        unk_positions = []
+        for pp in dset:
+            unk_positions.append(list(pp))
+        outputs += (unk_positions,)
+        print('unk_positions added to outputs')
 
     f.close()
     return outputs
 # ------------------------------------------------------------------------------------------------------- #
 
+
+
+
+# ------------------------------------------ Helper Functions ------------------------------------------- #
+# ------------------------------------------------------------------------------------------------------- #
+def _corrupted_data_processing(generated_data_):
+    curropt_token_ids = [tup[0][0] for tup in generated_data_]
+    curropt_type_ids = [tup[0][1] for tup in generated_data_]
+    curropt_position_ids = [tup[0][2] for tup in generated_data_]
+    outputs = (curropt_token_ids, curropt_type_ids, curropt_position_ids)
+    outputs = (np.concatenate(x, axis=0) for x in outputs)
+
+    unk_positions_and_labels_list = [tup[1:] for tup in generated_data_]
+    unk_positions, gold_labels = [], []
+    for item1, item2 in unk_positions_and_labels_list:
+        unk_positions += item1
+        gold_labels += item2
+
+    return outputs, unk_positions, gold_labels
+# ------------------------------------------------------------------------------------------------------- #
 
 
 
@@ -362,8 +408,8 @@ if __name__ == "__main__":
     parser.add_argument("--S", help="(integer) sequence length. default: 512", type=int, default=512)
     parser.add_argument("--eps", help="(float) epsilon. default: 1.00", type=float, default=1.00)
     parser.add_argument("--seeds", help="(integers) random seeds, used only for corrupted data generation. default: [665]", type=int, nargs='+', default=665)
-    parser.add_argument("--load_dir", help="(str) directory to load and save. default: '~/game_type/processed_trajectories'",
-                        type=str, default='processed_trajectories')
+    parser.add_argument("--game_specs", help="game specifics such as brief or detailed goal, quest length and so on. default is None",
+                        type=str, default="")
     parser.add_argument("--save_dir", help="(str) directory to load and save. default: '~/game_type/pretraining_data'",
                         type=str, default='pretraining_data')
 
@@ -376,30 +422,13 @@ if __name__ == "__main__":
     if args.pretrain_mode not in ALLOWED_MODES:
         raise ValueError('enter correct pretrain type.  allowed opetions: \n{}'.format(ALLOWED_MODES))
 
-    base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type)
+    base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type, args.game_specs)
 
-    args.load_dir = os.path.join(base_dir, args.load_dir)
-    args.save_dir = os.path.join(base_dir, args.save_dir)
+    load_dir = os.path.join(base_dir, 'processed_trajectories')
+    save_dir = os.path.join(base_dir, args.save_dir)
 
-
-
-    def _corrupted_data_processing(generated_data_):
-        curropt_token_ids = [tup[0][0] for tup in generated_data_]
-        curropt_type_ids = [tup[0][1] for tup in generated_data_]
-        curropt_position_ids = [tup[0][2] for tup in generated_data_]
-        outputs = (curropt_token_ids, curropt_type_ids, curropt_position_ids)
-        outputs = (np.concatenate(x, axis=0) for x in outputs)
-
-        object_ranges_labels_lists = [tup[1] for tup in generated_data_]
-        object_ranges_labels = []
-        for item in object_ranges_labels_lists:
-            object_ranges_labels += item
-
-        return outputs, object_ranges_labels
-
-
-    traj_load_ = os.path.join(args.load_dir, 'traj_data_max_len={:d}.npy'.format(args.S))
-    lang_load_ = os.path.join(args.load_dir, 'lang_data_max_len={:d}.npy'.format(args.S))
+    traj_load_ = os.path.join(load_dir, 'traj_data_max_len={:d}.npy'.format(args.S))
+    lang_load_ = os.path.join(load_dir, 'lang_data_max_len={:d}.npy'.format(args.S))
     traj_data_all = np.load(traj_load_, allow_pickle=True).item()
     lang_data_all = np.load(lang_load_, allow_pickle=True).item()
     traj_data = traj_data_all['eps={:.2f}'.format(args.eps)]
@@ -420,25 +449,25 @@ if __name__ == "__main__":
         outputs, labels, permutations_used = generate_permutated_data(
             inputs, config, k=args.k, mode=args.pretrain_mode[:3].lower(),
         )
-        save_dir = os.path.join(args.save_dir, "k={:d}".format(args.k))
+        save_dir = os.path.join(save_dir, "k={:d}".format(args.k))
         os.makedirs(save_dir, exist_ok=True)
         save_data(save_dir, *outputs, labels=labels, permutations_used=permutations_used,
-                  pretrain_mode=args.pretrain_mode, S=args.S, eps=args.eps)
+                  pretrain_mode=args.pretrain_mode, max_len=args.S, eps=args.eps)
 
     elif args.pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
         for seed in args.seeds:
             print('[PROGRESS] generating corrupted data using seed = {:d}'.format(seed))
-            outputs, object_ranges_labels = generate_corrupted_data(
+            outputs, unk_positions, gold_labels = generate_corrupted_data(
                 inputs, config, lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())],
-                S=args.S, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed,
+                max_len=args.S, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed,
             )
-            generated_data_.append((outputs, object_ranges_labels))
-        outputs, object_ranges_labels = _corrupted_data_processing(generated_data_)
+            generated_data_.append((outputs, unk_positions, gold_labels))
+        outputs, unk_positions, gold_labels = _corrupted_data_processing(generated_data_)
         print('[PROGRESS] data generation done. saving . . . ')
-        save_dir = os.path.join(args.save_dir, "mask_prob={:.2f}".format(args.mask_prob))
+        save_dir = os.path.join(save_dir, "mask_prob={:.2f}".format(args.mask_prob))
         os.makedirs(save_dir, exist_ok=True)
-        save_data(save_dir, *outputs, object_ranges_labels=object_ranges_labels,
-                  pretrain_mode=args.pretrain_mode, S=args.S, eps=args.eps)
+        save_data(save_dir, *outputs, unk_positions=unk_positions, labels=gold_labels,
+                  pretrain_mode=args.pretrain_mode, max_len=args.S, eps=args.eps)
     else:
         raise NotImplementedError
 
