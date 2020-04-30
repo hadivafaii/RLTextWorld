@@ -216,8 +216,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
     rng = np.random.RandomState(seed)
     token_ids, type_ides, position_ids = inputs
 
-    assert token_ids.shape[-1] == type_ides.shape[-1] == position_ids.shape[
-        -1] == max_len, "otherwise something is wrong"
+    assert token_ids.shape[-1] == type_ides.shape[-1] == position_ids.shape[-1] == max_len, "otherwise something is wrong"
 
     masked_token_ids = []
     masked_type_ids = []
@@ -241,6 +240,8 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
 
         # randomly select form detected objects
         num_ = len(detected_ranges)
+        if num_ == 0:
+            continue
         m = []
         while len(m) == 0:  # this will ensure at least one masked token
             random_numbers = rng.uniform(0, 1, num_)
@@ -325,7 +326,7 @@ def load_data(game_type, pretrain_mode, game_specs='', mask_prob=None, k=None, f
         file_list = os.listdir(load_dir)
         file_list = sorted([x for x in file_list if '{:s}'.format(pretrain_mode) in x])
         assert len(file_list) > 0, 'no files found for pretrain type {:s}'.format(pretrain_mode)
-        print('Found these fils:\n', file_list)
+        print('Found these files:\n', file_list)
         file_name = file_list[-1]
 
     load_ = os.path.join(load_dir, file_name)
@@ -335,7 +336,7 @@ def load_data(game_type, pretrain_mode, game_specs='', mask_prob=None, k=None, f
     pretrain_group = f[pretrain_mode]
 
     load_data = {}
-    for max_len_key in pretrain_group:
+    for max_len_key in tqdm(pretrain_group):
         for eps_key in pretrain_group[max_len_key]:
             subgroup = pretrain_group[max_len_key][eps_key]
 
@@ -353,19 +354,16 @@ def load_data(game_type, pretrain_mode, game_specs='', mask_prob=None, k=None, f
             else:
                 labels = np.array(subgroup['labels'])
             outputs += (labels,)
-            print('labels added to outputs')
 
             dset = subgroup['other_data']
             other_data = []
             for pp in dset:
                 other_data.append(list(pp))
             outputs += (other_data,)
-            if 'ORDER' in pretrain_mode:
-                print('other_data added to outputs (this is a list of permutation_used)')
-            else:
-                print('other_data added to outputs (this is a list of unk_positions)')
 
-            load_data.update({'max_len={:d},eps={:.2f}'.format(max_len, eps): outputs})
+            max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
+            key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
+            load_data.update({key: outputs})
 
     f.close()
     return load_data
@@ -413,11 +411,9 @@ if __name__ == "__main__":
     parser.add_argument("--seeds",
                         help="(integers) random seeds, used only for corrupted data generation. default: [665]",
                         type=int, nargs='+', default=665)
-    parser.add_argument("--game_specs",
+    parser.add_argument("--game_spec",
                         help="game specifics such as brief or detailed goal, quest length and so on. default is None",
                         type=str, default="")
-    parser.add_argument("--save_dir", help="(str) directory to load and save. default: '~/game_type/pretraining_data'",
-                        type=str, default='pretraining_data')
 
     args = parser.parse_args()
 
@@ -428,19 +424,24 @@ if __name__ == "__main__":
     if args.pretrain_mode not in ALLOWED_MODES:
         raise ValueError('enter correct pretrain type.  allowed opetions: \n{}'.format(ALLOWED_MODES))
 
+    assert args.k >= 2, "k should be integer greater than 1"
+    assert 0 < args.mask_prob < 1, "mask_prob should be in (0, 1) interval"
+
     sys.path.append("..")
-    from model.configuration import TransformerConfig
+    from model.preprocessing import get_nlp, preproc
+    from model.configuration import DataConfig, TransformerConfig
+
     config = TransformerConfig()
+    data_config = DataConfig(pretrain_mode=args.pretrain_mode, game_type=args.game_type,
+                             game_spec=args.game_spec, k=args.k, mask_prob=args.mask_prob)
+
+    load_dir = data_config.processed_dir
+    save_dir = data_config.pretrain_dirs[0]
 
     if args.max_lengths is None:
         max_lengths = [384, 512, 768, 1024, 2048]
     else:
         max_lengths = [args.max_lengths]
-
-    base_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/trajectories', args.game_type, args.game_specs)
-
-    load_dir = os.path.join(base_dir, 'processed_trajectories')
-    save_dir = os.path.join(base_dir, args.save_dir)
 
     # generate data loop
     loop_data = {}
@@ -472,25 +473,18 @@ if __name__ == "__main__":
                 generated_data_ = []
                 for seed in args.seeds:
                     print('[PROGRESS] generating corrupted data using seed = {:d}'.format(seed))
-                    outputs, unk_positions, labels = generate_corrupted_data(
+                    outputs, labels, unk_positions = generate_corrupted_data(
                         inputs, config, lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())],
                         max_len=max_len, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed,
                     )
-                    generated_data_.append((outputs, unk_positions, labels))
+                    generated_data_.append((outputs, labels, unk_positions))
                 outputs, labels, unk_positions = _corrupted_data_processing(generated_data_)
                 loop_data.update({'max_len={:d},eps={:.2f}'.format(max_len, eps): (*outputs, labels, unk_positions)})
 
             else:
                 raise NotImplementedError
 
-    # save data
-    if args.pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
-        save_dir = os.path.join(save_dir, "k={:d}".format(args.k))
-    elif args.pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
-        save_dir = os.path.join(save_dir, "mask_prob={:.2f}".format(args.mask_prob))
-    else:
-        raise NotImplementedError
-
+    # save
     os.makedirs(save_dir, exist_ok=True)
     save_data(save_dir, loop_data, args.pretrain_mode)
 

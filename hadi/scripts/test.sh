@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if [ "$1" = "hi" ]; then
-  echo success!
-fi
+cd ../utils; echo $(ls)
+
+# echo../; $ls"
 
 : '
 
@@ -34,7 +34,7 @@ for goal in 'brief' 'detailed'; do
   ./mk_test.sh $save_dir $goal ${game_specs[0]} ${game_specs[1]} ${game_specs[2]}
 done
 
-sem --wait
+sem --waitdoc2vec
 echo "[PROGRESS] all 'joke' games done - specs: wsz=${game_specs[0]} nbobj=${game_specs[1]} qlen=${game_specs[2]}"
 
 

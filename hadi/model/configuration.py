@@ -2,7 +2,8 @@ import os
 import yaml
 from collections import namedtuple
 
-class TransformerConfig(object):
+
+class TransformerConfig:
     def __init__(
         self,
             vocab_size=1000,
@@ -23,7 +24,7 @@ class TransformerConfig(object):
             act_id=2,
             unk_id=3,
     ):
-        super().__init__()
+        super(TransformerConfig).__init__()
 
         self.vocab_size = vocab_size
         self.type_vocab_size = type_vocab_size
@@ -44,25 +45,21 @@ class TransformerConfig(object):
         self.unk_id = unk_id
 
 
-
-class PretrainConfig(object):
+class DataConfig:
     def __init__(
             self,
-            pretrain_modes=['ACT_ENTITY', 'ACT_ORDER'],
+            pretrain_modes='ACT_ENTITY',
             game_type='tw_simple/train',
             game_spec='dd',
-            world_size=5,
-            nb_objects=10,
-            quest_len=5,
             k=3,
             mask_prob=0.30,
             batch_size=128,
             max_len=512,
-            base_dir='Documents/FTWP',
+            base_dir='Documents/FTWP/DATA',
             base_processed_dir='processed_trajectories',
             base_pretrain_dir='pretraining_data',
     ):
-        super().__init__()
+        super(DataConfig).__init__()
 
         _allowed_modes = [
             'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
@@ -82,10 +79,9 @@ class PretrainConfig(object):
         # TODO: add 'ALL' here and figure out a way to jointly train on all datasets
         # TODO: add MLM also
 
-        self.base_dir = os.path.join(os.environ['HOME'], base_dir)
-
+        base_dir = os.path.join(os.environ['HOME'], base_dir)
         name_ = game_type.split('/')[0]
-        yaml_dir = os.path.join(self.base_dir, 'games/{:s}/{:s}_game_specs.yaml'.format(name_, name_))
+        yaml_dir = os.path.join(base_dir, '{:s}/{:s}_game_specs.yaml'.format(name_, name_))
         # load yaml file
         with open(yaml_dir, 'r') as stream:
             try:
@@ -110,11 +106,11 @@ class PretrainConfig(object):
                     name_, _allowed_custom_specs))
             GameSpecs = namedtuple('GameSpecs', ['goal', 'wsz', 'nbobj', 'qlen', 'alias'])
             goal = specs_xtracted[0][1]
-            wsz = specs_xtracted[1][1]
-            nbobj = specs_xtracted[2][1]
-            qlen = specs_xtracted[3][1]
+            wsz = int(specs_xtracted[1][1])
+            nbobj = int(specs_xtracted[2][1])
+            qlen = int(specs_xtracted[3][1])
             game_specs = GameSpecs(goal, wsz, nbobj, qlen, game_spec)
-            spec_dir = '{:s}/wsz={:d}-nbobj={:d}-qlen={:d}'.format(goal, world_size, nb_objects, quest_len)
+            spec_dir = '{:s}/{:s}'.format(goal, game_spec.split('-')[1])
 
         elif game_type.split('/')[0] == 'tw_cooking':
             game_specs = None
@@ -122,7 +118,7 @@ class PretrainConfig(object):
         else:
             raise ValueError("Enter correct game type")
 
-        data_base_dir = os.path.join(self.base_dir, 'trajectories', game_type, spec_dir)
+        self.base_dir = os.path.join(base_dir, game_type, spec_dir)
 
         if type(pretrain_modes) is not list:
             pretrain_modes = [pretrain_modes]
@@ -137,7 +133,7 @@ class PretrainConfig(object):
             else:
                 raise ValueError('incorrect pretrain type.  allowed opetions: \n{}'.format(_allowed_modes))
 
-            pretrain_dirs.append(os.path.join(data_base_dir, base_pretrain_dir, pretrain_dir))
+            pretrain_dirs.append(os.path.join(self.base_dir, base_pretrain_dir, pretrain_dir))
         self.pretrain_dirs = pretrain_dirs
 
         self.game_type = game_type
@@ -148,5 +144,5 @@ class PretrainConfig(object):
         self.batch_size = batch_size
         self.max_len = max_len
 
-        self.games_dir = os.path.join(self.base_dir, 'games', game_type, spec_dir)
-        self.processed_dir = os.path.join(data_base_dir, base_processed_dir)
+        self.games_dir = os.path.join(self.base_dir, 'games')
+        self.processed_dir = os.path.join(self.base_dir, base_processed_dir)

@@ -35,7 +35,7 @@ class TransformerEncoder(nn.Module):
     def __setstate__(self, state):
         if 'activation' not in state:
             state['activation'] = F.relu
-        super(Wittgenstein, self).__setstate__(state)
+        super(TransformerEncoder, self).__setstate__(state)
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
         # type: (Tensor, Optional[Tensor], Optional[Tensor]) -> Tensor
@@ -72,10 +72,10 @@ class TransformerEncoder(nn.Module):
 
 
 class Language(object):
-    def __init__(self, pretrain_config):
+    def __init__(self, data_config):
         lang_load_ = os.path.join(
-            pretrain_config.processed_dir,
-            'lang_data_max_len={:d}.npy'.format(pretrain_config.max_len))
+            data_config.processed_dir,
+            'lang_data_max_len={:d}.npy'.format(data_config.max_len))
         lang_data_all = np.load(lang_load_, allow_pickle=True).item()
         max_vocab, winner_eps = 0, 0.0
         for eps in np.arange(0.0, 1.1, 0.1):
@@ -121,12 +121,12 @@ def _get_activation_fn(activation):
 
 
 class Transformer(nn.Module):
-    def __init__(self, config, pretrain_config):
+    def __init__(self, config, data_config):
         super(Transformer, self).__init__()
 
         self.config = config
-        self.pretrain_config = pretrain_config
-        self.nlp = Language(pretrain_config)
+        self.data_config = data_config
+        self.nlp = Language(data_config)
 
         self.embeddings = Embeddings(config)
         self.encoder = TransformerEncoder(config)
@@ -136,4 +136,6 @@ class Transformer(nn.Module):
         # self.generator_head = GeneratorHead(config)
 
     def forward(self, x):
-        embedded = self.embeddings
+        embedded = self.embeddings(x)
+        src = self.encoder(embedded)
+        return src

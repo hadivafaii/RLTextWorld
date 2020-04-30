@@ -232,28 +232,25 @@ if __name__ == "__main__":
         type=int, default=512,
     )
     parser.add_argument(
-        "--game_specs", help="game specifics such as brief or detailed goal, quest length and so on. default is None",
+        "--game_spec", help="game specifics such as brief or detailed goal, quest length and so on. default is None",
         type=str, default="",
-    )
-    parser.add_argument(
-        "--save_dir", help="save directory. default: '~/game_type/processed_trajectories'",
-        type=str, default="processed_trajectories",
     )
 
     args = parser.parse_args()
 
-    base_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/trajectories', args.game_type, args.game_specs)
+    import sys
+    from tqdm import tqdm
+    sys.path.append("..")
+    from model.preprocessing import get_nlp, preproc
+    from model.configuration import DataConfig
 
-    load_dir = os.path.join(base_dir, 'raw_trajectories')
-    save_dir = os.path.join(base_dir, args.save_dir)
+    data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec)
+
+    load_dir = os.path.join(data_config.base_dir, 'raw_trajectories')
+    save_dir = data_config.processed_dir
 
     traj_data_all = {}
     lang_data_all = {}
-
-    import sys
-    sys.path.append("..")
-    from model.preprocessing import get_nlp, preproc
-    from tqdm import tqdm
 
     for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_len)):
         dir_ = os.path.join(load_dir, 'eps={:.2f}'.format(eps))

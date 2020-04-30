@@ -4,7 +4,6 @@ import numpy as np
 from time import time
 from tqdm import tqdm
 from utils import convert_time
-from preprocessing import get_nlp, preproc
 
 from textworld import EnvInfos
 from textworld.gym import envs
@@ -24,14 +23,14 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
         batch_size=batch_size, max_episode_steps=max_steps,
         auto_reset=False, asynchronous=False)
 
-    ### initialize the datas you want to save
+    # initialize the datas you want to save
     all_trajectories = list()
     all_teacher_tuples = list()
     verb_counts = Counter()
     entity_counts = Counter()
     walkthroughs_len_counts = Counter()
 
-    ### Get trajectories
+    # Get trajectories
     for _ in tqdm(range(episodes), desc='extracting trajectories'):
         obs, infos = env.reset()
 
@@ -123,7 +122,6 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
     return data
 
 
-
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -157,13 +155,9 @@ if __name__ == "__main__":
         type=int, default=665,
         )
     parser.add_argument(
-        "--game_specs", help="game specifics such as brief or detailed goal, quest length and so on. default is None",
+        "--game_spec", help="game_spec code such as dd or b-large etc. default is None",
         type=str, default="",
     )
-    parser.add_argument(
-        "--save_dir", help="dir to save extracted trajectories. default: ~/game_type/raw_trajectories",
-        type=str, default='raw_trajectories',
-        )
     parser.add_argument(
         "--silent", help="add this flag to force silence output verbosity",
         action="store_true",
@@ -171,14 +165,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    load_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/games', args.game_type, args.game_specs)
-    save_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/trajectories', args.game_type, args.game_specs, args.save_dir)
-
     if not args.silent:
         print("verbosity is on")
 
     assert 0 <= args.epsilon <= 1, 'epsilon is a float in [0, 1]'
 
+    import sys
+    sys.path.append("..")
+    from model.preprocessing import get_nlp, preproc
+    from model.configuration import DataConfig
+
+    data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec)
+
+    load_dir = data_config.games_dir
+    save_dir = os.path.join(data_config.base_dir, 'raw_trajectories')
 
     game_files = os.listdir(load_dir)
     game_files = [os.path.join(load_dir, g) for g in game_files if '.ulx' in g]
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     game_files = game_files[a:b]
     num_games = len(game_files)
 
-    episodes =  int(np.ceil(num_games / args.batch_size))
+    episodes = int(np.ceil(num_games / args.batch_size))
     episodes *= args.extra_episodes
 
     if not args.silent:
@@ -211,7 +211,7 @@ if __name__ == "__main__":
         mode=args.exploration_mode, epsilon=args.epsilon, seed=args.seed)
     end_time = time()
 
-    ### save data
+    # save data
     save_ = os.path.join(save_dir, 'eps={:.2f}'.format(args.epsilon))
     os.makedirs(save_, exist_ok=True)
     file_name = 'iter={:d}.npy'.format(args.iter)
