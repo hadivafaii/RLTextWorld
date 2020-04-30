@@ -20,11 +20,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
+      <change afterPath="$PROJECT_DIR$/hadi/model/transformer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/hadi/scripts/make_custom_games/tmp.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/RLnTextWorld.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/RLnTextWorld.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/model/embeddings.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/embeddings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_corrupted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_corrupted_data.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_permuted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_permuted_data.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" afterDir="false" />
@@ -35,7 +38,7 @@
       <change beforePath="$PROJECT_DIR$/hadi/test.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/test.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/preprocessing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/utils/preprocessing.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/utils/process_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/process_traj.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -78,6 +81,17 @@
       <updated>1574881965539</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="WindowStateProjectService">
     <state x="2352" y="81" width="732" height="644" key="#Inspections" timestamp="1588213883026">

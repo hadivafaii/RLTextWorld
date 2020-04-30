@@ -1,51 +1,12 @@
-import numpy as np
 import os
 import re
 import spacy
+import numpy as np
 from collections import Counter
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('darkgrid')
-
-
-
-def get_nlp():
-    """
-    get spacy nlp and modify its tokenizer
-    """
-    nlp = spacy.load('en_core_web_sm', disable=['ner', 'parser', 'tagger'])
-    # remove dash (-) from infixes
-    infixes = list(nlp.Defaults.infixes).copy()
-    del infixes[6]
-    nlp.tokenizer.infix_finditer = spacy.util.compile_infix_regex(infixes).finditer
-    return nlp
-
-
-
-def preproc(string, tokenizer):
-    """
-    basically to tokenize
-    """
-    if string is None:
-        return [None]
-
-    pattern = r"[_\\|/$>,>]"
-    s = re.sub(pattern, '', string).replace("\n", ' ').strip().lower()
-
-    if '-=' in s:
-        pattern = r"""-= [\s\S]* =-"""
-        m = re.search(pattern, s)
-        span = m.span()
-        s = s[:span[0]] + m.group(0).replace(' ', '') + s[span[1]:]
-    if '***' in s:
-        pattern = r"""\*\*\*[\s\S]*\*\*\*"""
-        m = re.search(pattern, s)
-        span = m.span()
-        s = s[:span[0]] + m.group(0).replace('*', '-').replace(' ', '-') + s[span[1]:]
-
-    return [t.text for t in tokenizer(s) if not t.is_space]
-
 
 
 def _exract_data_for_modeling(seq_, segment_, max_len):
@@ -54,7 +15,8 @@ def _exract_data_for_modeling(seq_, segment_, max_len):
     extracted_data = []
 
     num = int(np.ceil(len(seq_) / max_len))
-    tmp = np.concatenate([np.expand_dims(seq_, 0), np.expand_dims(segment_, 0), np.expand_dims(np.arange(len(seq_)), 0)])
+    tmp = np.concatenate(
+        [np.expand_dims(seq_, 0), np.expand_dims(segment_, 0), np.expand_dims(np.arange(len(seq_)), 0)])
 
     if num == 1:
         extracted_data.append(tmp)
@@ -104,7 +66,6 @@ def _exract_data_for_modeling(seq_, segment_, max_len):
         selected = last_chunk[:, acceptable_indxs]
         extracted_data.append(selected)
 
-
     for x in extracted_data:
         seq_arr = np.pad(x[0], (0, max_len - x.shape[1]), constant_values=0)
         seg_arr = np.pad(x[1], (0, max_len - x.shape[1]), constant_values=-1)
@@ -149,8 +110,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         except FileNotFoundError:
             print('File .../{:s} not found'.format(f.split('/')[-1]))
 
-
-    ### get unigrams, w2i and i2w
+    # get unigrams, w2i and i2w
     unigram_counts = Counter()
     for tau in trajectories:
         for tok in tau:
@@ -175,8 +135,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
 
     i2w = {w2i[tok]: tok for tok in w2i}
 
-
-    ### Get entity and verb to indx and vice versa
+    # Get entity and verb to indx and vice versa
     entities_tokenized = [tuple(w2i[x] for x in preproc(ent, tokenizer)) for ent in list(entity_counts.keys())]
     entity2indx = {}
     for ent in entities_tokenized:
@@ -189,10 +148,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         verb2indx.update({verb: len(verb2indx)})
     indx2verb = {verb2indx[verb]: verb for verb in verb2indx}
 
-
-
-
-    ### Turn string based data into integer based
+    # Turn string based data into integer based
     trajectory_token_ids = []
     trajectory_segment_ids = []
     for tau in trajectories:
@@ -208,15 +164,15 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         trajectory_token_ids.append(tau_indxed)
         trajectory_segment_ids.append(seg_indxed)
 
-
-    ### extract and pad data, ready for modeling
+    # extract and pad data, ready for modeling
     sequences_all = np.empty((0, max_len))
     segments_all = np.empty((0, max_len))
     positions_all = np.empty((0, max_len))
     masks_all = np.empty((0, max_len))
     for i in range(len(trajectory_token_ids)):
         assert len(trajectory_token_ids[i]) == len(trajectory_segment_ids[i]), 'otherwise there is a serious problem'
-        seqs_, segs_, poss_, msks_ = _exract_data_for_modeling(trajectory_token_ids[i], trajectory_segment_ids[i], max_len)
+        seqs_, segs_, poss_, msks_ = _exract_data_for_modeling(trajectory_token_ids[i], trajectory_segment_ids[i],
+                                                               max_len)
 
         sequences_all = np.concatenate([sequences_all, seqs_])
         segments_all = np.concatenate([segments_all, segs_])
@@ -225,18 +181,17 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
 
         print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (i + 1) / len(trajectory_token_ids), '%'), end='\r')
 
-
-    ### plot some histogram
+    # plot some histogram
     if do_plot:
         plt.figure(figsize=(16, 3))
 
         data_to_plot = [len(x) for x in trajectories]
         plt.hist(data_to_plot, bins=100)
         plt.title('{} . . . string length of each trajectory. mean = {:.2f}'
-                    .format(data_files[0].split('/')[-2], np.mean(data_to_plot)))
+                  .format(data_files[0].split('/')[-2], np.mean(data_to_plot)))
         plt.show()
 
-    ### so that the padding index will be 0
+    # so that the padding index will be 0
     # segment in [1, 1, 1, 2, 2, 3, 3, 3, ..., 0] and positions in
     segments_all += 1
     # position in [1, 2, 3, ..., 0] and positions in
@@ -257,7 +212,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     lang_data = {
         'verb_counts': verb_counts, 'entity_counts': entity_counts, 'unigram_counts': unigram_counts,
         'entity2indx': entity2indx, 'indx2entity': indx2entity,
-        'verb2indx': verb2indx, 'indx2verb':indx2verb,
+        'verb2indx': verb2indx, 'indx2verb': indx2verb,
         'w2i': w2i, 'i2w': i2w,
     }
 
@@ -293,10 +248,13 @@ if __name__ == "__main__":
     save_dir = os.path.join(base_dir, args.save_dir)
 
     traj_data_all = {}
-    lang_data_all ={}
+    lang_data_all = {}
 
-    import os
+    import sys
+    sys.path.append("..")
+    from model.preprocessing import get_nlp, preproc
     from tqdm import tqdm
+
     for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_len)):
         dir_ = os.path.join(load_dir, 'eps={:.2f}'.format(eps))
         files_ = os.listdir(dir_)
