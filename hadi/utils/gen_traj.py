@@ -171,8 +171,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    load_dir = os.path.join('/home/hadivafa/Documents/FTWP/games', args.game_type, args.game_specs)
-    save_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type, args.game_specs, args.save_dir)
+    load_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/games', args.game_type, args.game_specs)
+    save_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/trajectories', args.game_type, args.game_specs, args.save_dir)
 
     if not args.silent:
         print("verbosity is on")

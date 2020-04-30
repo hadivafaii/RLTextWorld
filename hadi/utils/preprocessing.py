@@ -287,7 +287,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    base_dir = os.path.join('/home/hadivafa/Documents/FTWP/trajectories', args.game_type, args.game_specs)
+    base_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/trajectories', args.game_type, args.game_specs)
 
     load_dir = os.path.join(base_dir, 'raw_trajectories')
     save_dir = os.path.join(base_dir, args.save_dir)

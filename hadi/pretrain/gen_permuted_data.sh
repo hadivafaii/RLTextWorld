@@ -14,6 +14,8 @@ if [[ $game_type =~ "tw_cooking" ]]; then
    echo "enter goal {detailed, brief} game spec (e.g. small large etc)"
    read goal spec
    game_specs="/$goal/$spec"
+ else echo "wrong game type entered. exiting..."
+   exit 1
 fi
 
 echo "loading from .../$game_type/$game_specs"

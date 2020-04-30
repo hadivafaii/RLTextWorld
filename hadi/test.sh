@@ -1,7 +1,10 @@
 #!/bin/bash
 
+if [ "$1" = "hi" ]; then
+  echo success!
+fi
 
-
+: '
 
 declare -a game_specs
 declare -a joke tiny small medium large xlarge xxlarge ultra
@@ -20,6 +23,8 @@ declare -a game_specs
 base_dir="/home/$USER/Documents/FTWP/games/custom"
 
 ### joke
+
+
 game_specs=(1 5 1)
 save_dir="$base_dir/joke"
 
@@ -32,11 +37,6 @@ done
 sem --wait
 echo "[PROGRESS] all 'joke' games done - specs: wsz=${game_specs[0]} nbobj=${game_specs[1]} qlen=${game_specs[2]}"
 
-
-
-
-
-: '
 
 
 # base dir to save games
