@@ -4,10 +4,6 @@ import spacy
 import numpy as np
 from collections import Counter
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_style('darkgrid')
-
 
 def _exract_data_for_modeling(seq_, segment_, max_len):
     sequences, segments = np.empty((0, max_len)), np.empty((0, max_len)),
@@ -183,6 +179,10 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
 
     # plot some histogram
     if do_plot:
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        sns.set_style('darkgrid')
+
         plt.figure(figsize=(16, 3))
 
         data_to_plot = [len(x) for x in trajectories]

@@ -13,7 +13,8 @@ class TransformerConfig:
             num_hidden_layers=3,
             num_attention_heads=2,
             intermediate_size=512,
-            max_position_embeddings=4096,
+            max_position_embeddings=2048+1,
+            share_weights="True",
             hidden_act="gelu",
             hidden_dropout_prob=0.0,
             attention_probs_dropout_prob=0.1,
@@ -34,6 +35,7 @@ class TransformerConfig:
         self.num_attention_heads = num_attention_heads
         self.intermediate_size = intermediate_size
         self.max_position_embeddings = max_position_embeddings
+        self.share_weights = share_weights
         self.hidden_act = hidden_act
         self.hidden_dropout_prob = hidden_dropout_prob
         self.attention_probs_dropout_prob = attention_probs_dropout_prob
@@ -55,6 +57,7 @@ class DataConfig:
             mask_prob=0.30,
             batch_size=128,
             max_len=512,
+            eps=0.8,
             base_dir='Documents/FTWP/DATA',
             base_processed_dir='processed_trajectories',
             base_pretrain_dir='pretraining_data',
@@ -143,6 +146,7 @@ class DataConfig:
         self.mask_prob = mask_prob
         self.batch_size = batch_size
         self.max_len = max_len
+        self.eps = eps
 
         self.games_dir = os.path.join(self.base_dir, 'games')
         self.processed_dir = os.path.join(self.base_dir, base_processed_dir)

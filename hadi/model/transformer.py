@@ -77,24 +77,18 @@ class Language(object):
             data_config.processed_dir,
             'lang_data_max_len={:d}.npy'.format(data_config.max_len))
         lang_data_all = np.load(lang_load_, allow_pickle=True).item()
-        max_vocab, winner_eps = 0, 0.0
-        for eps in np.arange(0.0, 1.1, 0.1):
-            lang_data = lang_data_all['eps={:.2f}'.format(eps)]
-            if len(lang_data['w2i']) > max_vocab:
-                max_vocab = len(lang_data['w2i'])
-                winner_eps = eps
+        lang_data = lang_data_all['eps={:.2f}'.format(data_config.eps)]
 
-        data = lang_data_all['eps={:.2f}'.format(winner_eps)]
-        self.w2i = data['w2i']
-        self.i2w = data['i2w']
+        self.w2i = lang_data['w2i']
+        self.i2w = lang_data['i2w']
         self.vocab = list(self.w2i.keys())
         self.vocab_size = len(self.vocab)
 
-        self.entity2indx = data['entity2indx']
-        self.indx2entity = data['indx2entity']
+        self.entity2indx = lang_data['entity2indx']
+        self.indx2entity = lang_data['indx2entity']
 
-        self.verb2indx = data['verb2indx']
-        self.indx2verb = data['indx2verb']
+        self.verb2indx = lang_data['verb2indx']
+        self.indx2verb = lang_data['indx2verb']
 
         self.tokenizer = get_nlp().tokenizer
 

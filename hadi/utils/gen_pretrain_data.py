@@ -258,7 +258,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
         unk_positions.append(np.where(outputs_[0] == config.unk_id)[0])
         labels.append([[tup[1] for tup in detected_ranges][x] for x in m])
 
-    outputs = (np.array(masked_token_ids), np.array(masked_type_ids), np.array(masked_position_ids))
+    outputs = [np.array(masked_token_ids), np.array(masked_type_ids), np.array(masked_position_ids)]
     return outputs, labels, unk_positions
 
 
@@ -308,64 +308,53 @@ def save_data(save_dir, data_dict, pretrain_mode='ACT_ORDER'):
     f.close()
 
 
-def load_data(game_type, pretrain_mode, game_specs='', mask_prob=None, k=None, file_name=None):
-    base_dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/trajectories', game_type, game_specs,
-                            'pretraining_data')
-    if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB'] and mask_prob is None:
-        dir_list = sorted([x for x in os.listdir(base_dir) if 'mask_prob=' in x])
-    elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER'] and k is None:
-        dir_list = sorted([x for x in os.listdir(base_dir) if 'k=' in x])
-    else:
-        raise ValueError("Wrong pretrain type entered.  Allowed options:\n{}".format(ALLOWED_MODES))
+def load_data(data_config, file_name=None):
+    load_data = []
+    for pretrain_mode, load_dir in zip(data_config.pretrain_modes, data_config.pretrain_dirs):
+        if file_name is None:
+            file_list = os.listdir(load_dir)
+            file_list = sorted([x for x in file_list if '{:s}'.format(pretrain_mode) in x])
+            assert len(file_list) > 0, 'no files found for pretrain type {:s}'.format(pretrain_mode)
+            print('Found these files:\n', file_list)
+            file_name = file_list[-1]
 
-    assert len(dir_list) > 0, 'no dirs found for pretrain type {:s}'.format(pretrain_mode)
-    print('Found these dirs:\n', dir_list)
-    load_dir = os.path.join(base_dir, dir_list[-1])
+        load_ = os.path.join(load_dir, file_name)
+        print('\nLoading data from {:s}\n'.format(load_))
 
-    if file_name is None:
-        file_list = os.listdir(load_dir)
-        file_list = sorted([x for x in file_list if '{:s}'.format(pretrain_mode) in x])
-        assert len(file_list) > 0, 'no files found for pretrain type {:s}'.format(pretrain_mode)
-        print('Found these files:\n', file_list)
-        file_name = file_list[-1]
+        f = h5py.File(load_, "r")
+        pretrain_group = f[pretrain_mode]
 
-    load_ = os.path.join(load_dir, file_name)
-    print('\nLoading data from {:s}\n'.format(load_))
+        data_dict = {}
+        for max_len_key in tqdm(pretrain_group):
+            for eps_key in pretrain_group[max_len_key]:
+                subgroup = pretrain_group[max_len_key][eps_key]
 
-    f = h5py.File(load_, "r")
-    pretrain_group = f[pretrain_mode]
+                token_ids = np.array(subgroup['token_ids'])
+                type_ids = np.array(subgroup['type_ids'])
+                position_ids = np.array(subgroup['position_ids'])
 
-    load_data = {}
-    for max_len_key in tqdm(pretrain_group):
-        for eps_key in pretrain_group[max_len_key]:
-            subgroup = pretrain_group[max_len_key][eps_key]
+                outputs = (token_ids, type_ids, position_ids)
 
-            token_ids = np.array(subgroup['token_ids'])
-            type_ids = np.array(subgroup['type_ids'])
-            position_ids = np.array(subgroup['position_ids'])
+                if subgroup['labels'].dtype == 'object':
+                    dset = subgroup['labels']
+                    labels = []
+                    for pp in dset:
+                        labels.append(list(pp))
+                else:
+                    labels = np.array(subgroup['labels'])
+                outputs += (labels,)
 
-            outputs = (token_ids, type_ids, position_ids)
-
-            if subgroup['labels'].dtype == 'object':
-                dset = subgroup['labels']
-                labels = []
+                dset = subgroup['other_data']
+                other_data = []
                 for pp in dset:
-                    labels.append(list(pp))
-            else:
-                labels = np.array(subgroup['labels'])
-            outputs += (labels,)
+                    other_data.append(list(pp))
+                outputs += (other_data,)
 
-            dset = subgroup['other_data']
-            other_data = []
-            for pp in dset:
-                other_data.append(list(pp))
-            outputs += (other_data,)
-
-            max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
-            key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
-            load_data.update({key: outputs})
-
-    f.close()
+                max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
+                key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
+                data_dict.update({key: outputs})
+        load_data.append(data_dict)
+        f.close()
     return load_data
 
 
@@ -375,17 +364,17 @@ def load_data(game_type, pretrain_mode, game_specs='', mask_prob=None, k=None, f
 # ------------------------------------------ Helper Functions ------------------------------------------- #
 # ------------------------------------------------------------------------------------------------------- #
 def _corrupted_data_processing(generated_data_):
-    curropt_token_ids = [tup[0][0] for tup in generated_data_]
-    curropt_type_ids = [tup[0][1] for tup in generated_data_]
-    curropt_position_ids = [tup[0][2] for tup in generated_data_]
-    outputs = (curropt_token_ids, curropt_type_ids, curropt_position_ids)
-    outputs = (np.concatenate(x, axis=0) for x in outputs)
+    curropt_token_ids = [ll[0] for ll in generated_data_]
+    curropt_type_ids = [ll[1] for ll in generated_data_]
+    curropt_position_ids = [ll[2] for ll in generated_data_]
+    outputs = [curropt_token_ids, curropt_type_ids, curropt_position_ids]
+    outputs = [np.concatenate(x, axis=0) for x in outputs]
 
-    unk_positions_and_labels_list = [tup[1:] for tup in generated_data_]
-    unk_positions, labels = [], []
-    for item1, item2 in unk_positions_and_labels_list:
-        unk_positions += item1
-        labels += item2
+    labels_unk_positions_list = [ll[-2:] for ll in generated_data_]
+    labels, unk_positions = [], []
+    for item1, item2 in labels_unk_positions_list:
+        labels += item1
+        unk_positions += item2
 
     return outputs, labels, unk_positions
 
@@ -432,7 +421,7 @@ if __name__ == "__main__":
     from model.configuration import DataConfig, TransformerConfig
 
     config = TransformerConfig()
-    data_config = DataConfig(pretrain_mode=args.pretrain_mode, game_type=args.game_type,
+    data_config = DataConfig(pretrain_modes=args.pretrain_mode, game_type=args.game_type,
                              game_spec=args.game_spec, k=args.k, mask_prob=args.mask_prob)
 
     load_dir = data_config.processed_dir
@@ -477,7 +466,7 @@ if __name__ == "__main__":
                         inputs, config, lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())],
                         max_len=max_len, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed,
                     )
-                    generated_data_.append((outputs, labels, unk_positions))
+                    generated_data_.append([*outputs, labels, unk_positions])
                 outputs, labels, unk_positions = _corrupted_data_processing(generated_data_)
                 loop_data.update({'max_len={:d},eps={:.2f}'.format(max_len, eps): (*outputs, labels, unk_positions)})
 
