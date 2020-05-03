@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -12,6 +13,32 @@ def convert_time(time_in_secs):
     s = time_in_secs - d * 86400 - h * 3600 - m * 60
 
     print("\nd / hh:mm:ss   --->   %d / %d:%d:%d\n" % (d, h, m, s))
+
+
+def to_np(x):
+    if isinstance(x, np.ndarray):
+        return x
+    return x.data.cpu().numpy()
+
+
+def to_pt(np_matrix, enable_cuda=False, dtype='long'):
+    if dtype == 'long':
+        if enable_cuda:
+            return torch.autograd.Variable(torch.from_numpy(np_matrix).type(torch.LongTensor).cuda())
+        else:
+            return torch.autograd.Variable(torch.from_numpy(np_matrix).type(torch.LongTensor))
+    elif dtype == 'float':
+        if enable_cuda:
+            return torch.autograd.Variable(torch.from_numpy(np_matrix).type(torch.FloatTensor).cuda())
+        else:
+            return torch.autograd.Variable(torch.from_numpy(np_matrix).type(torch.FloatTensor))
+
+
+def view_input(x, nlp):
+    if type(x) is list:
+        print(" ".join([nlp.i2w[t] for t in x]))
+    else:
+        print(" ".join([nlp.i2w[t] for t in to_np(x)]))
 
 
 def plot_results(stats, labels=None, normalize=True, figsize=(12, 6), legend_loc='lower right', savefig=None):

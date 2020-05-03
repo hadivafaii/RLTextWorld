@@ -21,24 +21,10 @@
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/do_it.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/gen_custom_games.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/gen_simple_games.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/loop_fn.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/transformer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_corrupted_data.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_permuted_data.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/pretrain/gen_pretrain_data.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/make_custom_games/tmp.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/test.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/ttteeesssttt.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/kill_screens.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/process_traj.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/process_traj.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/process_traj.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/scripts/gen_corrupted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/gen_corrupted_data.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/utils/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -107,10 +93,14 @@
     </state>
     <state x="2087" y="149" width="900" height="751" key="SettingsEditor/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1588212744005" />
     <state x="530" y="138" width="1022" height="737" key="SettingsEditor/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1587796657916" />
-    <state x="2096" y="94" width="1302" height="682" key="dock-window-1" timestamp="1588265128647">
+    <state x="2064" y="63" width="770" height="780" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1588304987872">
       <screen x="1920" y="0" width="1600" height="900" />
     </state>
-    <state x="2096" y="94" width="1302" height="682" key="dock-window-1/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588265128647" />
+    <state x="2064" y="63" width="770" height="780" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588304987872" />
+    <state x="1247" y="18" width="1302" height="682" key="dock-window-1" timestamp="1588297142850">
+      <screen x="64" y="27" width="1856" height="1053" />
+    </state>
+    <state x="1247" y="18" width="1302" height="682" key="dock-window-1/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588297142850" />
     <state width="600" height="428" key="javadoc.popup" timestamp="1587952194089">
       <screen x="64" y="27" width="1856" height="1053" />
     </state>

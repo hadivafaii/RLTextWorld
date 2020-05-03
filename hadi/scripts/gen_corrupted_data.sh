@@ -1,6 +1,7 @@
 # game_type e.g. tw_cooking/train
 game_type=$1
 game_spec=$2
+mask_prob=$3
 
 # get correct exploration mode
 if [[ $game_type =~ "tw_cooking" ]]; then
@@ -19,8 +20,8 @@ do
   echo "getting pretrain data $pretrain_mode"
   screen -dmS "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode"
   if [ -z "$game_spec" ]; then # if game_spec is NULL
-    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob 0.3 --seeds 110 121 332 443 554 665 ^M"
+    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob $mask_prob --seeds 110 121 332 443 554 665 ^M"
   else
-    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob 0.3 --seeds 110 121 332 443 554 665 --game_spec $game_spec ^M"
+    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob $mask_prob --seeds 110 121 332 443 554 665 --game_spec $game_spec ^M"
   fi
 done

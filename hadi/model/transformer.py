@@ -30,6 +30,7 @@ class TransformerEncoder(nn.Module):
         self.dropout1 = nn.Dropout(config.attention_probs_dropout_prob)
         self.dropout2 = nn.Dropout(config.hidden_dropout_prob)
 
+        self.config = config
         self.activation = _get_activation_fn(config.hidden_act)
 
     def __setstate__(self, state):
@@ -55,7 +56,7 @@ class TransformerEncoder(nn.Module):
 
         outputs, attn_outputs = (src,), ()
 
-        for _ in range(config.num_hidden_layers):
+        for _ in range(self.config.num_hidden_layers):
             src2, attn_weights = self.self_attn(
                 src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
             src = src + self.dropout1(src2)
@@ -69,40 +70,6 @@ class TransformerEncoder(nn.Module):
             attn_outputs += (attn_weights,)
 
         return src, outputs, attn_outputs
-
-
-class Language(object):
-    def __init__(self, data_config):
-        lang_load_ = os.path.join(
-            data_config.processed_dir,
-            'lang_data_max_len={:d}.npy'.format(data_config.max_len))
-        lang_data_all = np.load(lang_load_, allow_pickle=True).item()
-        lang_data = lang_data_all['eps={:.2f}'.format(data_config.eps)]
-
-        self.w2i = lang_data['w2i']
-        self.i2w = lang_data['i2w']
-        self.vocab = list(self.w2i.keys())
-        self.vocab_size = len(self.vocab)
-
-        self.entity2indx = lang_data['entity2indx']
-        self.indx2entity = lang_data['indx2entity']
-
-        self.verb2indx = lang_data['verb2indx']
-        self.indx2verb = lang_data['indx2verb']
-
-        self.tokenizer = get_nlp().tokenizer
-
-    def add_word(self, word):
-        if word in self.w2i:
-            raise RuntimeError("{} already exists in vocab".format(word))
-        else:
-            self.w2i.update({word: self.vocab_size})
-            self.i2w.update({self.vocab_size: word})
-            self.vocab = list(self.w2i.keys())
-            self.vocab_size = len(self.w2i)
-
-    def preproc(self, string):
-        return preproc(string, self.tokenizer)
 
 
 def _get_activation_fn(activation):
@@ -129,7 +96,42 @@ class Transformer(nn.Module):
         # self.discriminator_head = DiscriminatorHead(config)
         # self.generator_head = GeneratorHead(config)
 
-    def forward(self, x):
-        embedded = self.embeddings(x)
-        src = self.encoder(embedded)
-        return src
+    def forward(self, inputs):
+        embedded = self.embeddings(*inputs).transpose(1, 0)  # (S, N, E)
+        last_hidden, hiddens, attn_weights = self.encoder(embedded)
+        return last_hidden, hiddens, attn_weights
+
+
+class Language(object):
+    def __init__(self, data_config):
+        lang_load_ = os.path.join(
+            data_config.processed_dir,
+            'lang_data_max_len={:d}.npy'.format(data_config.max_len))
+        lang_data_all = np.load(lang_load_, allow_pickle=True).item()
+        lang_data = lang_data_all['eps={:.2f}'.format(data_config.eps)]
+
+        self.w2i = lang_data['w2i']
+        self.i2w = lang_data['i2w']
+        self.vocab = list(self.w2i.keys())
+        self.vocab_size = len(self.vocab)
+
+        self.entity2indx = lang_data['entity2indx']
+        self.indx2entity = lang_data['indx2entity']
+
+        self.verb2indx = lang_data['verb2indx']
+        self.indx2verb = lang_data['indx2verb']
+
+        self.data_config = data_config
+        self.tokenizer = get_nlp().tokenizer
+
+    def add_word(self, word):
+        if word in self.w2i:
+            raise RuntimeError("{} already exists in vocab".format(word))
+        else:
+            self.w2i.update({word: self.vocab_size})
+            self.i2w.update({self.vocab_size: word})
+            self.vocab = list(self.w2i.keys())
+            self.vocab_size = len(self.w2i)
+
+    def preproc(self, string):
+        return preproc(string, self.tokenizer)

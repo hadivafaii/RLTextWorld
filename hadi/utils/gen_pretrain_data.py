@@ -179,6 +179,39 @@ def detect_objects(x, ranges, conversion_dict):
     return sorted(detected_ranges, key=lambda tup: tup[0].start)
 
 
+def _needs_fixing(x):
+    x_needs_fixing = False
+
+    for indx, ((range1, _), (range2, _)) in enumerate(zip(x, x[1:])):
+        if range1.stop > range2.start:
+            x_needs_fixing = True
+
+    return x_needs_fixing
+
+
+def _fix_ranges(detected_ranges):
+    x = detected_ranges.copy()
+
+    del_indx = None
+    for indx, ((range1, _), (range2, _)) in enumerate(zip(x, x[1:])):
+        if range1.stop > range2.start:
+            if len(range1) >= len(range2):
+                del_indx = indx + 1
+            elif len(range1) < len(range2):
+                del_indx = indx
+    if del_indx is not None:
+        del x[del_indx]
+    return x
+
+
+def fix_detected_ranges(detected_ranges):
+    x = detected_ranges.copy()
+    while _needs_fixing(x):
+        x = _fix_ranges(x)
+
+    return x
+
+
 def _get_masked_input(x, ranges, unk_id=3):
     extras = []
     for range_, _ in ranges:
@@ -226,7 +259,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
 
     obs_ranges, act_ranges = _get_ranges(token_ids, config)
 
-    for ii in tqdm(range(len(token_ids))):
+    for ii in tqdm(range(len(token_ids)), desc='mask_prob: {:.2f}, mdoe: {:s}'.format(mask_prob, mode)):
         # get ranges for objects of interest
         if mode == 'act':
             detected_ranges = detect_objects(token_ids[ii], act_ranges[ii], conversion_dict)
@@ -246,8 +279,12 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
         while len(m) == 0:  # this will ensure at least one masked token
             random_numbers = rng.uniform(0, 1, num_)
             m = sorted(np.where(random_numbers < mask_prob)[0])
+        # fix the selected detected ranges to avoid overlab
+        detected_ranges_fixed = fix_detected_ranges([detected_ranges[x] for x in m])
+        if len(detected_ranges_fixed) == 0:
+            continue
         # mask the selected objects
-        x_masked = _get_masked_input(token_ids[ii], [detected_ranges[x] for x in m], config.unk_id)
+        x_masked = _get_masked_input(token_ids[ii], detected_ranges_fixed, config.unk_id)
         # fix the masked inputs to have correct length, position and type ids etc
         outputs_ = fix_inputs(x_masked, position_ids[ii][0], max_len=max_len)
 
@@ -256,7 +293,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
         masked_position_ids.append(outputs_[2])
 
         unk_positions.append(np.where(outputs_[0] == config.unk_id)[0])
-        labels.append([[tup[1] for tup in detected_ranges][x] for x in m])
+        labels.append([tup[1] for tup in detected_ranges_fixed])
 
     outputs = [np.array(masked_token_ids), np.array(masked_type_ids), np.array(masked_position_ids)]
     return outputs, labels, unk_positions
