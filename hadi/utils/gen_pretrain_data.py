@@ -222,27 +222,35 @@ def _get_masked_input(x, ranges, unk_id=3):
     return np.delete(x, extras)
 
 
-def fix_inputs(x, starting_position_id=1, max_len=512):
-    # pad token_ids so it gets to max
-    x = np.pad(x, (0, max_len - len(x)), constant_values=0)
+def compute_type_position_ids(x, config, starting_position_ids=None):
+    if starting_position_ids is None:
+        starting_position_ids = np.ones(len(x))
+    type_ids = np.ones(x.shape) * config.pad_id
+    position_ids = np.ones(x.shape) * config.pad_id
 
-    # get the obs and act ranges for x
-    obs_ranges, act_ranges = _get_ranges([x], config)
-    obs_ranges, act_ranges = obs_ranges[0], act_ranges[0]
+    obs_ranges, act_ranges = _get_ranges(x, config)
 
-    # get the new type_ids
-    type_ids = []
-    for i in range(len(act_ranges)):
-        type_ids.extend([config.obs_id] * len(obs_ranges[i]))
-        type_ids.extend([config.act_id] * len(act_ranges[i]))
-    type_ids.extend([config.obs_id] * (len(obs_ranges[-1])))
-    type_ids = np.pad(type_ids, (0, max_len - len(type_ids)), constant_values=0)
+    obs_indices_arr = np.zeros(x.shape)
+    act_indices_arr = np.zeros(x.shape)
 
-    # get position_ids
-    position_ids = np.arange(starting_position_id, starting_position_id + len(x[x > 0]))
-    position_ids = np.pad(position_ids, (0, max_len - len(position_ids)), constant_values=0)
+    for i in range(len(x)):
+        num_tokens = len(x[i][x[i] != config.pad_id])
+        position_ids[i][:num_tokens] = np.arange(starting_position_ids[i],
+                                                 starting_position_ids[i] + num_tokens)
 
-    return x[:max_len], type_ids[:max_len], position_ids[:max_len]
+        obs_ranges_list = [list(x) for x in obs_ranges[i]]
+        act_ranges_list = [list(x) for x in act_ranges[i]]
+
+        obs_ranges_flat = [x for sublist in obs_ranges_list for x in sublist]
+        act_ranges_flat = [x for sublist in act_ranges_list for x in sublist]
+
+        obs_indices_arr[i][obs_ranges_flat] = config.obs_id
+        act_indices_arr[i][act_ranges_flat] = config.act_id
+
+    type_ids[obs_indices_arr == config.obs_id] = config.obs_id
+    type_ids[act_indices_arr == config.act_id] = config.act_id
+
+    return type_ids.astype(int), position_ids.astype(int)
 
 
 def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_prob=0.25, mode='act', seed=665):
@@ -251,11 +259,9 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
 
     assert token_ids.shape[-1] == type_ides.shape[-1] == position_ids.shape[-1] == max_len, "otherwise something is wrong"
 
-    masked_token_ids = []
-    masked_type_ids = []
-    masked_position_ids = []
-    unk_positions = []
-    labels = []
+    masked_token_ids = np.ones(token_ids.shape, dtype=int) * config.pad_id
+    starting_pos_ids = np.ones(len(token_ids), dtype=int)
+    labels_arr = np.ones(token_ids.shape) * -100
 
     obs_ranges, act_ranges = _get_ranges(token_ids, config)
 
@@ -285,18 +291,11 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
             continue
         # mask the selected objects
         x_masked = _get_masked_input(token_ids[ii], detected_ranges_fixed, config.unk_id)
-        # fix the masked inputs to have correct length, position and type ids etc
-        outputs_ = fix_inputs(x_masked, position_ids[ii][0], max_len=max_len)
+        masked_token_ids[ii] = np.pad(x_masked[:max_len], (0, max_len - len(x_masked)), constant_values=config.pad_id)
+        labels_arr[ii][np.where(masked_token_ids[ii] == config.unk_id)[0]] = [tup[1] for tup in detected_ranges_fixed]
 
-        masked_token_ids.append(outputs_[0])
-        masked_type_ids.append(outputs_[1])
-        masked_position_ids.append(outputs_[2])
-
-        unk_positions.append(np.where(outputs_[0] == config.unk_id)[0])
-        labels.append([tup[1] for tup in detected_ranges_fixed])
-
-    outputs = [np.array(masked_token_ids), np.array(masked_type_ids), np.array(masked_position_ids)]
-    return outputs, labels, unk_positions
+    masked_type_ids, masked_position_ids = compute_type_position_ids(masked_token_ids, config, starting_pos_ids)
+    return [masked_token_ids, masked_type_ids, masked_position_ids], labels_arr.astype(int)
 
 
 # ------------------------------------------------------------------------------------------------------- #
@@ -321,25 +320,18 @@ def save_data(save_dir, data_dict, pretrain_mode='ACT_ORDER'):
 
         subgroup = pretrain_group['max_len={:d}'.format(max_len)]['eps={:.2f}'.format(eps)]
 
-        subgroup.create_dataset('token_ids', data=data_[0])
-        subgroup.create_dataset('type_ids', data=data_[1])
-        subgroup.create_dataset('position_ids', data=data_[2])
+        subgroup.create_dataset('token_ids', data=data_[0], dtype=int)
+        subgroup.create_dataset('type_ids', data=data_[1], dtype=int)
+        subgroup.create_dataset('position_ids', data=data_[2], dtype=int)
+        subgroup.create_dataset('labels', data=data_[3], dtype=int)
 
-        labels = data_[3]
-        if type(labels) is list:
-            dset = subgroup.create_dataset('labels', (len(labels),),
+        # this one is is permutations used for PERMUTE data
+        for i in range(4, len(data_)):
+            other_data = data_[i]
+            dset = subgroup.create_dataset('other_data_{:d}'.format(i-4), (len(other_data),),
                                            dtype=h5py.vlen_dtype(np.dtype('int32')))
-            for i in range(len(labels)):
-                dset[i] = labels[i]
-        else:
-            subgroup.create_dataset('labels', data=np.array(labels))
-
-        # this one is unk_positions for CORRUPT data and permutation_used for PERMUTED data
-        other_data = data_[4]
-        dset = subgroup.create_dataset('other_data', (len(other_data),),
-                                       dtype=h5py.vlen_dtype(np.dtype('int32')))
-        for i in range(len(other_data)):
-            dset[i] = other_data[i]
+            for j in range(len(other_data)):
+                dset[j] = other_data[j]
 
     print('Data saved at {:s}'.format(save_))
     f.close()
@@ -369,23 +361,16 @@ def load_data(data_config, file_name=None):
                 token_ids = np.array(subgroup['token_ids'])
                 type_ids = np.array(subgroup['type_ids'])
                 position_ids = np.array(subgroup['position_ids'])
+                labels = np.array(subgroup['labels'])
 
-                outputs = (token_ids, type_ids, position_ids)
+                outputs = (token_ids, type_ids, position_ids, labels)
 
-                if subgroup['labels'].dtype == 'object':
-                    dset = subgroup['labels']
-                    labels = []
+                for i in range(4, len(subgroup)):
+                    dset = subgroup['other_data_{:d}'.format(i-4)]
+                    other_data = []
                     for pp in dset:
-                        labels.append(list(pp))
-                else:
-                    labels = np.array(subgroup['labels'])
-                outputs += (labels,)
-
-                dset = subgroup['other_data']
-                other_data = []
-                for pp in dset:
-                    other_data.append(list(pp))
-                outputs += (other_data,)
+                        other_data.append(list(pp))
+                    outputs += (other_data,)
 
                 max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
                 key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
@@ -407,13 +392,15 @@ def _corrupted_data_processing(generated_data_):
     outputs = [curropt_token_ids, curropt_type_ids, curropt_position_ids]
     outputs = [np.concatenate(x, axis=0) for x in outputs]
 
-    labels_unk_positions_list = [ll[-2:] for ll in generated_data_]
-    labels, unk_positions = [], []
-    for item1, item2 in labels_unk_positions_list:
-        labels += item1
-        unk_positions += item2
+    labels = np.concatenate([ll[3] for ll in generated_data_], axis=0)
 
-    return outputs, labels, unk_positions
+#    labels_unk_positions_list = [ll[-2:] for ll in generated_data_]
+#    labels, unk_positions = [], []
+#    for item1, item2 in labels_unk_positions_list:
+#        labels += item1
+#        unk_positions += item2
+
+    return outputs, labels
 
 
 # ------------------------------------------------------------------------------------------------------- #
@@ -499,13 +486,13 @@ if __name__ == "__main__":
                 generated_data_ = []
                 for seed in args.seeds:
                     print('[PROGRESS] generating corrupted data using seed = {:d}'.format(seed))
-                    outputs, labels, unk_positions = generate_corrupted_data(
+                    outputs, labels = generate_corrupted_data(
                         inputs, config, lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())],
                         max_len=max_len, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed,
                     )
-                    generated_data_.append([*outputs, labels, unk_positions])
-                outputs, labels, unk_positions = _corrupted_data_processing(generated_data_)
-                loop_data.update({'max_len={:d},eps={:.2f}'.format(max_len, eps): (*outputs, labels, unk_positions)})
+                    generated_data_.append([*outputs, labels])
+                outputs, labels = _corrupted_data_processing(generated_data_)
+                loop_data.update({'max_len={:d},eps={:.2f}'.format(max_len, eps): (*outputs, labels)})
 
             else:
                 raise NotImplementedError

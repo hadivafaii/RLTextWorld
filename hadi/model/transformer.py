@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from copy import deepcopy as dc
 
 import torch
 from torch import nn
@@ -72,13 +73,76 @@ class TransformerEncoder(nn.Module):
         return src, outputs, attn_outputs
 
 
-def _get_activation_fn(activation):
-    if activation == "relu":
-        return F.relu
-    elif activation == "gelu":
-        return F.gelu
-    else:
-        raise RuntimeError("activation should be relu/gelu, not {}".format(activation))
+class GeneratorHead(nn.Module):
+    def __init__(self, config, nlp, pretrain_modes):
+        super(GeneratorHead, self).__init__()
+
+        # TODO: make it work for more than 1 pretrain modes
+        pretrain_mode = pretrain_modes[0]
+        if 'ENTITY' in pretrain_mode:
+            self.conversion_dict = nlp.indx2entity
+        elif 'VERB' in pretrain_mode:
+            self.conversion_dict = nlp.indx2verb
+        else:
+            self.conversion_dict = None
+
+        self.pretrain_mode = pretrain_mode
+        self.config = config
+
+        self.dense = nn.Linear(config.hidden_size, config.embedding_size, bias=True)
+        self.activation = _get_activation_fn(config.hidden_act)
+
+        self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
+
+    def forward(self, transformer_hidden, objects_embedded, labels):
+        predictions = self.activation(self.dense(transformer_hidden)) @ objects_embedded.T
+        num_classes = len(objects_embedded)
+        predictions = predictions.view(-1, num_classes)
+
+        probabilities = F.softmax(predictions, dim=1)
+        sampled_indxs = probabilities.multinomial(num_samples=1).view(labels.shape)
+
+        return predictions, sampled_indxs
+
+    def embed_objects(self, word_embeddings, object_indxs=None, reduction='mean', use_cuda=True):
+        if object_indxs is None:
+            object_indxs = list(self.conversion_dict.keys())
+
+        object_vectors_list = []
+        for indx in object_indxs:
+            if use_cuda:
+                obj = torch.tensor(self.conversion_dict[indx], dtype=torch.long).cuda()
+            else:
+                obj = torch.tensor(self.conversion_dict[indx], dtype=torch.long)  # , device=)#, device=device)
+            obj_v = word_embeddings(obj)
+
+            if reduction == 'mean':
+                obj_v = torch.mean(obj_v, dim=0, keepdim=True)
+            elif reduction == 'sum':
+                obj_v = torch.sum(obj_v, dim=0, keepdim=True)
+
+            object_vectors_list.append(obj_v)
+
+        return torch.cat(object_vectors_list, dim=0)
+
+    def get_x_corrupt(self, x_masked, labels, sampled_indxs):
+        if self.conversion_dict is None:  # this corresponds to MLM
+            x_corrupt = dc(x_masked)
+            x_corrupt[labels != -100] = sampled_indxs.flatten()[labels != -100]
+
+        else:  # corresponds to entity and verb recignition
+            x_corrupt = np.zeros(x_masked.shape)
+            for i in range(len(x_masked)):
+                unk_pos = np.where(labels[i] != -100)[0]
+                x_corrupt[i] = _replace_objects(
+                    x_masked[i],
+                    indices=unk_pos,
+                    replace_with=sampled_indxs[i][unk_pos],
+                    conversion_dict=self.conversion_dict,
+                    unk_id=self.config.unk_id,
+                )[:x_masked.shape[-1]]
+
+        return x_corrupt.astype(int)
 
 
 class Transformer(nn.Module):
@@ -91,6 +155,8 @@ class Transformer(nn.Module):
 
         self.embeddings = Embeddings(config)
         self.encoder = TransformerEncoder(config)
+
+        self.generator_head = GeneratorHead(config, self.nlp, pretrain_modes=data_config.pretrain_modes)
 
         # self.trainer = Trainer()
         # self.discriminator_head = DiscriminatorHead(config)
@@ -135,3 +201,33 @@ class Language(object):
 
     def preproc(self, string):
         return preproc(string, self.tokenizer)
+
+
+# Helper functions
+def _get_activation_fn(activation):
+    if activation == "relu":
+        return F.relu
+    elif activation == "gelu":
+        return F.gelu
+    else:
+        raise RuntimeError("activation should be relu/gelu, not {}".format(activation))
+
+
+def _replace_objects(x, indices, replace_with, conversion_dict, unk_id=3):
+    x_replaced = dc(x)
+    replacements = [conversion_dict[item] for item in replace_with]
+
+    if not any([len(item) - 1 for item in replacements]):  # if len any of objects is longer than 1
+        x_replaced[indices] = [item[0] for item in replacements]
+
+    else:
+        #   print([[nlp.i2w[t] for t in ent] for ent in replacements])
+        extension = 0
+        for i, item in zip(indices, replacements):
+            x_replaced = np.insert(x_replaced, extension + i + 1, [unk_id] * (len(item) - 1))
+            extension += len(item) - 1
+
+        replacements_flattened = [item for sublist in replacements for item in sublist]
+        x_replaced[x_replaced == unk_id] = replacements_flattened
+
+    return x_replaced

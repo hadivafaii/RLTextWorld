@@ -34,11 +34,11 @@ def to_pt(np_matrix, enable_cuda=False, dtype='long'):
             return torch.autograd.Variable(torch.from_numpy(np_matrix).type(torch.FloatTensor))
 
 
-def view_input(x, nlp):
-    if type(x) is list:
-        print(" ".join([nlp.i2w[t] for t in x]))
-    else:
+def view_input(x, nlp, conversion_dict=None):
+    if conversion_dict is None:
         print(" ".join([nlp.i2w[t] for t in to_np(x)]))
+    else:
+        print([[nlp.i2w[t] for t in conversion_dict[obj]] for obj in to_np(x)])
 
 
 def plot_results(stats, labels=None, normalize=True, figsize=(12, 6), legend_loc='lower right', savefig=None):
