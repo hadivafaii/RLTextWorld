@@ -51,13 +51,13 @@ class DataConfig:
     def __init__(
             self,
             pretrain_modes='ACT_ENTITY',
-            game_type='tw_simple/train',
-            game_spec='dd',
+            game_type='custom',
+            game_spec='b-small',
             k=3,
             mask_prob=0.30,
-            batch_size=128,
             max_len=512,
             eps=0.8,
+            train_valid_test=True,
             base_dir='Documents/FTWP/DATA',
             base_processed_dir='processed_trajectories',
             base_pretrain_dir='pretraining_data',
@@ -82,6 +82,16 @@ class DataConfig:
         # TODO: add 'ALL' here and figure out a way to jointly train on all datasets
         # TODO: add MLM also
 
+        if train_valid_test:
+            _types = ['train', 'valid', 'test']
+        else:
+            try:
+                _types = [game_type.split('/')[1]]
+            except IndexError:
+                _types = ['train']
+
+        self.train_valid_test = train_valid_test
+
         base_dir = os.path.join(os.environ['HOME'], base_dir)
         name_ = game_type.split('/')[0]
         yaml_dir = os.path.join(base_dir, '{:s}/{:s}_game_specs.yaml'.format(name_, name_))
@@ -103,7 +113,7 @@ class DataConfig:
             game_specs = GameSpecs(goal, rewards, game_spec)
             spec_dir = 'goal={:s}-rewards={:s}'.format(goal, rewards)
 
-        elif game_type.split('/')[0] == 'custom':
+        elif name_ == 'custom':
             if game_spec not in _allowed_custom_specs:
                 raise ValueError('incorrect game spec for {:s}.  allowed opetions: \n{}'.format(
                     name_, _allowed_custom_specs))
@@ -115,13 +125,16 @@ class DataConfig:
             game_specs = GameSpecs(goal, wsz, nbobj, qlen, game_spec)
             spec_dir = '{:s}/{:s}'.format(goal, game_spec.split('-')[1])
 
-        elif game_type.split('/')[0] == 'tw_cooking':
+        elif name_ == 'tw_cooking':
             game_specs = None
             spec_dir = ''
         else:
             raise ValueError("Enter correct game type")
 
-        self.base_dir = os.path.join(base_dir, game_type, spec_dir)
+        base_dirs = []
+        for _type in _types:
+            base_dirs.append(os.path.join(base_dir, name_, _type, spec_dir))
+        self.base_dirs = base_dirs
 
         if type(pretrain_modes) is not list:
             pretrain_modes = [pretrain_modes]
@@ -136,17 +149,51 @@ class DataConfig:
             else:
                 raise ValueError('incorrect pretrain type.  allowed opetions: \n{}'.format(_allowed_modes))
 
-            pretrain_dirs.append(os.path.join(self.base_dir, base_pretrain_dir, pretrain_dir))
+            for base_dir_ in self.base_dirs:
+                pretrain_dirs.append(os.path.join(base_dir_, base_pretrain_dir, pretrain_dir))
+
         self.pretrain_dirs = pretrain_dirs
 
-        self.game_type = game_type
+        self.game_types = [os.path.join(name_, _type) for _type in _types]
         self.game_specs = game_specs
 
         self.k = k
         self.mask_prob = mask_prob
-        self.batch_size = batch_size
         self.max_len = max_len
-        self.eps = eps
 
-        self.games_dir = os.path.join(self.base_dir, 'games')
-        self.processed_dir = os.path.join(self.base_dir, base_processed_dir)
+        if type(eps) is not list:
+            eps = [eps]
+        self.epsilons = eps
+
+        games_dirs, processed_dirs = [], []
+        for base_dir_ in self.base_dirs:
+            games_dirs.append(os.path.join(base_dir_, 'games'))
+            processed_dirs.append(os.path.join(base_dir_, base_processed_dir))
+        self.games_dirs = games_dirs
+        self.processed_dirs = processed_dirs
+
+
+class TrainingConfig:
+    def __init__(
+            self,
+            lr=1e-4,
+            betas=(0.9, 0.999),
+            weight_decay: float = 0.01,
+            warmup_steps: int = 10000,
+            use_cuda: bool = True,
+            cuda_devices=None,
+            log_freq: int = 10,
+            batch_size: int = 16,
+            loss_imbalance_lambda=50,
+    ):
+        super(TrainingConfig).__init__()
+
+        self.lr = lr
+        self.betas = betas
+        self.weight_decay = weight_decay
+        self.warmup_steps = warmup_steps
+        self.use_cuda = use_cuda
+        self.cuda_devices = cuda_devices
+        self.log_freq = log_freq
+        self.batch_size = batch_size
+        self.loss_imbalance_lambda = loss_imbalance_lambda

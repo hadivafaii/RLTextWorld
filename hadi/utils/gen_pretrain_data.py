@@ -294,6 +294,8 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
         masked_token_ids[ii] = np.pad(x_masked[:max_len], (0, max_len - len(x_masked)), constant_values=config.pad_id)
         labels_arr[ii][np.where(masked_token_ids[ii] == config.unk_id)[0]] = [tup[1] for tup in detected_ranges_fixed]
 
+    # remove empty rows due to occurances of num_ = 0
+    masked_token_ids = masked_token_ids[~np.all(masked_token_ids == config.pad_id, axis=1)]
     masked_type_ids, masked_position_ids = compute_type_position_ids(masked_token_ids, config, starting_pos_ids)
     return [masked_token_ids, masked_type_ids, masked_position_ids], labels_arr.astype(int)
 
@@ -337,47 +339,70 @@ def save_data(save_dir, data_dict, pretrain_mode='ACT_ORDER'):
     f.close()
 
 
-def load_data(data_config, file_name=None):
+def load_data(data_config, file_names=None, load_extra_stuff=False):
+    if data_config.trai_valid_test:
+        ratio = 3
+    else:
+        ratio = 1
+
+    if file_names is None:
+        file_names = [None] * len(data_config.pretrain_dirs)
+    else:
+        assert len(file_names) == len(data_config.pretrain_dirs), "must provide a file name for each load_dir"
+
     load_data = []
-    for pretrain_mode, load_dir in zip(data_config.pretrain_modes, data_config.pretrain_dirs):
-        if file_name is None:
-            file_list = os.listdir(load_dir)
-            file_list = sorted([x for x in file_list if '{:s}'.format(pretrain_mode) in x])
-            assert len(file_list) > 0, 'no files found for pretrain type {:s}'.format(pretrain_mode)
-            print('Found these files:\n', file_list)
-            file_name = file_list[-1]
+    loaded_from = [None] * len(data_config.pretrain_dirs)
+    for i, pretrain_mode in enumerate(data_config.pretrain_modes):
+        for j in range(ratio*i, ratio*(i+1)):
+            load_dir = data_config.pretrain_dirs[j]
 
-        load_ = os.path.join(load_dir, file_name)
-        print('\nLoading data from {:s}\n'.format(load_))
+            if file_names[j] is None:
+                try:
+                    file_list = os.listdir(load_dir)
+                    file_list = sorted([x for x in file_list if '{:s}'.format(pretrain_mode) in x])
+                except FileNotFoundError:
+                    continue
+                if len(file_list) == 0:
+                    print('No files found for pretrain type: \n {:s} \n At: \n {:s}'.format(pretrain_mode, load_dir))
+                    continue
+                else:
+                    print('Found these files:\n', file_list)
+                    file_name = file_list[-1]
+            else:
+                file_name = file_names[j]
 
-        f = h5py.File(load_, "r")
-        pretrain_group = f[pretrain_mode]
+            load_ = os.path.join(load_dir, file_name)
+            print('\nLoading data from {:s}\n'.format(load_))
+            loaded_from[j] = load_
 
-        data_dict = {}
-        for max_len_key in tqdm(pretrain_group):
-            for eps_key in pretrain_group[max_len_key]:
-                subgroup = pretrain_group[max_len_key][eps_key]
+            with h5py.File(load_, "r") as f:
+                pretrain_group = f[pretrain_mode]
 
-                token_ids = np.array(subgroup['token_ids'])
-                type_ids = np.array(subgroup['type_ids'])
-                position_ids = np.array(subgroup['position_ids'])
-                labels = np.array(subgroup['labels'])
+                data_dict = {}
+                for max_len_key in tqdm(pretrain_group):
+                    for eps_key in pretrain_group[max_len_key]:
+                        subgroup = pretrain_group[max_len_key][eps_key]
 
-                outputs = (token_ids, type_ids, position_ids, labels)
+                        token_ids = np.array(subgroup['token_ids'])
+                        type_ids = np.array(subgroup['type_ids'])
+                        position_ids = np.array(subgroup['position_ids'])
+                        labels = np.array(subgroup['labels'])
 
-                for i in range(4, len(subgroup)):
-                    dset = subgroup['other_data_{:d}'.format(i-4)]
-                    other_data = []
-                    for pp in dset:
-                        other_data.append(list(pp))
-                    outputs += (other_data,)
+                        outputs = (token_ids, type_ids, position_ids, labels)
 
-                max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
-                key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
-                data_dict.update({key: outputs})
-        load_data.append(data_dict)
-        f.close()
-    return load_data
+                        if load_extra_stuff:
+                            for k in range(4, len(subgroup)):
+                                dset = subgroup['other_data_{:d}'.format(k-4)]
+                                other_data = []
+                                for pp in dset:
+                                    other_data.append(list(pp))
+                                outputs += (other_data,)
+
+                        max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
+                        key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
+                        data_dict.update({key: outputs})
+                load_data.append(data_dict)
+    return load_data, loaded_from
 
 
 # ------------------------------------------------------------------------------------------------------- #
@@ -446,9 +471,9 @@ if __name__ == "__main__":
 
     config = TransformerConfig()
     data_config = DataConfig(pretrain_modes=args.pretrain_mode, game_type=args.game_type,
-                             game_spec=args.game_spec, k=args.k, mask_prob=args.mask_prob)
+                             game_spec=args.game_spec, k=args.k, mask_prob=args.mask_prob, train_valid_test=False)
 
-    load_dir = data_config.processed_dir
+    load_dir = data_config.processed_dirs[0]
     save_dir = data_config.pretrain_dirs[0]
 
     if args.max_lengths is None:

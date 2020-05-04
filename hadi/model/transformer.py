@@ -77,72 +77,110 @@ class GeneratorHead(nn.Module):
     def __init__(self, config, nlp, pretrain_modes):
         super(GeneratorHead, self).__init__()
 
-        # TODO: make it work for more than 1 pretrain modes
-        pretrain_mode = pretrain_modes[0]
-        if 'ENTITY' in pretrain_mode:
-            self.conversion_dict = nlp.indx2entity
-        elif 'VERB' in pretrain_mode:
-            self.conversion_dict = nlp.indx2verb
-        else:
-            self.conversion_dict = None
-
-        self.pretrain_mode = pretrain_mode
         self.config = config
+        self.pretrain_modes = pretrain_moded
 
-        self.dense = nn.Linear(config.hidden_size, config.embedding_size, bias=True)
+        conversion_dicts = []
+        for mode_ in pretrain_modes:
+            if 'ENTITY' in mode_:
+                conversion_dicts.append(nlp.indx2entity)
+            elif 'VERB' in mode_:
+                conversion_dicts.append(nlp.indx2verb)
+            elif 'MLM' in mode_:
+                conversion_dicts.append(nlp.i2w)
+            else:   # the rest is PERMUTE data
+                continue
+
+        self.conversion_dicts = conversion_dicts
+
+        self.linear1 = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
+        self.linear2 = nn.Linear(config.hidden_size, config.embedding_size, bias=True)
+        self.norm1 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
         self.activation = _get_activation_fn(config.hidden_act)
 
         self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def forward(self, transformer_hidden, objects_embedded, labels):
-        predictions = self.activation(self.dense(transformer_hidden)) @ objects_embedded.T
-        num_classes = len(objects_embedded)
-        predictions = predictions.view(-1, num_classes)
+        if type(objects_embedded) is not list:
+            objects_embedded = [objects_embedded]
 
-        probabilities = F.softmax(predictions, dim=1)
-        sampled_indxs = probabilities.multinomial(num_samples=1).view(labels.shape)
+        if type(labels) is not list:
+            labels = [labels]
+
+        x = self.activation(self.linear1(transformer_hidden))
+        x = self.linear2(self.norm1(x))
+
+        predictions, sampled_indxs = (), ()
+        for objs, lbls in zip(objects_embedded, labels):
+            preds = x @ objs.T
+            num_classes = len(objs)
+            preds = preds.view(-1, num_classes)
+
+            probs = F.softmax(preds, dim=1)
+            sampled_ = probs.multinomial(num_samples=1).view(lbls.shape)
+
+            predictions += (preds,)
+            sampled_indxs += (sampled_,)
 
         return predictions, sampled_indxs
 
-    def embed_objects(self, word_embeddings, object_indxs=None, reduction='mean', use_cuda=True):
-        if object_indxs is None:
-            object_indxs = list(self.conversion_dict.keys())
+    def embed_objects(self, word_embeddings, indxs=None, reduction='mean', use_cuda=True):
+        object_vectors_tuple = ()
+        for pretrain_mode, conversion_dict in zip(self.pretrain_modses, self.conversion_dicts):
+            if indxs is None:
+                indxs = list(conversion_dict.keys())
 
-        object_vectors_list = []
-        for indx in object_indxs:
-            if use_cuda:
-                obj = torch.tensor(self.conversion_dict[indx], dtype=torch.long).cuda()
+            if pretrain_mode == 'MLM':
+                if use_cuda:
+                    object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long).cuda())
+                else:
+                    object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long))
+
             else:
-                obj = torch.tensor(self.conversion_dict[indx], dtype=torch.long)  # , device=)#, device=device)
-            obj_v = word_embeddings(obj)
+                object_vectors_list_ = []
+                for i in indxs:
+                    if use_cuda:
+                        obj_is = torch.tensor(conversion_dict[i], dtype=torch.long).cuda()
+                    else:
+                        obj_is = torch.tensor(conversion_dict[i], dtype=torch.long)  # , device=)#, device=device)
+                    obj_v = word_embeddings(obj_is)
 
-            if reduction == 'mean':
-                obj_v = torch.mean(obj_v, dim=0, keepdim=True)
-            elif reduction == 'sum':
-                obj_v = torch.sum(obj_v, dim=0, keepdim=True)
+                    if reduction == 'mean':
+                        obj_v = torch.mean(obj_v, dim=0, keepdim=True)
+                    elif reduction == 'sum':
+                        obj_v = torch.sum(obj_v, dim=0, keepdim=True)
 
-            object_vectors_list.append(obj_v)
+                    object_vectors_list_.append(obj_v)
+                object_vectors = torch.cat(object_vectors_list_, dim=0)
 
-        return torch.cat(object_vectors_list, dim=0)
+            object_vectors_tuple += (object_vectors,)
+
+        return object_vectors_tuple
 
     def get_x_corrupt(self, x_masked, labels, sampled_indxs):
-        if self.conversion_dict is None:  # this corresponds to MLM
-            x_corrupt = dc(x_masked)
-            x_corrupt[labels != -100] = sampled_indxs.flatten()[labels != -100]
+        x_corrupt_tuple = ()
+        for pretrain_mode, conversion_dict, lbl, sampled_ in zip(
+                self.pretrain_modes, self.conversion_dicts, labels, sampled_indxs):
 
-        else:  # corresponds to entity and verb recignition
-            x_corrupt = np.zeros(x_masked.shape)
-            for i in range(len(x_masked)):
-                unk_pos = np.where(labels[i] != -100)[0]
-                x_corrupt[i] = _replace_objects(
-                    x_masked[i],
-                    indices=unk_pos,
-                    replace_with=sampled_indxs[i][unk_pos],
-                    conversion_dict=self.conversion_dict,
-                    unk_id=self.config.unk_id,
-                )[:x_masked.shape[-1]]
+            if pretrain_mode == 'MLM':  # this corresponds to MLM
+                x_corrupt = dc(x_masked)
+                x_corrupt[lbl != -100] = sampled_.flatten()[lbl != -100]
 
-        return x_corrupt.astype(int)
+            else:  # corresponds to entity and verb recignition
+                x_corrupt = np.zeros(x_masked.shape)
+                for i in range(len(x_masked)):
+                    unk_pos = np.where(lbl[i] != -100)[0]
+                    x_corrupt[i] = _replace_objects(
+                        x_masked[i],
+                        indices=unk_pos,
+                        replace_with=sampled_[i][unk_pos],
+                        conversion_dict=conversion_dict,
+                        unk_id=self.config.unk_id,
+                    )[:x_masked.shape[-1]]
+
+            x_corrupt_tuple += (x_corrupt.astype(int),)
+
+        return x_corrupt_tuple
 
 
 class Transformer(nn.Module):
@@ -150,6 +188,7 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
 
         self.config = config
+        assert data_config.game_type.split('/')[1] == 'train', "only training data cfg allowed for transformer"
         self.data_config = data_config
         self.nlp = Language(data_config)
 
@@ -171,10 +210,19 @@ class Transformer(nn.Module):
 class Language(object):
     def __init__(self, data_config):
         lang_load_ = os.path.join(
-            data_config.processed_dir,
+            data_config.processed_dirs[0],
             'lang_data_max_len={:d}.npy'.format(data_config.max_len))
         lang_data_all = np.load(lang_load_, allow_pickle=True).item()
-        lang_data = lang_data_all['eps={:.2f}'.format(data_config.eps)]
+
+        max_vocab_size = 0
+        winnder_eps = 1.00
+        for eps in data_config.epsilons:
+            lang_data_ = lang_data_all['eps={:.2f}'.format(eps)]
+            if len(lang_data_['w2i']) > max_vocab_size:
+                max_vocab_size = len(lang_data_['w2i'])
+                winnder_eps = eps
+
+        lang_data = lang_data_all['eps={:.2f}'.format(winnder_eps)]
 
         self.w2i = lang_data['w2i']
         self.i2w = lang_data['i2w']

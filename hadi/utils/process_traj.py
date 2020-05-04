@@ -244,10 +244,10 @@ if __name__ == "__main__":
     from model.preprocessing import get_nlp, preproc
     from model.configuration import DataConfig
 
-    data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec)
+    data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec, train_valid_test=False)
 
-    load_dir = os.path.join(data_config.base_dir, 'raw_trajectories')
-    save_dir = data_config.processed_dir
+    load_dir = os.path.join(data_config.base_dirs[0], 'raw_trajectories')
+    save_dir = data_config.processed_dirs[0]
 
     traj_data_all = {}
     lang_data_all = {}
