@@ -339,8 +339,8 @@ def save_data(save_dir, data_dict, pretrain_mode='ACT_ORDER'):
     f.close()
 
 
-def load_data(data_config, file_names=None, load_extra_stuff=False):
-    if data_config.trai_valid_test:
+def load_data(data_config, file_names=None, load_extra_stuff=False, verbose=False):
+    if data_config.train_valid_test:
         ratio = 3
     else:
         ratio = 1
@@ -350,11 +350,12 @@ def load_data(data_config, file_names=None, load_extra_stuff=False):
     else:
         assert len(file_names) == len(data_config.pretrain_dirs), "must provide a file name for each load_dir"
 
-    load_data = []
+    load_data = {}
     loaded_from = [None] * len(data_config.pretrain_dirs)
     for i, pretrain_mode in enumerate(data_config.pretrain_modes):
         for j in range(ratio*i, ratio*(i+1)):
             load_dir = data_config.pretrain_dirs[j]
+            game_type = data_config.game_types[j % ratio]
 
             if file_names[j] is None:
                 try:
@@ -366,21 +367,27 @@ def load_data(data_config, file_names=None, load_extra_stuff=False):
                     print('No files found for pretrain type: \n {:s} \n At: \n {:s}'.format(pretrain_mode, load_dir))
                     continue
                 else:
-                    print('Found these files:\n', file_list)
+                    if verbose:
+                        print('Found these files:\n', file_list)
                     file_name = file_list[-1]
             else:
                 file_name = file_names[j]
 
             load_ = os.path.join(load_dir, file_name)
-            print('\nLoading data from {:s}\n'.format(load_))
             loaded_from[j] = load_
+            if verbose:
+                print('\nLoading data from {:s}\n'.format(load_))
 
             with h5py.File(load_, "r") as f:
                 pretrain_group = f[pretrain_mode]
 
                 data_dict = {}
-                for max_len_key in tqdm(pretrain_group):
+                for max_len_key in pretrain_group:
                     for eps_key in pretrain_group[max_len_key]:
+                        max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
+                        if not (max_len == data_config.max_len and eps in data_config.epsilons):
+                            continue
+
                         subgroup = pretrain_group[max_len_key][eps_key]
 
                         token_ids = np.array(subgroup['token_ids'])
@@ -398,10 +405,10 @@ def load_data(data_config, file_names=None, load_extra_stuff=False):
                                     other_data.append(list(pp))
                                 outputs += (other_data,)
 
-                        max_len, eps = int(max_len_key.split('=')[1]), float(eps_key.split('=')[1])
                         key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
                         data_dict.update({key: outputs})
-                load_data.append(data_dict)
+                type_key = "{:s}_{:s}".format(pretrain_mode, game_type)
+                load_data.update({type_key: data_dict})
     return load_data, loaded_from
 
 

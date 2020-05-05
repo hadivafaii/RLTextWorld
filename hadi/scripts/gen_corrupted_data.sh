@@ -17,7 +17,7 @@ cd ../utils
 
 for pretrain_mode in 'ACT_VERB' 'ACT_ENTITY' 'OBS_VERB' 'OBS_ENTITY'
 do
-  echo "getting pretrain data $game_type $pretrain_mode mask_prob = $mask_prob"
+  echo "getting pretrain data $game_type mask_prob = $mask_prob $pretrain_mode"
   screen -dmS "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode"
   if [ -z "$game_spec" ]; then # if game_spec is NULL
     screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob $mask_prob --seeds 110 121 332 443 554 665 ^M"

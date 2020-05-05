@@ -1,4 +1,8 @@
 import numpy as np
+import torch
+from torch import nn
+from torch.optim import Adam
+from ..utils.gen_pretrain_data import compute_type_position_ids, load_data
 
 
 class ScheduledOptim:

@@ -85,16 +85,12 @@ class DataConfig:
         if train_valid_test:
             _types = ['train', 'valid', 'test']
         else:
-            try:
-                _types = [game_type.split('/')[1]]
-            except IndexError:
-                _types = ['train']
+            _types = ['train']
 
         self.train_valid_test = train_valid_test
 
         base_dir = os.path.join(os.environ['HOME'], base_dir)
-        name_ = game_type.split('/')[0]
-        yaml_dir = os.path.join(base_dir, '{:s}/{:s}_game_specs.yaml'.format(name_, name_))
+        yaml_dir = os.path.join(base_dir, '{:s}/{:s}_game_specs.yaml'.format(game_type, game_type))
         # load yaml file
         with open(yaml_dir, 'r') as stream:
             try:
@@ -103,20 +99,20 @@ class DataConfig:
                 print(exc)
         specs_xtracted = list(map(lambda x: x.split('='), game_specs_dict[game_spec].split('-')))
 
-        if name_ == 'tw_simple':
+        if game_type == 'tw_simple':
             if game_spec not in _allowed_tw_simple_specs:
                 raise ValueError('incorrect game spec for {:s}.  allowed opetions: \n{}'.format(
-                    name_, _allowed_tw_simple_specs))
+                    game_type, _allowed_tw_simple_specs))
             GameSpecs = namedtuple('GameSpecs', ['goal', 'rewards', 'alias'])
             goal = specs_xtracted[0][1]
             rewards = specs_xtracted[1][1]
             game_specs = GameSpecs(goal, rewards, game_spec)
             spec_dir = 'goal={:s}-rewards={:s}'.format(goal, rewards)
 
-        elif name_ == 'custom':
+        elif game_type == 'custom':
             if game_spec not in _allowed_custom_specs:
                 raise ValueError('incorrect game spec for {:s}.  allowed opetions: \n{}'.format(
-                    name_, _allowed_custom_specs))
+                    game_type, _allowed_custom_specs))
             GameSpecs = namedtuple('GameSpecs', ['goal', 'wsz', 'nbobj', 'qlen', 'alias'])
             goal = specs_xtracted[0][1]
             wsz = int(specs_xtracted[1][1])
@@ -125,7 +121,7 @@ class DataConfig:
             game_specs = GameSpecs(goal, wsz, nbobj, qlen, game_spec)
             spec_dir = '{:s}/{:s}'.format(goal, game_spec.split('-')[1])
 
-        elif name_ == 'tw_cooking':
+        elif game_type == 'tw_cooking':
             game_specs = None
             spec_dir = ''
         else:
@@ -133,7 +129,7 @@ class DataConfig:
 
         base_dirs = []
         for _type in _types:
-            base_dirs.append(os.path.join(base_dir, name_, _type, spec_dir))
+            base_dirs.append(os.path.join(base_dir, game_type, _type, spec_dir))
         self.base_dirs = base_dirs
 
         if type(pretrain_modes) is not list:
@@ -154,7 +150,7 @@ class DataConfig:
 
         self.pretrain_dirs = pretrain_dirs
 
-        self.game_types = [os.path.join(name_, _type) for _type in _types]
+        self.game_types = [os.path.join(game_type, _type) for _type in _types]
         self.game_specs = game_specs
 
         self.k = k

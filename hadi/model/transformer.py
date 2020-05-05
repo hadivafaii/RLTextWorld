@@ -78,7 +78,7 @@ class GeneratorHead(nn.Module):
         super(GeneratorHead, self).__init__()
 
         self.config = config
-        self.pretrain_modes = pretrain_moded
+        self.pretrain_modes = pretrain_modes
 
         conversion_dicts = []
         for mode_ in pretrain_modes:
@@ -188,7 +188,6 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
 
         self.config = config
-        assert data_config.game_type.split('/')[1] == 'train', "only training data cfg allowed for transformer"
         self.data_config = data_config
         self.nlp = Language(data_config)
 
@@ -199,7 +198,6 @@ class Transformer(nn.Module):
 
         # self.trainer = Trainer()
         # self.discriminator_head = DiscriminatorHead(config)
-        # self.generator_head = GeneratorHead(config)
 
     def forward(self, inputs):
         embedded = self.embeddings(*inputs).transpose(1, 0)  # (S, N, E)
