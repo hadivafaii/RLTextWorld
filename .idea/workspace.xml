@@ -23,10 +23,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/training.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/model/transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/transformer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/gen_corrupted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/gen_corrupted_data.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/gen_permuted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/gen_permuted_data.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,10 +95,10 @@
       <screen x="1920" y="0" width="1600" height="900" />
     </state>
     <state x="2064" y="63" width="770" height="780" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588304987872" />
-    <state x="1247" y="18" width="1302" height="682" key="dock-window-1" timestamp="1588297142850">
-      <screen x="64" y="27" width="1856" height="1053" />
+    <state x="1424" y="0" width="1302" height="682" key="dock-window-1" timestamp="1588644448748">
+      <screen x="1920" y="0" width="1600" height="900" />
     </state>
-    <state x="1247" y="18" width="1302" height="682" key="dock-window-1/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588297142850" />
+    <state x="1424" y="0" width="1302" height="682" key="dock-window-1/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588644448748" />
     <state width="600" height="428" key="javadoc.popup" timestamp="1588546084436">
       <screen x="64" y="27" width="1856" height="1053" />
     </state>

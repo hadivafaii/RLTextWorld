@@ -169,7 +169,7 @@ class DataConfig:
         self.processed_dirs = processed_dirs
 
 
-class TrainingConfig:
+class TrainConfig:
     def __init__(
             self,
             lr=1e-4,
@@ -182,7 +182,7 @@ class TrainingConfig:
             batch_size: int = 16,
             loss_imbalance_lambda=50,
     ):
-        super(TrainingConfig).__init__()
+        super(TrainConfig).__init__()
 
         self.lr = lr
         self.betas = betas
