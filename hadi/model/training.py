@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.optim import Adam
 import sys; sys.path.append('..')
-from utils.gen_pretrain_data import compute_type_position_ids, load_data, detect_objects
+from utils.gen_pretrain_data import compute_type_position_ids, load_data
 
 
 class ScheduledOptim:
@@ -126,47 +126,54 @@ class Trainer:
         num_batches = len(data_dict['token_ids'])
 
         for i in tqdm(range(num_batches)):
+            # TODO: this is not complete
             batch_inputs = (
-                data_dict['token_ids'][i],
-                data_dict['type_ids'][i],
-                data_dict['position_ids'][i])
+                data_dict['mode...'][0][0][i],
+                data_dict[0][1][i],
+                data_dict[0][2][i])
             batch_labels = data_dict['labels'][i]
 
             # push data through transformer
-            last_hidden, _, _ = self.model(batch_inputs)
+            last_hiddens = [my_trainer.model(item)[0] for item in batch_inputs]
 
             # get the embedded objects
-            objects_embedded = self.model.generator_head.embed_objects(
-                self.model.embeddings.word_embeddings, reduction='mean', use_cuda=self.device.type == 'cuda')
+            objects_embedded = my_trainer.model.generator_head.embed_objects(
+                my_trainer.model.embeddings.word_embeddings, reduction='mean',
+                use_cuda=my_trainer.device.type == 'cuda')
 
             # calculate the generator predictions to get loss + sample to get predicted indices
-            gen_preds, sampled_indxs = self.model.generator_head(last_hidden, objects_embedded, batch_labels)
+            gen_preds, sampled_indxs = my_trainer.model.generator_head(last_hiddens, objects_embedded, batch_labels)
 
             # generator loss
-            generator_loss = self.model.generator_head.loss_fn(
-                gen_preds, torch.tensor(batch_labels.flatten(), dtype=torch.long, device=self.device))
+            generator_losses = [my_trainer.model.generator_head.loss_fn(tup[0], tup[1].flatten())
+                                for tup in zip(gen_preds, batch_labels)]
 
             # generate x_corrupt to be fed into the discriminator
-            x_corrupt = self.model.generator_head.get_x_corrupt(
-                to_np(batch_inputs[0]), batch_labels, to_np(sampled_indxs))
+            x_corrupts = my_trainer.model.generator_head.get_x_corrupt(
+                list(map(lambda z: to_np(z[0]), batch_inputs)),
+                list(map(lambda z: to_np(z), batch_labels)),
+                list(map(lambda z: to_np(z), sampled_indxs)),
+            )
 
-            corrupt_type_ids, corrupt_position_ids = compute_type_position_ids(
-                x_corrupt, config, starting_position_ids=to_np(inputs_batch[2][:, 0]))
+            corrupt_type_ids, corrupt_position_ids = zip(*[compute_type_position_ids(
+                tup[0], config, starting_position_ids=to_np(tup[1][2][:, 0])) for tup in zip(x_corrupts, batch_inputs)])
 
-            batch_corrupted_inputs = (
-                torch.tensor(x_corrupt, dtype=torch.long, device=self.device),
-                torch.tensor(corrupt_type_ids, dtype=torch.long, device=self.device),
-                torch.tensor(corrupt_position_ids, dtype=torch.long, device=self.device))
+            batch_corrupted_inputs = [
+                tuple(map(lambda z: torch.tensor(z, dtype=torch.long, device=my_trainer.device), tup))
+                for tup in zip(x_corrupts, corrupt_type_ids, corrupt_position_ids)]
 
             # TODO: write this function
-            batch_corrupted_labels = get_gold_labels(batch_corrupted_inputs)
+            # batch_corrupted_labels = detect_objects(batch_corrupted_inputs)
 
             # TODO: write discriminator
-            discriminator_outputs = self.model.discriminator_head(batch_corrupted_inputs, batch_corrupted_labels)
-            discriminator_loss = self.model.discriminator_head.loss_fn(discriminator_outputs, batch_corrupted_labels)
+            # discriminator_outputs = self.model.discriminator_head(batch_corrupted_inputs, batch_corrupted_labels)
+            # discriminator_loss = self.model.discriminator_head.loss_fn(discriminator_outputs, batch_corrupted_labels)
 
             # feed this as input to the discriminator head and get
-            loss = generator_loss + self.train_config.loss_imbalance_lambda * discriminator_loss
+            # loss = generator_losses + self.train_config.loss_imbalance_lambda * discriminator_loss
+            # loss1, loss2, loss3 = 1, 2, 3
+            # losses = [loss1, loss2, loss3]
+            # total_loss = sum(loss for loss in losses)
 
             # backward and optimization only in train
             if mode == 'train':
@@ -256,7 +263,14 @@ class Trainer:
                 batched_position_ids[b] = inputs[2][batch_indices]
                 batched_labels[b] = labels[batch_indices]
 
-            batched_data_tuple = ((batched_token_ids, batched_type_ids, batched_position_ids), batched_labels)
+            batched_data_tuple = (
+                (
+                    torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
+                    torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
+                    torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
+                ),
+                torch.tensor(batched_labels, dtype=torch.long, device=self.device)
+            )
             batched_data_dict.update({type_key: batched_data_tuple})
 
         return batched_data_dict

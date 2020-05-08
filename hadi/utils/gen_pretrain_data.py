@@ -9,20 +9,28 @@ from itertools import permutations, chain
 
 # ---------------------------------------- Generate Permutation Data ------------------------------------ #
 # ------------------------------------------------------------------------------------------------------- #
-def _get_ranges(token_ids, config):
+def get_ranges(token_ids, config, flatten=False):
     _ids = [(np.where(x == config.obs_id)[0], np.where(x == config.act_id)[0]) for x in token_ids]
     obs_ids, act_ids = zip(*_ids)
+
+    max_len = len(token_ids[0])
 
     obs_ranges, act_ranges = [], []
     for i in range(len(token_ids)):
         oo, aa = obs_ids[i], act_ids[i]
         last_id = np.where(token_ids[i] > 0)[0][-1]
         aa = sorted(np.insert(aa, -1, last_id + 1))
-        obs_ranges.append([range(tup[0], tup[1]) for tup in zip(oo, aa)])
+        if flatten:
+            obs_ranges.extend([range(tup[0] + (i * max_len), tup[1] + (i * max_len)) for tup in zip(oo, aa)])
+        else:
+            obs_ranges.append([range(tup[0], tup[1]) for tup in zip(oo, aa)])
 
         oo = np.delete(oo, 0)
         aa = np.delete(aa, -1)
-        act_ranges.append([range(tup[0], tup[1]) for tup in zip(aa, oo)])
+        if flatten:
+            act_ranges.extend([range(tup[0] + (i * max_len), tup[1] + (i * max_len)) for tup in zip(aa, oo)])
+        else:
+            act_ranges.append([range(tup[0], tup[1]) for tup in zip(aa, oo)])
     return obs_ranges, act_ranges
 
 
@@ -51,6 +59,7 @@ def _permute_action_orders(arrs, gold_obs_ranges, gold_act_ranges, perm, mode='a
                 if i < len(gold_act_ranges):  # since always len(num_act) = len(num_obs) - 1
                     permuted_arr.extend(arr[gold_act_ranges[i]])  # add permuted act
         else:
+
             raise NotImplementedError
 
         permuted_arr = np.pad(permuted_arr, (0, len(arr) - len(permuted_arr)))  # pad to correct length
@@ -68,7 +77,7 @@ def generate_permutated_data(inputs, config, k=3, mode='act'):
     permutations_used = []
     labels = []
 
-    obs_ranges, act_ranges = _get_ranges(token_ids, config)
+    obs_ranges, act_ranges = get_ranges(token_ids, config)
 
     for ii in tqdm(range(len(token_ids))):
         tokens = token_ids[ii]
@@ -205,10 +214,9 @@ def _fix_ranges(detected_ranges):
 
 
 def fix_detected_ranges(detected_ranges):
-    x = detected_ranges.copy()
+    x = sorted(detected_ranges, key=lambda tup: tup[0].start).copy()
     while _needs_fixing(x):
         x = _fix_ranges(x)
-
     return x
 
 
@@ -228,7 +236,7 @@ def compute_type_position_ids(x, config, starting_position_ids=None):
     type_ids = np.ones(x.shape) * config.pad_id
     position_ids = np.ones(x.shape) * config.pad_id
 
-    obs_ranges, act_ranges = _get_ranges(x, config)
+    obs_ranges, act_ranges = get_ranges(x, config)
 
     obs_indices_arr = np.zeros(x.shape)
     act_indices_arr = np.zeros(x.shape)
@@ -263,7 +271,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
     starting_pos_ids = np.ones(len(token_ids), dtype=int)
     labels_arr = np.ones(token_ids.shape) * -100
 
-    obs_ranges, act_ranges = _get_ranges(token_ids, config)
+    obs_ranges, act_ranges = get_ranges(token_ids, config)
 
     for ii in tqdm(range(len(token_ids)), desc='mask_prob: {:.2f}, mdoe: {:s}'.format(mask_prob, mode)):
         # get ranges for objects of interest

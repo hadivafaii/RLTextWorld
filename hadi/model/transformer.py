@@ -1,12 +1,16 @@
 import os
 import numpy as np
 from copy import deepcopy as dc
+from itertools import chain
 
 import torch
 from torch import nn
 import torch.nn.functional as F
+
 from .embeddings import Embeddings
 from .preprocessing import get_nlp, preproc
+import sys; sys.path.append('..')
+from utils.gen_pretrain_data import get_ranges, fix_detected_ranges
 
 
 # TODO: add TransformerEncoderLayer and then if share_weights=True then go ALBERT style
@@ -73,9 +77,9 @@ class TransformerEncoder(nn.Module):
         return src, outputs, attn_outputs
 
 
-class GeneratorHead(nn.Module):
+class Generator(nn.Module):
     def __init__(self, config, nlp, pretrain_modes):
-        super(GeneratorHead, self).__init__()
+        super(Generator, self).__init__()
 
         self.config = config
         self.pretrain_modes = pretrain_modes
@@ -100,18 +104,23 @@ class GeneratorHead(nn.Module):
 
         self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
-    def forward(self, transformer_hidden, objects_embedded, labels):
+    def forward(self, transformer_hiddens, objects_embedded, labels):
+        # every item in this list corresponds to a pretrain mode
+        if type(transformer_hiddens) is not list:
+            transformer_hiddens = [transformer_hiddens]
         if type(objects_embedded) is not list:
             objects_embedded = [objects_embedded]
-
         if type(labels) is not list:
             labels = [labels]
 
-        x = self.activation(self.linear1(transformer_hidden))
-        x = self.linear2(self.norm1(x))
+        assert len(transformer_hiddens) == len(objects_embedded) == len(labels) == len(self.pretrain_modes), "..."
 
         predictions, sampled_indxs = (), ()
-        for objs, lbls in zip(objects_embedded, labels):
+        for h, objs, lbls in zip(transformer_hiddens, objects_embedded, labels):
+
+            x = self.activation(self.linear1(h))
+            x = self.linear2(self.norm1(x))
+
             preds = x @ objs.T
             num_classes = len(objs)
             preds = preds.view(-1, num_classes)
@@ -122,12 +131,18 @@ class GeneratorHead(nn.Module):
             predictions += (preds,)
             sampled_indxs += (sampled_,)
 
-        return predictions, sampled_indxs
+        return list(predictions), list(sampled_indxs)
 
     def embed_objects(self, word_embeddings, indxs=None, reduction='mean', use_cuda=True):
+        aquire_indxs_from_conversion_dicts = False
+        if indxs is not None:
+            assert type(indxs) == list and len(indxs) == len(self.pretrain_modes), "must provide unique for each more"
+        else:
+            aquire_indxs_from_conversion_dicts = True
+
         object_vectors_tuple = ()
-        for pretrain_mode, conversion_dict in zip(self.pretrain_modses, self.conversion_dicts):
-            if indxs is None:
+        for pretrain_mode, conversion_dict in zip(self.pretrain_modes, self.conversion_dicts):
+            if aquire_indxs_from_conversion_dicts:
                 indxs = list(conversion_dict.keys())
 
             if pretrain_mode == 'MLM':
@@ -155,32 +170,41 @@ class GeneratorHead(nn.Module):
 
             object_vectors_tuple += (object_vectors,)
 
-        return object_vectors_tuple
+        return list(object_vectors_tuple)
 
     def get_x_corrupt(self, x_masked, labels, sampled_indxs):
+        if type(x_masked) is not list:
+            x_masked = [x_masked]
+        if type(labels) is not list:
+            labels = [labels]
+        if type(sampled_indxs) is not list:
+            sampled_indxs = [sampled_indxs]
+
+        assert len(x_masked) == len(labels) == len(sampled_indxs) == len(self.pretrain_modes), "..."
+
         x_corrupt_tuple = ()
-        for pretrain_mode, conversion_dict, lbl, sampled_ in zip(
-                self.pretrain_modes, self.conversion_dicts, labels, sampled_indxs):
+        for xx, pretrain_mode, conversion_dict, lbl, sampled_ in zip(
+                x_masked, self.pretrain_modes, self.conversion_dicts, labels, sampled_indxs):
 
             if pretrain_mode == 'MLM':  # this corresponds to MLM
-                x_corrupt = dc(x_masked)
+                x_corrupt = dc(xx)
                 x_corrupt[lbl != -100] = sampled_.flatten()[lbl != -100]
 
             else:  # corresponds to entity and verb recignition
-                x_corrupt = np.zeros(x_masked.shape)
-                for i in range(len(x_masked)):
+                x_corrupt = np.zeros(xx.shape)
+                for i in range(len(xx)):
                     unk_pos = np.where(lbl[i] != -100)[0]
                     x_corrupt[i] = _replace_objects(
-                        x_masked[i],
+                        xx[i],
                         indices=unk_pos,
                         replace_with=sampled_[i][unk_pos],
                         conversion_dict=conversion_dict,
                         unk_id=self.config.unk_id,
-                    )[:x_masked.shape[-1]]
+                    )[:xx.shape[-1]]
 
             x_corrupt_tuple += (x_corrupt.astype(int),)
 
-        return x_corrupt_tuple
+        return list(x_corrupt_tuple)
 
 
 class Transformer(nn.Module):
@@ -194,7 +218,7 @@ class Transformer(nn.Module):
         self.embeddings = Embeddings(config)
         self.encoder = TransformerEncoder(config)
 
-        self.generator_head = GeneratorHead(config, self.nlp, pretrain_modes=data_config.pretrain_modes)
+        self.generator = Generator(config, self.nlp, pretrain_modes=data_config.pretrain_modes)
 
         # self.trainer = Trainer()
         # self.discriminator_head = DiscriminatorHead(config)
@@ -211,6 +235,11 @@ class Language(object):
             data_config.processed_dirs[0],
             'lang_data_max_len={:d}.npy'.format(data_config.max_len))
         lang_data_all = np.load(lang_load_, allow_pickle=True).item()
+
+        # TODO: different epssilons have different dictionaries so this is not gonna work as is. One hacky way out
+        #  is to choose the winner epsilon and fix the dictionary for that epsilon, but the when loading the data
+        #  in trainer, remember to translate trajectories (token_ids) from other epsilons to this fixed dictionary
+        #  so that you would have a universally consitent dictionary
 
         max_vocab_size = 0
         winnder_eps = 1.00

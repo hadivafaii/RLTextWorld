@@ -56,8 +56,8 @@ class Embeddings(nn.Module):
         if position_ids is None:
             position_ids = torch.arange(seq_length, dtype=torch.long, device=device)
             position_embeddings = self.position_embeddings(position_ids).expand(token_embeddings.size())
-
-        position_embeddings = self.position_embeddings(position_ids)
+        else:
+            position_embeddings = self.position_embeddings(position_ids)
 
         embeddings = (
             np.sqrt(self.embedding_size) * (token_embeddings + type_embeddings)
