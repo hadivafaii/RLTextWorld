@@ -1,8 +1,10 @@
 import os
 import sys
+import torch
 import numpy as np
 import datetime
 import h5py
+from copy import deepcopy as dc
 from tqdm import tqdm
 from itertools import permutations, chain
 
@@ -10,7 +12,11 @@ from itertools import permutations, chain
 # ---------------------------------------- Generate Permutation Data ------------------------------------ #
 # ------------------------------------------------------------------------------------------------------- #
 def get_ranges(token_ids, config, flatten=False):
-    _ids = [(np.where(x == config.obs_id)[0], np.where(x == config.act_id)[0]) for x in token_ids]
+    where_fn = np.where
+    if type(token_ids) == torch.Tensor:
+        where_fn = torch.where
+
+    _ids = [(where_fn(x == config.obs_id)[0], where_fn(x == config.act_id)[0]) for x in token_ids]
     obs_ids, act_ids = zip(*_ids)
 
     max_len = len(token_ids[0])
@@ -18,7 +24,7 @@ def get_ranges(token_ids, config, flatten=False):
     obs_ranges, act_ranges = [], []
     for i in range(len(token_ids)):
         oo, aa = obs_ids[i], act_ids[i]
-        last_id = np.where(token_ids[i] > 0)[0][-1]
+        last_id = where_fn(token_ids[i] > 0)[0][-1]
         aa = sorted(np.insert(aa, -1, last_id + 1))
         if flatten:
             obs_ranges.extend([range(tup[0] + (i * max_len), tup[1] + (i * max_len)) for tup in zip(oo, aa)])
@@ -233,8 +239,17 @@ def _get_masked_input(x, ranges, unk_id=3):
 def compute_type_position_ids(x, config, starting_position_ids=None):
     if starting_position_ids is None:
         starting_position_ids = np.ones(len(x))
-    type_ids = np.ones(x.shape) * config.pad_id
-    position_ids = np.ones(x.shape) * config.pad_id
+
+    init = np.ones(x.shape, dtype=int) * config.pad_id
+    if type(x) == torch.Tensor:
+        init = torch.ones(x.shape, dtype=torch.long) * config.pad_id
+
+    type_ids = dc(init)
+    position_ids = dc(init)
+
+    arange_fn = np.arange
+    if type(x) == torch.Tensor:
+        arange_fn = torch.arange
 
     obs_ranges, act_ranges = get_ranges(x, config)
 
@@ -243,22 +258,22 @@ def compute_type_position_ids(x, config, starting_position_ids=None):
 
     for i in range(len(x)):
         num_tokens = len(x[i][x[i] != config.pad_id])
-        position_ids[i][:num_tokens] = np.arange(starting_position_ids[i],
+        position_ids[i][:num_tokens] = arange_fn(starting_position_ids[i],
                                                  starting_position_ids[i] + num_tokens)
 
-        obs_ranges_list = [list(x) for x in obs_ranges[i]]
-        act_ranges_list = [list(x) for x in act_ranges[i]]
+        obs_ranges_list = [list(z) for z in obs_ranges[i]]
+        act_ranges_list = [list(z) for z in act_ranges[i]]
 
-        obs_ranges_flat = [x for sublist in obs_ranges_list for x in sublist]
-        act_ranges_flat = [x for sublist in act_ranges_list for x in sublist]
+        obs_ranges_flat = [z for sublist in obs_ranges_list for z in sublist]
+        act_ranges_flat = [z for sublist in act_ranges_list for z in sublist]
 
         obs_indices_arr[i][obs_ranges_flat] = config.obs_id
         act_indices_arr[i][act_ranges_flat] = config.act_id
 
-    type_ids[obs_indices_arr == config.obs_id] = config.obs_id
-    type_ids[act_indices_arr == config.act_id] = config.act_id
+    type_ids.flatten()[obs_indices_arr.flatten() == config.obs_id] = config.obs_id
+    type_ids.flatten()[act_indices_arr.flatten() == config.act_id] = config.act_id
 
-    return type_ids.astype(int), position_ids.astype(int)
+    return type_ids, position_ids
 
 
 def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_prob=0.25, mode='act', seed=665):
@@ -281,7 +296,8 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
             detected_ranges = detect_objects(token_ids[ii], obs_ranges[ii], conversion_dict)
         elif mode == 'mlm':
             detected_ranges = [(range(j, j + 1), token_ids[ii][j]) for j in
-                               range(int(np.sum(token_ids[ii] != config.pad_id)))]
+                               range(int(np.sum(token_ids[ii] != config.pad_id)))
+                               if token_ids[ii][j] not in [config.obs_id, config.act_id]]
         else:
             raise NotImplementedError
 
@@ -401,9 +417,11 @@ def load_data(data_config, file_names=None, load_extra_stuff=False, verbose=Fals
                         token_ids = np.array(subgroup['token_ids'])
                         type_ids = np.array(subgroup['type_ids'])
                         position_ids = np.array(subgroup['position_ids'])
+                        mask = np.ones(position_ids.shape)
+                        mask[position_ids == 0] = 0
                         labels = np.array(subgroup['labels'])
 
-                        outputs = (token_ids, type_ids, position_ids, labels)
+                        outputs = (token_ids, type_ids, position_ids, mask, labels)
 
                         if load_extra_stuff:
                             for k in range(4, len(subgroup)):
@@ -415,7 +433,7 @@ def load_data(data_config, file_names=None, load_extra_stuff=False, verbose=Fals
 
                         key = 'max_len={:d},eps={:.2f}'.format(max_len, eps)
                         data_dict.update({key: outputs})
-                type_key = "{:s}_{:s}".format(pretrain_mode, game_type)
+                type_key = "{:s}-{:s}".format(pretrain_mode, game_type)
                 load_data.update({type_key: data_dict})
     return load_data, loaded_from
 

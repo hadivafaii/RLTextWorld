@@ -20,8 +20,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/model/embeddings.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/embeddings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/training.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/transformer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" afterDir="false" />
@@ -51,8 +51,8 @@
   </component>
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
-    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../GATA-public-master" />
+    <property name="settings.editor.selected.configurable" value="Errors" />
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -84,14 +84,19 @@
       <screen x="1920" y="0" width="1600" height="900" />
     </state>
     <state x="2352" y="81" width="732" height="644" key="#Inspections/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1588213883026" />
-    <state x="2545" y="231" width="424" height="491" key="FileChooserDialogImpl" timestamp="1588212221093">
+    <state x="2183" y="144" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1589247628969">
       <screen x="1920" y="0" width="1600" height="900" />
+    </state>
+    <state x="2183" y="144" key="#com.intellij.execution.impl.EditConfigurationsDialog/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1589247628969" />
+    <state x="789" y="297" width="424" height="491" key="FileChooserDialogImpl" timestamp="1588912598624">
+      <screen x="64" y="27" width="1856" height="1053" />
     </state>
     <state x="2545" y="231" width="424" height="491" key="FileChooserDialogImpl/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1588212221093" />
-    <state x="2087" y="149" width="900" height="751" key="SettingsEditor" timestamp="1588212744005">
+    <state x="789" y="297" key="FileChooserDialogImpl/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588912598624" />
+    <state x="2087" y="142" width="900" height="758" key="SettingsEditor" timestamp="1589151996632">
       <screen x="1920" y="0" width="1600" height="900" />
     </state>
-    <state x="2087" y="149" width="900" height="751" key="SettingsEditor/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1588212744005" />
+    <state x="2087" y="142" width="900" height="758" key="SettingsEditor/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1589151996632" />
     <state x="530" y="138" width="1022" height="737" key="SettingsEditor/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1587796657916" />
     <state x="2064" y="63" width="770" height="780" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1588304987872">
       <screen x="1920" y="0" width="1600" height="900" />
@@ -101,9 +106,10 @@
       <screen x="64" y="27" width="1856" height="1053" />
     </state>
     <state x="688" y="292" width="1200" height="685" key="dock-window-1/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588912433510" />
-    <state width="600" height="428" key="javadoc.popup" timestamp="1588546084436">
-      <screen x="64" y="27" width="1856" height="1053" />
+    <state width="518" height="366" key="javadoc.popup" timestamp="1589248192727">
+      <screen x="1920" y="0" width="1600" height="900" />
     </state>
+    <state width="518" height="366" key="javadoc.popup/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1589248192727" />
     <state width="600" height="428" key="javadoc.popup/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588546084436" />
     <state x="556" y="304" width="672" height="678" key="search.everywhere.popup" timestamp="1588221008355">
       <screen x="64" y="27" width="1856" height="1053" />

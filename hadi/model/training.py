@@ -4,6 +4,7 @@ from torch import nn
 from torch.optim import Adam
 import sys; sys.path.append('..')
 from utils.gen_pretrain_data import compute_type_position_ids, load_data
+# from utils.utils import to_np
 
 
 class ScheduledOptim:
@@ -37,7 +38,7 @@ class ScheduledOptim:
             param_group['lr'] = lr
 
 
-class Trainer:
+class OfflineTrainer:
     def __init__(self,
                  transformer,
                  train_config,
@@ -117,89 +118,93 @@ class Trainer:
         :param mode: boolean value of is train or test
         """
 
-        #  for pretrain_mode, data_dict in zip(self.data_config, data_dict_tuple):
+        for type_key, data_tuple in data_dict.items():
+            pretrain_mode = type_key.split('-')[0]
 
-        avg_loss = 0.0
-        total_correct = 0
-        total_element = 0
+            avg_loss = 0.0
+            total_correct = 0
+            total_element = 0
 
-        num_batches = len(data_dict['token_ids'])
+            num_batches = len(data_dict[-1])
 
-        for i in tqdm(range(num_batches)):
-            # TODO: this is not complete
-            batch_inputs = (
-                data_dict['mode...'][0][0][i],
-                data_dict[0][1][i],
-                data_dict[0][2][i])
-            batch_labels = data_dict['labels'][i]
+            for i in tqdm(range(num_batches)):
+                # TODO: this is not complete
+                batch_inputs = (
+                    data_dict['mode...'][0][0][i],
+                    data_dict[0][1][i],
+                    data_dict[0][2][i])
+                batch_labels = data_dict['labels'][i]
 
-            # push data through transformer
-            last_hiddens = [my_trainer.model(item)[0] for item in batch_inputs]
+                # push data through transformer
+                # this returns last_hiddens, all_hiddens, attention_weights
+                last_hiddens, _, _ = zip(*[my_trainer.model(*tup) for tup in zip(batch_inputs, batch_masks)])
 
-            # get the embedded objects
-            objects_embedded = my_trainer.model.generator_head.embed_objects(
-                my_trainer.model.embeddings.word_embeddings, reduction='mean',
-                use_cuda=my_trainer.device.type == 'cuda')
+                # get the embedded objects
+                objects_embedded = my_trainer.model.generator_head.embed_objects(
+                    my_trainer.model.embeddings.word_embeddings, reduction='mean',
+                    use_cuda=my_trainer.device.type == 'cuda')
 
-            # calculate the generator predictions to get loss + sample to get predicted indices
-            gen_preds, sampled_indxs = my_trainer.model.generator_head(last_hiddens, objects_embedded, batch_labels)
+                # calculate the generator predictions to get loss + sample to get predicted indices
+                gen_preds, sampled_indxs = my_trainer.model.generator_head(last_hiddens, objects_embedded, batch_labels)
 
-            # generator loss
-            generator_losses = [my_trainer.model.generator_head.loss_fn(tup[0], tup[1].flatten())
-                                for tup in zip(gen_preds, batch_labels)]
+                # generator loss
+                generator_losses = [my_trainer.model.generator_head.loss_fn(tup[0], tup[1].flatten())
+                                    for tup in zip(gen_preds, batch_labels)]
 
-            # generate x_corrupt to be fed into the discriminator
-            x_corrupts = my_trainer.model.generator_head.get_x_corrupt(
-                list(map(lambda z: to_np(z[0]), batch_inputs)),
-                list(map(lambda z: to_np(z), batch_labels)),
-                list(map(lambda z: to_np(z), sampled_indxs)),
-            )
+                # generate x_corrupt to be fed into the discriminator
+                x_corrupts = my_trainer.model.generator_head.get_x_corrupt(
+                    list(map(lambda z: to_np(z[0]), batch_inputs)),
+                    list(map(lambda z: to_np(z), batch_labels)),
+                    list(map(lambda z: to_np(z), sampled_indxs)),
+                )
 
-            corrupt_type_ids, corrupt_position_ids = zip(*[compute_type_position_ids(
-                tup[0], config, starting_position_ids=to_np(tup[1][2][:, 0])) for tup in zip(x_corrupts, batch_inputs)])
+                corrupt_type_ids, corrupt_position_ids = zip(*[compute_type_position_ids(
+                    tup[0], config, starting_position_ids=to_np(tup[1][2][:, 0])) for tup in zip(x_corrupts, batch_inputs)])
 
-            batch_corrupted_inputs = [
-                tuple(map(lambda z: torch.tensor(z, dtype=torch.long, device=my_trainer.device), tup))
-                for tup in zip(x_corrupts, corrupt_type_ids, corrupt_position_ids)]
+                batch_corrupted_inputs = [
+                    tuple(map(lambda z: torch.tensor(z, dtype=torch.long, device=my_trainer.device), tup))
+                    for tup in zip(x_corrupts, corrupt_type_ids, corrupt_position_ids)]
+                # batch_corrupted_inputs is a list of len pretrain mode (here for each pretrain mode we have to handle indices
+                # generation in a different way for the discriminator
 
-            # TODO: write this function
-            # batch_corrupted_labels = detect_objects(batch_corrupted_inputs)
+                # TODO: write this function
+                # batch_corrupted_labels = detect_objects(batch_corrupted_inputs)
 
-            # TODO: write discriminator
-            # discriminator_outputs = self.model.discriminator_head(batch_corrupted_inputs, batch_corrupted_labels)
-            # discriminator_loss = self.model.discriminator_head.loss_fn(discriminator_outputs, batch_corrupted_labels)
+                # TODO: write discriminator
+                # discriminator_outputs = self.model.discriminator_head(batch_corrupted_inputs, batch_corrupted_labels)
+                # discriminator_loss = self.model.discriminator_head.loss_fn(discriminator_outputs, batch_corrupted_labels)
 
-            # feed this as input to the discriminator head and get
-            # loss = generator_losses + self.train_config.loss_imbalance_lambda * discriminator_loss
-            # loss1, loss2, loss3 = 1, 2, 3
-            # losses = [loss1, loss2, loss3]
-            # total_loss = sum(loss for loss in losses)
+                # feed this as input to the discriminator head and get
+                # loss = generator_losses + self.train_config.loss_imbalance_lambda * discriminator_loss
+                # loss1, loss2, loss3 = 1, 2, 3
+                # losses = [loss1, loss2, loss3]
+                # total_loss = sum(loss for loss in losses)
 
-            # backward and optimization only in train
-            if mode == 'train':
-                self.optim_schedule.zero_grad()
-                loss.backward()
-                self.optim_schedule.step_and_update_lr()
+                # backward and optimization only in train
+                if mode == 'train':
+                    self.optim_schedule.zero_grad()
+                    loss.backward()
+                    self.optim_schedule.step_and_update_lr()
 
-            # next sentence prediction accuracy
-            correct = next_sent_output.argmax(dim=-1).eq(data["is_next"]).sum().item()
-            avg_loss += loss.item()
-            total_correct += correct
-            total_element += data["is_next"].nelement()
+                # next sentence prediction accuracy
+                correct = next_sent_output.argmax(dim=-1).eq(data["is_next"]).sum().item()
+                avg_loss += loss.item()
+                total_correct += correct
+                total_element += data["is_next"].nelement()
 
-            post_fix = {
-                "epoch": epoch,
-                "iter": i,
-                "avg_loss": avg_loss / (i + 1),
-                "avg_acc": total_correct / total_element * 100,
-                "loss": loss.item()
-            }
+                post_fix = {
+                    "epoch": epoch,
+                    "iter": i,
+                    "avg_loss": avg_loss / (i + 1),
+                    "avg_acc": total_correct / total_element * 100,
+                    "loss": loss.item()
+                }
 
-            if i % self.log_freq == 0:
-                data_iter.write(str(post_fix))
+                if i % self.log_freq == 0:
+                    data_iter.write(str(post_fix))
 
-        print("EP%d_%s, avg_loss=" % (epoch, str_code), avg_loss / len(data_iter), "total_acc=",
-              total_correct * 100.0 / total_element)
+            print("EP%d_%s, avg_loss=" % (epoch, str_code), avg_loss / len(data_iter), "total_acc=",
+                  total_correct * 100.0 / total_element)
 
     def save(self, epoch, file_path="output/bert_trained.model"):
         """
@@ -214,7 +219,7 @@ class Trainer:
         print("EP:%d Model Saved on:" % epoch, output_path)
         return output_path
 
-    def _load_data(self):
+    def _load_data(self, cat_all_eps=True):
         data_dict_dict, _ = load_data(self.data_config, load_extra_stuff=False, verbose=False)
 
         data_dict_cat_eps = {}
@@ -222,29 +227,34 @@ class Trainer:
             token_ids_list = []
             type_ids_list = []
             position_ids_list = []
+            mask_list = []
             labels_list = []
             for eps in self.data_config.epsilons:
+                if not cat_all_eps and eps < 1.00:
+                    continue
                 key = 'max_len={:d},eps={:.2f}'.format(self.data_config.max_len, eps)
-                token_ids, type_ids, position_ids, labels = data_dict[key]
+                token_ids, type_ids, position_ids, mask, labels = data_dict[key]
 
                 token_ids_list.append(token_ids)
                 type_ids_list.append(type_ids)
                 position_ids_list.append(position_ids)
+                mask_list.append(mask)
                 labels_list.append(labels)
 
             token_ids = np.concatenate(token_ids_list)
             type_ids = np.concatenate(type_ids_list)
             position_ids = np.concatenate(position_ids_list)
+            mask = np.concatenate(mask_list)
             labels = np.concatenate(labels_list)
 
-            data_dict_cat_eps.update({type_key: ((token_ids, type_ids, position_ids), labels)})
+            data_dict_cat_eps.update({type_key: ((token_ids, type_ids, position_ids), mask, labels)})
         return data_dict_cat_eps
 
     def _batchify(self, data_dict):
         batched_data_dict = {}
 
         for type_key, data_tuple in data_dict.items():
-            inputs, labels = data_tuple
+            inputs, masks, labels = data_tuple
             assert inputs[0].shape == inputs[1].shape == inputs[2].shape == labels.shape, "something wrong"
 
             num_samples = len(inputs[0])
@@ -254,6 +264,7 @@ class Trainer:
             batched_token_ids = empty_arr.copy()
             batched_type_ids = empty_arr.copy()
             batched_position_ids = empty_arr.copy()
+            batched_masks = []
             batched_labels = empty_arr.copy()
 
             for b in range(num_batches):
@@ -261,15 +272,17 @@ class Trainer:
                 batched_token_ids[b] = inputs[0][batch_indices]
                 batched_type_ids[b] = inputs[1][batch_indices]
                 batched_position_ids[b] = inputs[2][batch_indices]
+                batched_masks.append(self.model.encoder.create_attention_mask(masks[batch_indices]).unsqueeze(0))
                 batched_labels[b] = labels[batch_indices]
 
             batched_data_tuple = (
                 (
-                    torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
-                    torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
-                    torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
+                    torch.tensor(batched_token_ids, dtype=torch.long),
+                    torch.tensor(batched_type_ids, dtype=torch.long),
+                    torch.tensor(batched_position_ids, dtype=torch.long),
                 ),
-                torch.tensor(batched_labels, dtype=torch.long, device=self.device)
+                torch.cat(batched_masks),
+                torch.tensor(batched_labels, dtype=torch.long),
             )
             batched_data_dict.update({type_key: batched_data_tuple})
 
