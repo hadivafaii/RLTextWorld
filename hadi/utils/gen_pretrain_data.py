@@ -519,7 +519,7 @@ if __name__ == "__main__":
     # generate data loop
     loop_data = {}
     for max_len in max_lengths:
-        for eps in np.arange(0.0, args.eps_step + 10, args.eps_step):
+        for eps in np.arange(0.0, args.eps_step + 1, args.eps_step):
             print('\n\n')
             print('-' * 25, 'max_len={:d},eps={:.2f}'.format(max_len, eps), '-' * 25)
             traj_load_ = os.path.join(load_dir, 'traj_data_max_len={:d}.npy'.format(max_len))
