@@ -129,30 +129,26 @@ class Generator(nn.Module):
         predictions = x @ objects_embedded.T
         predictions = predictions.view(-1, num_classes)
 
-        probs = torch.softmax(predictions, dim=1)
+        probs = F.softmax(predictions, dim=1)
         sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape)
 
         return predictions, sampled_indxs
 
-    def embed_objects(self, word_embeddings, pretrain_mode, indxs=None, reduction='mean', use_cuda=True):
+    def embed_objects(self, word_embeddings, pretrain_mode, indxs=None, reduction='mean'):
         conversion_dict = self.conversion_dicts[pretrain_mode]
+
+        _device = word_embeddings.weight.device
 
         if indxs is None:
             indxs = list(conversion_dict.keys())
 
         if pretrain_mode == 'MLM':
-            if use_cuda:
-                object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long).cuda())
-            else:
-                object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long))
+            object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long, device=_device))
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
             object_vectors_list_ = []
             for i in indxs:
-                if use_cuda:
-                    obj_is = torch.tensor(conversion_dict[i], dtype=torch.long).cuda()
-                else:
-                    obj_is = torch.tensor(conversion_dict[i], dtype=torch.long)
+                obj_is = torch.tensor(conversion_dict[i], dtype=torch.long, device=_device)
                 obj_v = word_embeddings(obj_is)
 
                 if reduction == 'mean':
@@ -227,28 +223,27 @@ class Discriminator(nn.Module):
 
         self.loss_fn = nn.BCEWithLogitsLoss()
 
-    def forward(self, corrupted_inputs, transformer_hidden, labels, indices_list):
+    def forward(self, transformer_hidden, flat_indices, pretrain_mode):
         # these are pre-sigmoid, the loss has sigmoid in it so no need to apply it here
-        predictions = ()
-        for hidden, pretrain_mode, indices in zip(transformer_hidden, self.pretrain_modes, indices_list):
-            if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
-                if len(np.unique([len(item) for item in indices])) > 1:
-                    h = torch.cat(list(map(lambda z: torch.mean(hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), indices)))
-                else:
-                    h = hidden.view(-1, self.config.hidden_size)[indices]
-                predictions += self.proj(h)
-
-            elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
-                predictions += self.rnn_proj(hidden)
-
-            elif pretrain_mode in ['ACT_PREDICT', 'OBS_PREDICT']:
-                raise NotImplemented
-
+    #    for hidden, pretrain_mode, indices in zip(transformer_hidden, self.pretrain_modes, indices_list):
+        if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
+            if len(np.unique([len(item) for item in flat_indices])) > 1:
+                h = torch.cat(list(map(lambda z: torch.mean(transformer_hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), flat_indices)))
             else:
-                raise ValueError('invalid pretrain mdoe')
+                h = transformer_hidden.view(-1, self.config.hidden_size)[flat_indices]
+            predictions = self.lin_proj(h)
+
+        elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
+            predictions = self.rnn_proj(hidden)
+
+        elif pretrain_mode in ['ACT_PREDICT', 'OBS_PREDICT']:
+            raise NotImplemented
+
+        else:
+            raise ValueError('invalid pretrain mdoe')
         #  predictions += do contrastive s
 
-        return list(predictions), list(sampled_indxs)
+        return predictions.flatten()
 
     def get_discriminator_labels(self, corrupted_token_ids, masked_token_ids, generator_replaced_labels, pretrain_mode):
         conversion_dict = self.conversion_dicts[pretrain_mode]
@@ -288,7 +283,7 @@ class Discriminator(nn.Module):
         final_ranges_labels = [
             tup[0] for tup in zip(corrupted_ranges_labels, final_discriminator_labels) if tup[1] >= 0]
 
-        return ranges_chained, final_discriminator_labels, final_ranges_labels
+        return ranges_chained, torch.tensor(final_discriminator_labels, dtype=torch.float), final_ranges_labels
 
 
 class Transformer(nn.Module):

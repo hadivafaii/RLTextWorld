@@ -478,7 +478,7 @@ if __name__ == "__main__":
                         type=int, default=None)
     parser.add_argument("--eps_step",
                         help="(float) epsilon increment steps, i.e. eps in np.arange(0.0, eps_step * 11, eps_step). default: 0.10",
-                        type=float, default=0.10)
+                        type=float, default=0.20)
     parser.add_argument("--seeds",
                         help="(integers) random seeds, used only for corrupted data generation. default: [665]",
                         type=int, nargs='+', default=665)
@@ -490,7 +490,9 @@ if __name__ == "__main__":
 
     ALLOWED_MODES = [
         'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
-        'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB', 'MLM']
+        'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB', 'MLM',
+        'ACT_PREDICT', 'OBS_PREDICT', 'ACT_ELIM',
+    ]
 
     if args.pretrain_mode not in ALLOWED_MODES:
         raise ValueError('enter correct pretrain type.  allowed opetions: \n{}'.format(ALLOWED_MODES))
@@ -517,7 +519,7 @@ if __name__ == "__main__":
     # generate data loop
     loop_data = {}
     for max_len in max_lengths:
-        for eps in np.arange(0.0, args.eps_step * 11, args.eps_step):
+        for eps in np.arange(0.0, args.eps_step + 10, args.eps_step):
             print('\n\n')
             print('-' * 25, 'max_len={:d},eps={:.2f}'.format(max_len, eps), '-' * 25)
             traj_load_ = os.path.join(load_dir, 'traj_data_max_len={:d}.npy'.format(max_len))
@@ -540,13 +542,18 @@ if __name__ == "__main__":
                 loop_data.update(
                     {'max_len={:d},eps={:.2f}'.format(max_len, eps): (*outputs, labels, permutations_used)})
 
-            elif args.pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
+            elif args.pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
                 generated_data_ = []
                 for seed in args.seeds:
                     print('[PROGRESS] generating corrupted data using seed = {:d}'.format(seed))
+                    if args.pretrain_mode == 'MLM':
+                        conversion_dict = None
+                    else:
+                        conversion_dict = lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())]
                     outputs, labels = generate_corrupted_data(
-                        inputs, config, lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())],
-                        max_len=max_len, mask_prob=args.mask_prob, mode=args.pretrain_mode[:3].lower(), seed=seed,
+                        inputs, config, conversion_dict,
+                        max_len=max_len, mask_prob=args.mask_prob,
+                        mode=args.pretrain_mode[:3].lower(), seed=seed,
                     )
                     generated_data_.append([*outputs, labels])
                 outputs, labels = _corrupted_data_processing(generated_data_)

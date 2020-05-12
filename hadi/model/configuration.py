@@ -87,6 +87,9 @@ class DataConfig:
         else:
             _types = ['train']
 
+        if '/' in game_type:
+            game_type = game_type.split('/')[0]
+
         self.train_valid_test = train_valid_test
 
         base_dir = os.path.join(os.environ['HOME'], base_dir)
@@ -125,7 +128,7 @@ class DataConfig:
             game_specs = None
             spec_dir = ''
         else:
-            raise ValueError("Enter correct game type")
+            raise ValueError("Invalid game type value encountered")
 
         base_dirs = []
         for _type in _types:

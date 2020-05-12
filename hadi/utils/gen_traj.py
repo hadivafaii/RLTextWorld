@@ -26,8 +26,10 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
     # initialize the datas you want to save
     all_trajectories = list()
     all_teacher_tuples = list()
+    all_admissible_commands = list()
     verb_counts = Counter()
     entity_counts = Counter()
+    admissible_commands_counts = Counter()
     walkthroughs_len_counts = Counter()
 
     # Get trajectories
@@ -60,6 +62,12 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
         dones = [False] * batch_size
         trajectory_dones = [False] * batch_size
         while not all(dones):
+            all_admissible_commands.append(infos["admissible_commands"])
+
+            cmds_flat = [z for sublist in infos["admissible_commands"] for z in sublist]
+            for cmd in cmds_flat:
+                admissible_commands_counts[cmd] += 1
+
             random_numbers = rng.uniform(0, 1, batch_size)
             if mode == 'walkthrough':
                 walkthrough_commands = [tup[1][min(len(tup[1]) - 1, tup[0])]
@@ -70,6 +78,10 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                         commands.append(walkthrough_commands[i])
                         nb_moves_this_episode[i] += 1
                     else:
+                        admissible_commands = [
+                            [cmd for cmd in cmd_list if cmd not in ['look']]
+                            for cmd_list in infos["admissible_commands"]]
+
                         commands.append(rng.choice(admissible_commands[i]))
                         nb_moves_this_episode[i] = rng.choice(range(2 * (nb_moves_this_episode[i] // 3),
                                                                     nb_moves_this_episode[i] + 1))
@@ -115,9 +127,12 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
         all_trajectories.extend(trajectory)
         all_teacher_tuples.extend(teacher_tuples)
 
-    data = {'trajectories': all_trajectories, 'teacher_tuples': all_teacher_tuples,
-            'verb_counts': verb_counts, 'entity_counts': entity_counts,
-            'walkthrough_len_counts': walkthroughs_len_counts}
+    data = {
+        'trajectories': all_trajectories, 'teacher_tuples': all_teacher_tuples,
+        'verb_counts': verb_counts, 'entity_counts': entity_counts,
+        'admissible_commands_counts': admissible_commands_counts,
+        'walkthrough_len_counts': walkthroughs_len_counts
+    }
 
     return data
 

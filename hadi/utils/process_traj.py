@@ -85,6 +85,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     teacher_tuples = []
     verb_counts = Counter()
     entity_counts = Counter()
+    act_counts = Counter()
     walkthroughs_len_counts = Counter()
 
     for f in data_files:
@@ -101,6 +102,8 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
                 verb_counts[k] += v
             for k, v in data_['entity_counts'].most_common():
                 entity_counts[k] += v
+            for k, v in data_['admissible_commands_counts'].most_common():
+                act_counts[k] += v
             for k, v in data_['walkthrough_len_counts'].most_common():
                 walkthroughs_len_counts[k] += v
         except FileNotFoundError:
@@ -143,6 +146,12 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     for verb in verbs_tokenized:
         verb2indx.update({verb: len(verb2indx)})
     indx2verb = {verb2indx[verb]: verb for verb in verb2indx}
+
+    acts_tokenized = [tuple(w2i[x] for x in ['[ACT]'] + preproc(act, tokenizer)) for act in list(act_counts.keys())]
+    act2indx = {}
+    for act in acts_tokenized:
+        act2indx.update({act: len(act2indx)})
+    indx2act = {act2indx[act]: act for act in act2indx}
 
     # Turn string based data into integer based
     trajectory_token_ids = []
@@ -210,9 +219,11 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         'segment_ids': segments_all.astype(int), 'walkthroughs_len_counts': walkthroughs_len_counts,
     }
     lang_data = {
-        'verb_counts': verb_counts, 'entity_counts': entity_counts, 'unigram_counts': unigram_counts,
+        'verb_counts': verb_counts, 'entity_counts': entity_counts,
+        'unigram_counts': unigram_counts, 'act_counts': act_counts,
         'entity2indx': entity2indx, 'indx2entity': indx2entity,
         'verb2indx': verb2indx, 'indx2verb': indx2verb,
+        'act2indx': act2indx, 'indx2act': indx2act,
         'w2i': w2i, 'i2w': i2w,
     }
 
@@ -252,7 +263,7 @@ if __name__ == "__main__":
     traj_data_all = {}
     lang_data_all = {}
 
-    for eps in tqdm(np.arange(0.0, 1.1, 0.1), desc='processing... S={:d}'.format(args.max_len)):
+    for eps in tqdm(np.arange(0.0, 1.2, 0.2), desc='processing... S={:d}'.format(args.max_len)):
         dir_ = os.path.join(load_dir, 'eps={:.2f}'.format(eps))
         files_ = os.listdir(dir_)
         data_files = [os.path.join(dir_, x) for x in sorted(files_)]

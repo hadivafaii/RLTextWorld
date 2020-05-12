@@ -20,27 +20,29 @@ cd ../utils
 
 make_screens () {
   # $1 is num_groups
-  for eps in $(seq 0.00 0.10 1.00); do
+  for eps in $(seq 0.00 0.20 1.00); do
     for ii in $(seq 0 1 $(($1-1))); do
-      screen -dmS "iter_$ii-eps_$eps"
+      screen -dmS "iter_${ii}-eps_${eps}"
     done
   done
 }
 
 do_it () {
   # $1 is num_groups, $2 game_type, $3 is exploration mode, $4 is load_dir
-  for eps in $(seq 0.00 0.10 1.00); do
+  for eps in $(seq 0.00 0.20 1.00); do
     for ii in $(seq 0 1 $(($2-1))); do
       if [ $# -eq 4 ]; then # load dir was given
-        screen -S "iter_$ii-eps_$eps" -X stuff "python3 gen_traj.py $1 $ii $2 --exploration_mode $3 --game_spec $4 --epsilon $eps --max_steps 70 --batch_size 2 ^M"
+        screen -S "iter_${ii}-eps_${eps}" -X stuff "python3 gen_traj.py $1 $ii $2 --exploration_mode $3 --game_spec $4 --epsilon $eps --max_steps 70 --batch_size 2 ^M"
       else
-        screen -S "iter_$ii-eps_$eps" -X stuff "python3 gen_traj.py $1 $ii $2 --exploration_mode $3 --epsilon $eps --max_steps 70 --batch_size 2 ^M"
+        screen -S "iter_${ii}-eps_${eps}" -X stuff "python3 gen_traj.py $1 $ii $2 --exploration_mode $3 --epsilon $eps --max_steps 70 --batch_size 2 ^M"
       fi
     done
   done
 }
 
+
 make_screens $num_groups
+
 
 if [ -z "$game_spec" ]; then # if load dir is NULL
   do_it $game_type $num_groups $exploration_mode
