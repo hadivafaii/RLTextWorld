@@ -113,7 +113,7 @@ class OfflineTrainer:
         """
 
         for type_key, data_tuple in data_dict.items():
-            if 'ENTITY' not in type_key:
+            if 'MLM' not in type_key:
                 continue
             pretrain_mode = type_key.split('-')[0]
             inputs, masks, labels = data_tuple
@@ -223,7 +223,7 @@ class OfflineTrainer:
 
         corrupt_hiddens, _, _ = self.model(corrupt_inputs, corrupt_mask)
 
-        ranges_chained, disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
+        disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
             to_np(x_corrupt), to_np(masked_inputs[0]), to_np(sampled_indxs[masked_labels != -100]), pretrain_mode)
 
         disc_preds = self.model.discriminator(corrupt_hiddens, flat_indices, pretrain_mode)
@@ -266,7 +266,7 @@ class OfflineTrainer:
         return output_path
 
     def _load_data(self, only_load_best_eps=True, load_masks=False):
-        data_dict_dict, _ = load_data(self.data_config, load_extra_stuff=False, verbose=True)
+        data_dict_dict, _ = load_data(self.data_config, load_extra_stuff=False, verbose=False)
 
         data_dict_cat_eps = {}
         for type_key, data_dict in data_dict_dict.items():

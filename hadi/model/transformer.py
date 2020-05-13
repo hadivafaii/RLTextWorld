@@ -143,19 +143,8 @@ class Generator(nn.Module):
             indxs = list(conversion_dict.keys())
 
         if pretrain_mode == 'MLM':
-
-            print(len(indxs))
-
-            bool_arr = np.logical_and(
-                np.array(indxs) != self.config.pad_id,
-                np.array(indxs) != self.config.obs_id,
-                np.array(indxs) != self.config.act_id,
-                np.array(indxs) != self.config.unk_id)
-            valid_indices = list(compress(range(len(bool_arr)), bool_arr))
-            indxs = indxs[valid_indices]
-
-            print(len(indxs))
-
+            _illegal_indices = [self.config.pad_id, self.config.obs_id, self.config.act_id, self.config.unk_id]
+            indxs = list(filter(lambda i: i not in _illegal_indices, indxs))
             object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long, device=_device))
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
@@ -180,7 +169,8 @@ class Generator(nn.Module):
     def get_x_corrupt(self, x_masked, labels, sampled_indxs, pretrain_mode):
         if pretrain_mode == 'MLM':  # this corresponds to MLM
             x_corrupt = dc(x_masked)
-            x_corrupt[labels != -100] = sampled_indxs.flatten()[labels != -100]
+            x_corrupt[labels != -100] = sampled_indxs[labels != -100]
+            print(sampled_indxs.flatten()[labels.flatten() != -100])
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
             x_corrupt = np.zeros(x_masked.shape, dtype=int)
@@ -239,11 +229,10 @@ class Discriminator(nn.Module):
     def forward(self, transformer_hidden, flat_indices, pretrain_mode):
         # these are pre-sigmoid, the loss has sigmoid in it so no need to apply it here
         if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
-            if len(np.unique([len(item) for item in flat_indices])) > 1:
+            if pretrain_mode != 'MLM' and len(np.unique([len(item) for item in flat_indices])) > 1:
                 h = torch.cat(list(map(lambda z: torch.mean(transformer_hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), flat_indices)))
             else:
-                # first make sure flat_indices is a list, not a list of len 1 arrays
-                try:
+                try:    # first make sure flat_indices is a list, not a list of len 1 arrays
                     flat_indices = [inds.item() for inds in flat_indices]
                 except AttributeError:
                     pass
@@ -266,21 +255,16 @@ class Discriminator(nn.Module):
         conversion_dict = self.conversion_dicts[pretrain_mode]
 
         if pretrain_mode == 'MLM':
-            x_corrupted_flat = corrupted_token_ids.flatten()
+            x_corrupt_flat = corrupted_token_ids.flatten()
+            x_masked_flat = masked_token_ids.flatten()
 
-            labels = np.ones(len(x_corrupted_flat))
-            unk_indices = np.where(masked_token_ids.flatten() == self.config.unk_id)[0]
+            labels = np.ones(len(x_corrupt_flat))
+            unk_indices = np.where(x_masked_flat == self.config.unk_id)[0]
             labels[unk_indices] = 0
 
-            bool_arr = np.logical_and(
-                x_corrupted_flat != self.config.pad_id,
-                x_corrupted_flat != self.config.obs_id,
-                x_corrupted_flat != self.config.act_id,
-                x_corrupted_flat != self.config.unk_id)
-            ranges_chained = list(compress(range(len(bool_arr)), bool_arr))
-
-            final_discriminator_labels = labels[ranges_chained]
-            flat_indices = ranges_chained
+            _illegal_indices = [self.config.pad_id, self.config.obs_id, self.config.act_id]
+            flat_indices = [tup[0] for tup in enumerate(x_corrupt_flat) if tup[1] not in _illegal_indices]
+            final_discriminator_labels = labels[flat_indices]
 
         else:
             ranges_chained, corrupted_ranges_labels = _extract_object_info(
@@ -319,7 +303,7 @@ class Discriminator(nn.Module):
                 tup[0] for tup in zip(corrupted_ranges_labels, final_discriminator_labels) if tup[1] >= 0]
             flat_indices = [np.array(ranges_chained)[tup[0]] for tup in final_ranges_labels]
 
-        return ranges_chained, torch.tensor(final_discriminator_labels, dtype=torch.float), flat_indices
+        return torch.tensor(final_discriminator_labels, dtype=torch.float), flat_indices
 
 
 class Transformer(nn.Module):
