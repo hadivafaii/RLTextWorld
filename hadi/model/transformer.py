@@ -2,6 +2,8 @@ import os
 import numpy as np
 from copy import deepcopy as dc
 from itertools import chain, compress
+from datetime import datetime
+import yaml
 
 import torch
 from torch import nn
@@ -9,6 +11,7 @@ import torch.nn.functional as F
 
 from .embeddings import Embeddings
 from .preprocessing import get_nlp, preproc
+from .configuration import TransformerConfig, DataConfig
 import sys; sys.path.append('..')
 from utils.gen_pretrain_data import get_ranges
 
@@ -34,6 +37,9 @@ class TransformerEncoder(nn.Module):
         self.norm2 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
         self.dropout1 = nn.Dropout(config.attention_probs_dropout_prob)
         self.dropout2 = nn.Dropout(config.hidden_dropout_prob)
+
+      #  self.pooler = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
+      #  self.poooler_activation = nn.Tanh()
 
         self.config = config
         self.activation = _get_activation_fn(config.hidden_act)
@@ -117,13 +123,15 @@ class Generator(nn.Module):
         self.linear1 = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
         self.linear2 = nn.Linear(config.hidden_size, config.embedding_size, bias=True)
         self.norm1 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
+        self.norm2 = nn.LayerNorm(config.embedding_size, config.layer_norm_eps)
         self.activation = _get_activation_fn(config.hidden_act)
 
         self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def forward(self, transformer_hiddens, objects_embedded, labels):
-        x = self.activation(self.linear1(transformer_hiddens))
-        x = self.linear2(self.norm1(x))
+        # x = self.activation(self.linear1(transformer_hiddens))
+        # x = self.linear2(self.norm1(x))
+        x = self.norm2(self.activation(self.linear2(transformer_hiddens)))
 
         num_classes = len(objects_embedded)
         predictions = x @ objects_embedded.T
@@ -214,9 +222,12 @@ class Discriminator(nn.Module):
 
         self.conversion_dicts = conversion_dicts
 
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
+        self.activation = _get_activation_fn(config.hidden_act)
+
         # TODO: have a single weight for different modes or give each unique w?
         if set(pretrain_modes).intersection({'ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM'}):
-            self.lin_proj = nn.Linear(config.hidden_size, 1, bias=False)
+            self.lin_proj = nn.Linear(config.hidden_size, 1, bias=True)
         elif set(pretrain_modes).intersection({'ACT_ORDER', 'OBS_ORDER', 'ACT_PREDICT', 'OBS_PREDICT'}):
             # self.rnn_proj = nn.GRUCell(config.hidden_size, 1) ## for when 2nd stage attn is needed
             self.rnn_proj = nn.LSTM(config.hidden_size, 1)
@@ -238,7 +249,7 @@ class Discriminator(nn.Module):
                 except AttributeError:
                     pass
                 h = transformer_hidden.view(-1, self.config.hidden_size)[flat_indices]
-            predictions = self.lin_proj(h)
+            predictions = self.lin_proj(self.activation(self.dense(h)))
 
         elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
             predictions = self.rnn_proj(hidden)
@@ -343,6 +354,67 @@ class Transformer(nn.Module):
         elif isinstance(module, nn.LayerNorm):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
+
+    def save(self):
+        config_dict = vars(self.config)
+        data_config_dict = vars(self.data_config)
+
+        to_hash_dict_ = dc(config_dict)
+        to_hash_dict_.update(data_config_dict)
+        hashed_info = hash(frozenset(sorted(to_hash_dict_)))
+
+        save_dir = os.path.join(
+            self.data_config.model_save_dir, "[{}]_{:s}".format(hashed_info, datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
+        os.makedirs(save_dir, exist_ok=True)
+
+        torch.save(self.state_dict(), os.path.join(save_dir, 'model.bin'))
+
+        with open(os.path.join(save_dir, 'config.yaml'), 'w') as f:
+            yaml.dump(config_dict, f)
+
+        with open(os.path.join(save_dir, 'data_config.yaml'), 'w') as f:
+            yaml.dump(data_config_dict, f)
+
+    @staticmethod
+    def load(load_dir=None, verbose=True):
+        if load_dir is None:
+            _dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/SAVED_MODELS')
+            available_models = os.listdir(_dir)
+            if verbose:
+                print('Available models to load:\n', available_models)
+            load_dir = os.path.join(_dir, available_models[-1])
+
+        if verbose:
+            print('\nLoading from:\n', load_dir)
+
+        with open(os.path.join(load_dir, 'config.yaml'), 'r') as stream:
+            try:
+                config_dict = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        with open(os.path.join(load_dir, 'data_config.yaml'), 'r') as stream:
+            try:
+                data_config_dict = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        loaded_config = TransformerConfig(**config_dict)
+        loaded_data_config = DataConfig(
+            pretrain_modes=data_config_dict['pretrain_modes'],
+            game_type=data_config_dict['game_types'][0].split('/')[0],
+            game_spec=data_config_dict['game_spec'],
+            k=data_config_dict['k'],
+            mask_prob=data_config_dict['mask_prob'],
+            mlm_mask_prob=data_config_dict['mlm_mask_prob'],
+            max_len=data_config_dict['max_len'],
+            eps=data_config_dict['epsilons'][0],
+            train_valid_test=data_config_dict['train_valid_test'])
+
+        loaded_tmr = Transformer(loaded_config, loaded_data_config)
+        loaded_tmr.load_state_dict(torch.load(os.path.join(load_dir, 'model.bin')))
+
+        return loaded_tmr
 
 
 class Language(object):

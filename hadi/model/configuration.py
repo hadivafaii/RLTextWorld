@@ -62,6 +62,7 @@ class DataConfig:
             eps=0.8,
             train_valid_test=True,
             base_dir='Documents/FTWP/DATA',
+            model_save_dir='Documents/FTWP/SAVED_MODELS',
             base_processed_dir='processed_trajectories',
             base_pretrain_dir='pretraining_data',
     ):
@@ -162,7 +163,8 @@ class DataConfig:
         self.pretrain_dirs = pretrain_dirs
 
         self.game_types = [os.path.join(game_type, _type) for _type in _types]
-        self.game_specs = game_specs
+        self.game_spec = game_spec
+       # self.game_specs = game_specs
 
         self.k = k
         self.mask_prob = mask_prob
@@ -177,6 +179,7 @@ class DataConfig:
         for base_dir_ in self.base_dirs:
             games_dirs.append(os.path.join(base_dir_, 'games'))
             processed_dirs.append(os.path.join(base_dir_, base_processed_dir))
+        self.model_save_dir = os.path.join(os.environ['HOME'], model_save_dir)
         self.games_dirs = games_dirs
         self.processed_dirs = processed_dirs
 
