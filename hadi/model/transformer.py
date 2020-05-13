@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from copy import deepcopy as dc
-from itertools import chain
+from itertools import chain, compress
 
 import torch
 from torch import nn
@@ -43,7 +43,7 @@ class TransformerEncoder(nn.Module):
             state['activation'] = F.relu
         super(TransformerEncoder, self).__setstate__(state)
 
-    def forward(self, src, src_mask=None, src_key_padding_mask=None):
+    def forward(self, src, src_mask, src_key_padding_mask=None):
         # type: (Tensor, Optional[Tensor], Optional[Tensor]) -> Tensor
         r"""Pass the input through the encoder layer.
 
@@ -86,7 +86,7 @@ class TransformerEncoder(nn.Module):
         else:
             mask = torch.tensor(mask_bool, dtype=torch.float)
 
-        mask_square = torch.einsum('bij,bjk->bik', torch.ones(mask.unsqueeze(-1).size()), mask.unsqueeze(-2))
+        mask_square = torch.einsum('bij,bjk->bik', torch.ones(mask.unsqueeze(-1).size(), device=mask.device), mask.unsqueeze(-2))
 
         mask_square_additive = mask_square.masked_fill(
             mask_square == 0, float('-inf')).masked_fill(mask_square == 1, float(0.0))
@@ -143,6 +143,19 @@ class Generator(nn.Module):
             indxs = list(conversion_dict.keys())
 
         if pretrain_mode == 'MLM':
+
+            print(len(indxs))
+
+            bool_arr = np.logical_and(
+                np.array(indxs) != self.config.pad_id,
+                np.array(indxs) != self.config.obs_id,
+                np.array(indxs) != self.config.act_id,
+                np.array(indxs) != self.config.unk_id)
+            valid_indices = list(compress(range(len(bool_arr)), bool_arr))
+            indxs = indxs[valid_indices]
+
+            print(len(indxs))
+
             object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long, device=_device))
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
@@ -170,7 +183,7 @@ class Generator(nn.Module):
             x_corrupt[labels != -100] = sampled_indxs.flatten()[labels != -100]
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
-            x_corrupt = torch.zeros(x_masked.shape, dtype=torch.long)
+            x_corrupt = np.zeros(x_masked.shape, dtype=int)
             for i in range(len(x_masked)):
                 unk_pos = np.where(labels[i] != -100)[0]
                 x_corrupt[i] = _replace_objects(
@@ -225,11 +238,15 @@ class Discriminator(nn.Module):
 
     def forward(self, transformer_hidden, flat_indices, pretrain_mode):
         # these are pre-sigmoid, the loss has sigmoid in it so no need to apply it here
-    #    for hidden, pretrain_mode, indices in zip(transformer_hidden, self.pretrain_modes, indices_list):
         if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
             if len(np.unique([len(item) for item in flat_indices])) > 1:
                 h = torch.cat(list(map(lambda z: torch.mean(transformer_hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), flat_indices)))
             else:
+                # first make sure flat_indices is a list, not a list of len 1 arrays
+                try:
+                    flat_indices = [inds.item() for inds in flat_indices]
+                except AttributeError:
+                    pass
                 h = transformer_hidden.view(-1, self.config.hidden_size)[flat_indices]
             predictions = self.lin_proj(h)
 
@@ -248,42 +265,61 @@ class Discriminator(nn.Module):
     def get_discriminator_labels(self, corrupted_token_ids, masked_token_ids, generator_replaced_labels, pretrain_mode):
         conversion_dict = self.conversion_dicts[pretrain_mode]
 
-        ranges_chained, corrupted_ranges_labels = _extract_object_info(
-            corrupted_token_ids,
-            conversion_dict,
-            pretrain_mode,
-            self.config)
+        if pretrain_mode == 'MLM':
+            x_corrupted_flat = corrupted_token_ids.flatten()
 
-        corrupted_ranges_labels = sorted(corrupted_ranges_labels, key=lambda tup: tup[0].start)
-        all_lbls_found_corrupt = [tup[1] for tup in corrupted_ranges_labels]
+            labels = np.ones(len(x_corrupted_flat))
+            unk_indices = np.where(masked_token_ids.flatten() == self.config.unk_id)[0]
+            labels[unk_indices] = 0
 
-        _, masked_ranges_labels = _extract_object_info(
-            masked_token_ids,
-            conversion_dict,
-            pretrain_mode,
-            self.config)
+            bool_arr = np.logical_and(
+                x_corrupted_flat != self.config.pad_id,
+                x_corrupted_flat != self.config.obs_id,
+                x_corrupted_flat != self.config.act_id,
+                x_corrupted_flat != self.config.unk_id)
+            ranges_chained = list(compress(range(len(bool_arr)), bool_arr))
 
-        masked_ranges_labels = sorted(masked_ranges_labels, key=lambda tup: tup[0].start)
-        all_lbls_found_masked = [tup[1] for tup in masked_ranges_labels]
+            final_discriminator_labels = labels[ranges_chained]
+            flat_indices = ranges_chained
 
-        discriminator_labels = np.ones(len(all_lbls_found_corrupt), dtype=int) * -1
+        else:
+            ranges_chained, corrupted_ranges_labels = _extract_object_info(
+                corrupted_token_ids,
+                conversion_dict,
+                pretrain_mode,
+                self.config)
 
-        pos_i = 0
-        neg_i = 0
-        for i, lbl in enumerate(all_lbls_found_corrupt):
-            if neg_i < len(generator_replaced_labels) and lbl == generator_replaced_labels[neg_i]:
-                discriminator_labels[i] = 0
-                neg_i += 1
-            elif pos_i < len(all_lbls_found_masked) and lbl == all_lbls_found_masked[pos_i]:
-                discriminator_labels[i] = 1
-                pos_i += 1
+            corrupted_ranges_labels = sorted(corrupted_ranges_labels, key=lambda tup: tup[0].start)
+            all_lbls_found_corrupt = [tup[1] for tup in corrupted_ranges_labels]
 
-        valid_obj_indices = np.where(discriminator_labels >= 0)[0]
-        final_discriminator_labels = discriminator_labels[valid_obj_indices]
-        final_ranges_labels = [
-            tup[0] for tup in zip(corrupted_ranges_labels, final_discriminator_labels) if tup[1] >= 0]
+            _, masked_ranges_labels = _extract_object_info(
+                masked_token_ids,
+                conversion_dict,
+                pretrain_mode,
+                self.config)
 
-        return ranges_chained, torch.tensor(final_discriminator_labels, dtype=torch.float), final_ranges_labels
+            masked_ranges_labels = sorted(masked_ranges_labels, key=lambda tup: tup[0].start)
+            all_lbls_found_masked = [tup[1] for tup in masked_ranges_labels]
+
+            discriminator_labels = np.ones(len(all_lbls_found_corrupt), dtype=int) * -1
+
+            pos_i = 0
+            neg_i = 0
+            for i, lbl in enumerate(all_lbls_found_corrupt):
+                if neg_i < len(generator_replaced_labels) and lbl == generator_replaced_labels[neg_i]:
+                    discriminator_labels[i] = 0
+                    neg_i += 1
+                elif pos_i < len(all_lbls_found_masked) and lbl == all_lbls_found_masked[pos_i]:
+                    discriminator_labels[i] = 1
+                    pos_i += 1
+
+            valid_obj_indices = np.where(discriminator_labels >= 0)[0]
+            final_discriminator_labels = discriminator_labels[valid_obj_indices]
+            final_ranges_labels = [
+                tup[0] for tup in zip(corrupted_ranges_labels, final_discriminator_labels) if tup[1] >= 0]
+            flat_indices = [np.array(ranges_chained)[tup[0]] for tup in final_ranges_labels]
+
+        return ranges_chained, torch.tensor(final_discriminator_labels, dtype=torch.float), flat_indices
 
 
 class Transformer(nn.Module):
@@ -296,17 +332,32 @@ class Transformer(nn.Module):
 
         self.embeddings = Embeddings(config)
         self.encoder = TransformerEncoder(config)
+        # self.decoder = TransformerDecoder(config)
 
         self.generator = Generator(config, self.nlp, pretrain_modes=data_config.pretrain_modes)
         self.discriminator = Discriminator(config, self.nlp, pretrain_modes=data_config.pretrain_modes)
 
-        # self.trainer = Trainer()
-        # self.discriminator_head = DiscriminatorHead(config)
+        self.init_weights()
 
     def forward(self, inputs, attention_masks=None):
         embedded = self.embeddings(*inputs).transpose(1, 0)  # (S, N, E)
+        if attention_masks is None:
+            attention_masks = self.encoder.create_attention_mask(inputs[2] > 0)
         last_hidden, hiddens, attn_weights = self.encoder(embedded, src_mask=attention_masks)
         return last_hidden, hiddens, attn_weights
+
+    def init_weights(self):
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        """ Initialize the weights """
+        if isinstance(module, nn.Linear):
+            module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
+            if module.bias is not None:
+                module.bias.data.zero_()
+        elif isinstance(module, nn.LayerNorm):
+            module.bias.data.zero_()
+            module.weight.data.fill_(1.0)
 
 
 class Language(object):

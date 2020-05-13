@@ -190,10 +190,23 @@ if __name__ == "__main__":
     from model.preprocessing import get_nlp, preproc
     from model.configuration import DataConfig
 
-    data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec, train_valid_test=False)
+    data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec, train_valid_test=True)
 
-    load_dir = data_config.games_dirs[0]
-    save_dir = os.path.join(data_config.base_dirs[0], 'raw_trajectories')
+    if args.game_type.split('/')[1] == 'train':
+        load_dir = data_config.games_dirs[0]
+        save_dir = os.path.join(data_config.base_dirs[0], 'raw_trajectories')
+        assert 'train' in load_dir and 'train' in save_dir, "..."
+    elif args.game_type.split('/')[1] == 'valid':
+        load_dir = data_config.games_dirs[1]
+        save_dir = os.path.join(data_config.base_dirs[1], 'raw_trajectories')
+        assert 'valid' in load_dir and 'valid' in save_dir, "..."
+    elif args.game_type.split('/')[1] == 'test':
+        load_dir = data_config.games_dirs[2]
+        save_dir = os.path.join(data_config.base_dirs[2], 'raw_trajectories')
+        assert 'est' in load_dir and 'test' in save_dir, "..."
+    else:
+        raise ValueError("Invalid game type entered (e.g. custom/train is correct)")
+
 
     game_files = os.listdir(load_dir)
     game_files = [os.path.join(load_dir, g) for g in game_files if '.ulx' in g]

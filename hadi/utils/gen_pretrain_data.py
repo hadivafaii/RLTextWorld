@@ -506,10 +506,22 @@ if __name__ == "__main__":
 
     config = TransformerConfig()
     data_config = DataConfig(pretrain_modes=args.pretrain_mode, game_type=args.game_type,
-                             game_spec=args.game_spec, k=args.k, mask_prob=args.mask_prob, train_valid_test=False)
+                             game_spec=args.game_spec, k=args.k, mask_prob=args.mask_prob, train_valid_test=True)
 
-    load_dir = data_config.processed_dirs[0]
-    save_dir = data_config.pretrain_dirs[0]
+    if args.game_type.split('/')[1] == 'train':
+        load_dir = data_config.processed_dirs[0]
+        save_dir = data_config.pretrain_dirs[0]
+        assert 'train' in load_dir and 'train' in save_dir, "..."
+    elif args.game_type.split('/')[1] == 'valid':
+        load_dir = data_config.processed_dirs[1]
+        save_dir = data_config.pretrain_dirs[1]
+        assert 'valid' in load_dir and 'valid' in save_dir, "..."
+    elif args.game_type.split('/')[1] == 'test':
+        load_dir = data_config.processed_dirs[2]
+        save_dir = data_config.pretrain_dirs[2]
+        assert 'est' in load_dir and 'test' in save_dir, "..."
+    else:
+        raise ValueError("Invalid game type entered (e.g. custom/train is correct)")
 
     if args.max_lengths is None:
         max_lengths = [384, 512, 768, 1024, 2048]

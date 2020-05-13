@@ -14,7 +14,7 @@ class TransformerConfig:
             num_attention_heads=2,
             intermediate_size=512,
             max_position_embeddings=2048+1,
-            share_weights="True",
+            tie_weights="True",
             hidden_act="gelu",
             hidden_dropout_prob=0.0,
             attention_probs_dropout_prob=0.1,
@@ -35,7 +35,7 @@ class TransformerConfig:
         self.num_attention_heads = num_attention_heads
         self.intermediate_size = intermediate_size
         self.max_position_embeddings = max_position_embeddings
-        self.share_weights = share_weights
+        self.tie_weights = tie_weights
         self.hidden_act = hidden_act
         self.hidden_dropout_prob = hidden_dropout_prob
         self.attention_probs_dropout_prob = attention_probs_dropout_prob

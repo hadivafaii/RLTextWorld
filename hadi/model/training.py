@@ -65,6 +65,7 @@ class OfflineTrainer:
 
         # Load data
         loaded_data_all = self._batchify(self._load_data(load_masks=load_masks))
+        print(loaded_data_all.keys())
         train_data, valid_data, test_data = {}, {}, {}
         for type_key, data_tuple in loaded_data_all.items():
             try:
@@ -124,16 +125,16 @@ class OfflineTrainer:
         """
 
         for type_key, data_tuple in data_dict.items():
-            # if 'ENTITY' not in type_key:
-            #    continue
+            if 'ENTITY' not in type_key:
+                continue
             pretrain_mode = type_key.split('-')[0]
             inputs, masks, labels = data_tuple
 
             num_batches = len(inputs[0])
 
             for i in tqdm(range(num_batches)):
-                # if i != 0:
-                #    continue
+                if i != 0:
+                    continue
 
                 batch_inputs = tuple(map(lambda z: z[i], inputs))
                 if masks is not None:
@@ -212,22 +213,26 @@ class OfflineTrainer:
         generator_loss = self.model.generator.loss_fn(gen_preds, masked_labels.flatten())
 
         x_corrupt = self.model.generator.get_x_corrupt(
-            masked_inputs[0], masked_labels, sampled_indxs, pretrain_mode)
+            to_np(masked_inputs[0]), to_np(masked_labels), to_np(sampled_indxs), pretrain_mode)
 
         corrupt_type_ids, corrupt_position_ids = compute_type_position_ids(
-            x_corrupt, self.model.config, starting_position_ids=masked_inputs[2][:, 0])
+            x_corrupt, self.model.config, starting_position_ids=to_np(masked_inputs[2][:, 0]))
 
         corrupt_inputs = (x_corrupt, corrupt_type_ids, corrupt_position_ids)
-        corrupt_mask = self.model.encoder.create_attention_mask(corrupt_position_ids > 0)
+        corrupt_inputs = tuple(
+            map(
+                lambda z: torch.tensor(z, dtype=torch.long, device=self.device) if type(z) is not torch.Tensor else z.to(self.device),
+                corrupt_inputs
+            )
+        )
+        corrupt_mask = self.model.encoder.create_attention_mask(corrupt_inputs[2] > 0)
 
         corrupt_hiddens, _, _ = self.model(corrupt_inputs, corrupt_mask)
 
-        ranges_chained, disc_labels, ranges_labels = self.model.discriminator.get_discriminator_labels(
+        ranges_chained, disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
             to_np(x_corrupt), to_np(masked_inputs[0]), to_np(sampled_indxs[masked_labels != -100]), pretrain_mode)
 
-        flat_indices = [np.array(ranges_chained)[tup[0]] for tup in ranges_labels]
         disc_preds = self.model.discriminator(corrupt_hiddens, flat_indices, pretrain_mode)
-
         discriminator_loss = self.model.discriminator.loss_fn(disc_preds, disc_labels.to(self.device))
 
         losses = {
@@ -237,7 +242,7 @@ class OfflineTrainer:
         extra_outputs = {
             'generator_predictions': gen_preds,
             'generator_sampled_labels': sampled_indxs[masked_labels != -100],
-            'x_corrupt': x_corrupt,
+            'x_corrupt': x_corrupt, 'flat_indices': flat_indices,
             'discriminator_predictions': disc_preds,
             'discriminator_gold_labels': disc_labels
         }
@@ -267,7 +272,7 @@ class OfflineTrainer:
         return output_path
 
     def _load_data(self, only_load_best_eps=True, load_masks=False):
-        data_dict_dict, _ = load_data(self.data_config, load_extra_stuff=False, verbose=False)
+        data_dict_dict, _ = load_data(self.data_config, load_extra_stuff=False, verbose=True)
 
         data_dict_cat_eps = {}
         for type_key, data_dict in data_dict_dict.items():
@@ -330,22 +335,22 @@ class OfflineTrainer:
             if batched_masks:
                 batched_data_tuple = (
                     (
-                        torch.tensor(batched_token_ids, dtype=torch.long),
-                        torch.tensor(batched_type_ids, dtype=torch.long),
-                        torch.tensor(batched_position_ids, dtype=torch.long),
+                        torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
+                        torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
+                        torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
                     ),
-                    torch.cat(batched_masks),
-                    torch.tensor(batched_labels, dtype=torch.long),
+                    torch.cat(batched_masks).to(self.device),
+                    torch.tensor(batched_labels, dtype=torch.long, device=self.device),
                 )
             else:
                 batched_data_tuple = (
                     (
-                        torch.tensor(batched_token_ids, dtype=torch.long),
-                        torch.tensor(batched_type_ids, dtype=torch.long),
-                        torch.tensor(batched_position_ids, dtype=torch.long),
+                        torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
+                        torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
+                        torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
                     ),
                     None,
-                    torch.tensor(batched_labels, dtype=torch.long),
+                    torch.tensor(batched_labels, dtype=torch.long, device=self.device),
                 )
 
             batched_data_dict.update({type_key: batched_data_tuple})
