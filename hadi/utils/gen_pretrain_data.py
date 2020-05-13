@@ -452,12 +452,6 @@ def _corrupted_data_processing(generated_data_):
 
     labels = np.concatenate([ll[3] for ll in generated_data_], axis=0)
 
-#    labels_unk_positions_list = [ll[-2:] for ll in generated_data_]
-#    labels, unk_positions = [], []
-#    for item1, item2 in labels_unk_positions_list:
-#        labels += item1
-#        unk_positions += item2
-
     return outputs, labels
 
 

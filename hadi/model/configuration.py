@@ -6,7 +6,7 @@ from collections import namedtuple
 class TransformerConfig:
     def __init__(
         self,
-            vocab_size=1000,
+            vocab_size=1024,
             type_vocab_size=3,
             embedding_size=32,
             hidden_size=128,
@@ -20,6 +20,7 @@ class TransformerConfig:
             attention_probs_dropout_prob=0.1,
             initializer_range=0.02,
             layer_norm_eps=1e-12,
+            generator_temperature=1.0,
             pad_id=0,
             obs_id=1,
             act_id=2,
@@ -41,6 +42,7 @@ class TransformerConfig:
         self.attention_probs_dropout_prob = attention_probs_dropout_prob
         self.initializer_range = initializer_range
         self.layer_norm_eps = layer_norm_eps
+        self.generator_temperature = generator_temperature
         self.pad_id = pad_id
         self.obs_id = obs_id
         self.act_id = act_id
@@ -55,6 +57,7 @@ class DataConfig:
             game_spec='b-small',
             k=3,
             mask_prob=0.30,
+            mlm_mask_prob=None,
             max_len=512,
             eps=0.8,
             train_valid_test=True,
@@ -89,6 +92,9 @@ class DataConfig:
 
         if '/' in game_type:
             game_type = game_type.split('/')[0]
+
+        if mlm_mask_prob is None:
+            mlm_mask_prob = mask_prob
 
         self.train_valid_test = train_valid_test
 
@@ -143,7 +149,9 @@ class DataConfig:
         for mode in self.pretrain_modes:
             if mode in ['ACT_ORDER', 'OBS_ORDER']:
                 pretrain_dir = 'k={:d}'.format(k)
-            elif mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
+            elif mode == 'MLM':
+                pretrain_dir = 'mask_prob={:.2f}'.format(mlm_mask_prob)
+            elif mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
                 pretrain_dir = 'mask_prob={:.2f}'.format(mask_prob)
             else:
                 raise ValueError('incorrect pretrain type.  allowed opetions: \n{}'.format(_allowed_modes))
@@ -158,6 +166,7 @@ class DataConfig:
 
         self.k = k
         self.mask_prob = mask_prob
+        self.mlm_mask_prob = mlm_mask_prob
         self.max_len = max_len
 
         if type(eps) is not list:
@@ -183,8 +192,8 @@ class TrainConfig:
             use_cuda: bool = True,
             cuda_devices=None,
             log_freq: int = 10,
-            batch_size: int = 16,
-            loss_imbalance_lambda=50,
+            batch_size: int = 128,
+            loss_imbalance_lambda: float = 10.0,
     ):
         super(TrainConfig).__init__()
 

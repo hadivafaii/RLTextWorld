@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+from pprint import pprint
 import torch
 from torch import nn
 from torch.optim import Adam
@@ -35,7 +36,6 @@ class OfflineTrainer:
 
         # Load data
         loaded_data_all = self._batchify(self._load_data(load_masks=load_masks))
-        print(loaded_data_all.keys())
         train_data, valid_data, test_data = {}, {}, {}
         for type_key, data_tuple in loaded_data_all.items():
             try:
@@ -88,21 +88,22 @@ class OfflineTrainer:
 
         self.log_freq = train_config.log_freq
 
-        print("Total Parameters:", sum([p.nelement() for p in self.model.parameters()]))
+        print("\nTotal Parameters:", sum([p.nelement() for p in self.model.parameters()]))
 
-    def train(self, epoch):
+    def train(self, nb_epochs):
         self.model.train()
-        self.iteration(epoch, self.train_data, mode='train')
+        for epoch in range(nb_epochs):
+            self.iteration(self.train_data, mode='train', epoch=epoch)
 
-    def valid(self, epoch):
+    def valid(self):
         self.model.eval()
-        self.iteration(epoch, self.valid_data, mode='valid')
+        self.iteration(self.valid_data, mode='valid')
 
-    def test(self, epoch):
+    def test(self):
         self.model.eval()
-        self.iteration(epoch, self.test_data, mode='test')
+        self.iteration(self.test_data, mode='test')
 
-    def iteration(self, epoch, data_dict, mode):
+    def iteration(self, data_dict, mode, epoch=0):
         """
         loop over the data_loader for training or testing
         if on train status, backward operation is activated
@@ -120,9 +121,12 @@ class OfflineTrainer:
 
             num_batches = len(inputs[0])
 
+            avg_loss = 0.0
+            num_corrects, num_total = 0, 0
+
             for i in tqdm(range(num_batches)):
-                if i != 0:
-                    continue
+               # if i != 0:
+              #      continue
 
                 batch_inputs = tuple(map(lambda z: z[i], inputs))
                 if masks is not None:
@@ -134,38 +138,28 @@ class OfflineTrainer:
                 hiddens, _, _ = self.model(batch_inputs, batch_masks)
 
                 if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
-                    # * TODO: mask <UNK> tokens
+                    # * TODO: mask <UNK> tokens (no, let it attend to those, they will appear in the input)
                     losses, extra_outputs = self.corrupted_fwd(
                         hiddens=hiddens,
                         masked_inputs=batch_inputs,
                         masked_labels=batch_labels,
                         pretrain_mode=pretrain_mode)
 
-                    return losses, extra_outputs, (batch_inputs, batch_masks, batch_labels)
+                    num_corrects = int(torch.eq(
+                        batch_labels[batch_labels != -100], extra_outputs['generator_sampled_labels']).sum().item())
+                    num_total = len(extra_outputs['generator_sampled_labels'])
+                 #   return losses, extra_outputs, (batch_inputs, batch_masks, batch_labels)
 
                 elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
                     losses, extra_outputs = self.permuted_fwd()
-                elif pretrain_mode in ['ACT_PREDICT', 'OBS_PREDICT']:
+                elif pretrain_mode in ['ACT_PREDICT', 'OBS_PREDICT', 'PAIR_PRED']:
                     losses, extra_outputs = self.pred_fwd()
                 elif pretrain_mode in ['ACT_ELIM']:
                     losses, extra_outputs = self.act_elim_fwd()
+                else:
+                    raise ValueError("Invalid pretrain mode: {}".format(pretrain_mode))
 
-                avg_loss = 0.0
-                total_correct = 0
-                total_element = 0
-
-                # TODO: write this function
-                # batch_corrupted_labels = detect_objects(batch_corrupted_inputs)
-
-                # TODO: write discriminator
-                # discriminator_outputs = self.model.discriminator_head(batch_corrupted_inputs, batch_corrupted_labels)
-                # discriminator_loss = self.model.discriminator_head.loss_fn(discriminator_outputs, batch_corrupted_labels)
-
-                # feed this as input to the discriminator head and get
-                # loss = generator_losses + self.train_config.loss_imbalance_lambda * discriminator_loss
-                # loss1, loss2, loss3 = 1, 2, 3
-                # losses = [loss1, loss2, loss3]
-                # total_loss = sum(loss for loss in losses)
+                loss = sum(loss for loss in losses.values())
 
                 # backward and optimization only in train
                 if mode == 'train':
@@ -177,27 +171,35 @@ class OfflineTrainer:
                         self.optim.zero_grad()
                         loss.backward()
                         self.optim.step()
-                        print('a grad step was performed')
 
                 # next sentence prediction accuracy
-                correct = next_sent_output.argmax(dim=-1).eq(data["is_next"]).sum().item()
-                avg_loss += loss.item()
-                total_correct += correct
-                total_element += data["is_next"].nelement()
+                # correct = next_sent_output.argmax(dim=-1).eq(data["is_next"]).sum().item()
+             #   avg_loss += loss.item()
 
-                post_fix = {
-                    "epoch": epoch,
-                    "iter": i,
-                    "avg_loss": avg_loss / (i + 1),
-                    "avg_acc": total_correct / total_element * 100,
-                    "loss": loss.item()
-                }
+                msg1 = ""
+                for k, v in losses.items():
+                    msg1 += "{}: {:.4f},\t".format(k, float(v.item()))
+                msg1 += "total loss: {:.4f}".format(loss.item())
 
-                if i % self.log_freq == 0:
-                    data_iter.write(str(post_fix))
+                msg2 = "num_corrects: {:d}, num_total = {:d}, percent correct = {:.2f} {:s}"
+                msg2 = msg2.format(num_corrects, num_total, 100 * (num_corrects / num_total), '%')
 
-                print("EP%d_%s, avg_loss=" % (epoch, str_code), avg_loss / len(data_iter), "total_acc=",
-                      total_correct * 100.0 / total_element)
+                print('-' * 20, ' epoch # {:d}, iter. {:d} '.format(epoch, i), '-' * 20)
+                print(msg1, '\n', msg2, '\n')
+
+            #    post_fix = {
+            #        "epoch": epoch,
+            #        "iter": i,
+            #        "avg_loss": avg_loss / (i + 1),
+            #        "avg_acc": total_correct / total_element * 100,
+            #        "loss": loss.item()
+            #    }
+
+            #    if i % self.log_freq == 0:
+            #        data_iter.write(str(post_fix))
+
+          #  print("EP%d_%s, avg_loss=" % (epoch, str_code), avg_loss / len(data_iter), "total_acc=",
+          #        total_correct * 100.0 / total_element)
 
     def corrupted_fwd(self, hiddens, masked_inputs, masked_labels, pretrain_mode):
         objects_embedded = self.model.generator.embed_objects(
@@ -231,14 +233,14 @@ class OfflineTrainer:
 
         losses = {
             'generator_loss': generator_loss,
-            'discriminator_loss': discriminator_loss
+            'discriminator_loss': discriminator_loss * self.train_config.loss_imbalance_lambda,
         }
         extra_outputs = {
             'generator_predictions': gen_preds,
             'generator_sampled_labels': sampled_indxs[masked_labels != -100],
             'x_corrupt': x_corrupt, 'flat_indices': flat_indices,
             'discriminator_predictions': disc_preds,
-            'discriminator_gold_labels': disc_labels
+            'discriminator_gold_labels': disc_labels,
         }
 
         return losses, extra_outputs
@@ -266,7 +268,7 @@ class OfflineTrainer:
         return output_path
 
     def _load_data(self, only_load_best_eps=True, load_masks=False):
-        data_dict_dict, _ = load_data(self.data_config, load_extra_stuff=False, verbose=False)
+        data_dict_dict, loaded_from = load_data(self.data_config, load_extra_stuff=False, verbose=False)
 
         data_dict_cat_eps = {}
         for type_key, data_dict in data_dict_dict.items():
@@ -298,6 +300,10 @@ class OfflineTrainer:
             else:
                 data_typle = ((token_ids, type_ids, position_ids), None, labels)
             data_dict_cat_eps.update({type_key: data_typle})
+
+        redundant_str = '/home/hadi/Documents/FTWP/DATA'
+        print('Data loaded from:')
+        pprint(list(map(lambda s: s.replace(redundant_str, '~'), loaded_from)))
         return data_dict_cat_eps
 
     def _batchify(self, data_dict):

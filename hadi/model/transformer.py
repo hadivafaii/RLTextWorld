@@ -129,6 +129,8 @@ class Generator(nn.Module):
         predictions = x @ objects_embedded.T
         predictions = predictions.view(-1, num_classes)
 
+        if self.config.generator_temperature != 1.0:
+            predictions = predictions / self.config.generator_temperature
         probs = F.softmax(predictions, dim=1)
         sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape)
 
@@ -170,7 +172,6 @@ class Generator(nn.Module):
         if pretrain_mode == 'MLM':  # this corresponds to MLM
             x_corrupt = dc(x_masked)
             x_corrupt[labels != -100] = sampled_indxs[labels != -100]
-            print(sampled_indxs.flatten()[labels.flatten() != -100])
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
             x_corrupt = np.zeros(x_masked.shape, dtype=int)
@@ -262,7 +263,7 @@ class Discriminator(nn.Module):
             unk_indices = np.where(x_masked_flat == self.config.unk_id)[0]
             labels[unk_indices] = 0
 
-            _illegal_indices = [self.config.pad_id, self.config.obs_id, self.config.act_id]
+            _illegal_indices = [self.config.pad_id]     # discriminator loss will run on these
             flat_indices = [tup[0] for tup in enumerate(x_corrupt_flat) if tup[1] not in _illegal_indices]
             final_discriminator_labels = labels[flat_indices]
 
