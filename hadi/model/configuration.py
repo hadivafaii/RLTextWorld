@@ -175,7 +175,8 @@ class DataConfig:
 class TrainConfig:
     def __init__(
             self,
-            lr=1e-4,
+            optim_choice='lamb',
+            lr=1e-3,
             betas=(0.9, 0.999),
             weight_decay: float = 0.01,
             warmup_steps: int = 10000,
@@ -187,6 +188,10 @@ class TrainConfig:
     ):
         super(TrainConfig).__init__()
 
+        _allowed_optim_choices = ['lamb', 'adam', 'adam_with_warmup']
+        assert optim_choice in _allowed_optim_choices, "Invalid optimzer choice, allowed options:\n{}".format(_allowed_optim_choices)
+
+        self.optim_choice = optim_choice
         self.lr = lr
         self.betas = betas
         self.weight_decay = weight_decay

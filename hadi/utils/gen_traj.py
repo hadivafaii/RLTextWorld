@@ -207,7 +207,6 @@ if __name__ == "__main__":
     else:
         raise ValueError("Invalid game type entered (e.g. custom/train is correct)")
 
-
     game_files = os.listdir(load_dir)
     game_files = [os.path.join(load_dir, g) for g in game_files if '.ulx' in g]
 

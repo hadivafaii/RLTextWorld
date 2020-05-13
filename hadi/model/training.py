@@ -3,40 +3,10 @@ from tqdm import tqdm
 import torch
 from torch import nn
 from torch.optim import Adam
+from .optimizer import Lamb, ScheduledOptim
 import sys; sys.path.append('..')
 from utils.gen_pretrain_data import compute_type_position_ids, load_data
 from utils.utils import to_np
-
-
-class ScheduledOptim:
-    def __init__(self, optimizer, hidden_size, n_warmup_steps):
-        self._optimizer = optimizer
-        self.n_warmup_steps = n_warmup_steps
-        self.n_current_steps = 0
-        self.init_lr = np.power(hidden_size, -0.5)
-
-    def step_and_update_lr(self):
-        """Step with the inner optimizer"""
-        self._update_learning_rate()
-        self._optimizer.step()
-
-    def zero_grad(self):
-        """Zero out the gradients by the inner optimizer"""
-        self._optimizer.zero_grad()
-
-    def _get_lr_scale(self):
-        return np.min([
-            np.power(self.n_current_steps, -0.5),
-            np.power(self.n_warmup_steps, -1.5) * self.n_current_steps])
-
-    def _update_learning_rate(self):
-        """Learning rate scheduling per step"""
-
-        self.n_current_steps += 1
-        lr = self.init_lr * self._get_lr_scale()
-
-        for param_group in self._optimizer.param_groups:
-            param_group['lr'] = lr
 
 
 class OfflineTrainer:
@@ -85,18 +55,36 @@ class OfflineTrainer:
         self.valid_data = valid_data
         self.test_data = test_data
 
-        # Setting the Adam optimizer with hyper-param
-        self.optim = Adam(
-            filter(lambda p: p.requires_grad, self.model.parameters()),
-            lr=train_config.lr,
-            betas=train_config.betas,
-            weight_decay=train_config.weight_decay,
-        )
-        self.optim_schedule = ScheduledOptim(
-            self.optim, transformer.config.hidden_size, n_warmup_steps=self.train_config.warmup_steps)
+        # Setting the optimizer with hyper-param
+        if train_config.optim_choice == 'lamb':
+            self.optim = Lamb(
+                filter(lambda p: p.requires_grad, self.model.parameters()),
+                lr=train_config.lr,
+                betas=train_config.betas,
+                weight_decay=train_config.weight_decay,
+                adam=False,
+            )
 
-        # Using Negative Log Likelihood Loss function for predicting the masked_token
-        #    self.criterion = nn.NLLLoss(ignore_index=0)
+        elif train_config.optim_choice == 'adam':
+            self.optim = Adam(
+                filter(lambda p: p.requires_grad, self.model.parameters()),
+                lr=train_config.lr,
+                betas=train_config.betas,
+                weight_decay=train_config.weight_decay,
+            )
+
+        elif train_config.optim_choice == 'adam_with_warmup':
+            self.optim = Adam(
+                filter(lambda p: p.requires_grad, self.model.parameters()),
+                lr=train_config.lr,
+                betas=train_config.betas,
+                weight_decay=train_config.weight_decay,
+            )
+            self.optim_schedule = ScheduledOptim(
+                self.optim, transformer.config.hidden_size, n_warmup_steps=self.train_config.warmup_steps)
+
+        else:
+            raise ValueError("Invalid optimizer choice: {}".format(train_config.optim_chioce))
 
         self.log_freq = train_config.log_freq
 
@@ -181,9 +169,15 @@ class OfflineTrainer:
 
                 # backward and optimization only in train
                 if mode == 'train':
-                    self.optim_schedule.zero_grad()
-                    loss.backward()
-                    self.optim_schedule.step_and_update_lr()
+                    if self.train_config.optim_choice == 'adam_with_warmup':
+                        self.optim_schedule.zero_grad()
+                        loss.backward()
+                        self.optim_schedule.step_and_update_lr()
+                    else:
+                        self.optim.zero_grad()
+                        loss.backward()
+                        self.optim.step()
+                        print('a grad step was performed')
 
                 # next sentence prediction accuracy
                 correct = next_sent_output.argmax(dim=-1).eq(data["is_next"]).sum().item()
