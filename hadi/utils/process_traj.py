@@ -225,7 +225,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     traj_data = {
         'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids,
         'trajectory_segment_ids': trajectory_segment_ids, 'teacher_tuples': teacher_tuples,
-        'processed_traj_adm_cmds': processed_traj_adm_cmds, 'traj_admissible_cmd_pairs': traj_admissible_cmd_pairs,
+        'traj_admissible_cmds_pairs': processed_traj_adm_cmds,
         'sequence_ids': sequences_all.astype(int), 'type_ids': token_types_all.astype(int),
         'position_ids': positions_all.astype(int), 'masks': masks_all.astype(int),
         'segment_ids': segments_all.astype(int), 'walkthroughs_len_counts': walkthroughs_len_counts,
