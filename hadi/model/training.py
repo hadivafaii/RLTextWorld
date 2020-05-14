@@ -335,7 +335,10 @@ class OfflineTrainer:
 
         redundant_str = '/home/hadi/Documents/FTWP/DATA'
         print('Data loaded from:')
-        pprint(list(map(lambda s: s.replace(redundant_str, '~'), loaded_from)))
+        try:
+            pprint(list(map(lambda s: s.replace(redundant_str, '~'), loaded_from)))
+        except AttributeError:
+            pass
         return data_dict_cat_eps
 
     def _batchify(self, data_dict):

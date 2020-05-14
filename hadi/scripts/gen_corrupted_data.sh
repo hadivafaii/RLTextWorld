@@ -20,9 +20,9 @@ do
   echo "getting pretrain data $game_type mask_prob = $mask_prob $pretrain_mode"
   screen -dmS "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode"
   if [ -z "$game_spec" ]; then # if game_spec is NULL
-    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob $mask_prob --seeds 110 121 332 443 554 665 ^M"
+    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob $mask_prob --seeds 110 121 332 443 554 665 776 887 998 1110 ^M"
   else
-    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob $mask_prob --seeds 110 121 332 443 554 665 --game_spec $game_spec ^M"
+    screen -S "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode" -X stuff "python3 gen_pretrain_data.py $game_type $pretrain_mode --mask_prob $mask_prob --seeds 110 121 332 443 554 665 776 887 998 1110 --game_spec $game_spec ^M"
   fi
 done
 

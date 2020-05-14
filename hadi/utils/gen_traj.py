@@ -63,8 +63,6 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
         dones = [False] * batch_size
         trajectory_dones = [False] * batch_size
         while not all(dones):
-           # all_admissible_commands.append(infos["admissible_commands"])
-
             cmds_flat = [z for sublist in infos["admissible_commands"] for z in sublist]
             for cmd in cmds_flat:
                 admissible_commands_counts[cmd] += 1
@@ -208,7 +206,7 @@ if __name__ == "__main__":
     elif args.game_type.split('/')[1] == 'test':
         load_dir = data_config.games_dirs[2]
         save_dir = os.path.join(data_config.base_dirs[2], 'raw_trajectories')
-        assert 'est' in load_dir and 'test' in save_dir, "..."
+        assert 'test' in load_dir and 'test' in save_dir, "..."
     else:
         raise ValueError("Invalid game type entered (e.g. custom/train is correct)")
 

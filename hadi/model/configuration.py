@@ -100,14 +100,18 @@ class DataConfig:
         self.train_valid_test = train_valid_test
 
         base_dir = os.path.join(os.environ['HOME'], base_dir)
-        yaml_dir = os.path.join(base_dir, '{:s}/{:s}_game_specs.yaml'.format(game_type, game_type))
-        # load yaml file
-        with open(yaml_dir, 'r') as stream:
-            try:
-                game_specs_dict = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
-        specs_xtracted = list(map(lambda x: x.split('='), game_specs_dict[game_spec].split('-')))
+
+        if 'tw_cooking' not in game_type:
+            yaml_dir = os.path.join(base_dir, '{:s}/{:s}_game_specs.yaml'.format(game_type, game_type))
+            # load yaml file
+            with open(yaml_dir, 'r') as stream:
+                try:
+                    game_specs_dict = yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print(exc)
+            specs_xtracted = list(map(lambda x: x.split('='), game_specs_dict[game_spec].split('-')))
+        else:
+            specs_xtracted = None
 
         if game_type == 'tw_simple':
             if game_spec not in _allowed_tw_simple_specs:

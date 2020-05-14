@@ -124,11 +124,18 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
 
     # update w2i to add extra entities and verbose
     tokenizer = get_nlp().tokenizer
+
     for entity in list(entity_counts.keys()):
         entity_tokens = preproc(entity, tokenizer)
         for ent_toks in entity_tokens:
             if ent_toks not in w2i:
                 w2i.update({ent_toks: len(w2i)})
+
+    for act in list(act_counts.keys()):
+        act_tokens = preproc(act, tokenizer)
+        for act_toks in act_tokens:
+            if act_toks not in w2i:
+                w2i.update({act_toks: len(w2i)})
 
     for verb in list(verb_counts.keys()):
         if verb not in w2i:
@@ -149,10 +156,18 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         verb2indx.update({verb: len(verb2indx)})
     indx2verb = {verb2indx[verb]: verb for verb in verb2indx}
 
-    acts_tokenized = [tuple(w2i[x] for x in ['[ACT]'] + preproc(act, tokenizer)) for act in list(act_counts.keys())]
+    acts_tokenized = [tuple(['[ACT]'] + preproc(act, tokenizer)) for act in list(act_counts.keys())]
     act2indx = {}
     for act in acts_tokenized:
         act2indx.update({act: len(act2indx)})
+
+    # update act2indx if necessary
+    for _, cmds in traj_admissible_cmd_pairs:
+        cmds_toks = [tuple(['[ACT]'] + preproc(c, tokenizer)) for c in cmds]
+        for act in cmds_toks:
+            if act not in act2indx:
+                act2indx.update({act: len(act2indx)})
+
     indx2act = {act2indx[act]: act for act in act2indx}
 
     # Turn string based data into integer based
@@ -175,17 +190,17 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     processed_traj_adm_cmds = []
     for traj, cmds in traj_admissible_cmd_pairs:
         traj_ids = [w2i[x] for x in traj]
-        cmds_ids = [[w2i[x] for x in ['[ACT]'] + preproc(c, tokenizer)] for c in cmds]
-        cmds_to_indx = [act2indx[tuple(item)] for item in cmds_ids]
+        cmds_toks = [tuple(['[ACT]'] + preproc(c, tokenizer)) for c in cmds]
+        cmds_turned_to_indx = [act2indx[item] for item in cmds_toks]
 
-        processed_traj_adm_cmds.append((traj_ids, cmds_to_indx))
+        processed_traj_adm_cmds.append((traj_ids, cmds_turned_to_indx))
 
     # extract and pad data, ready for modeling
     sequences_all = np.empty((0, max_len))
     segments_all = np.empty((0, max_len))
     positions_all = np.empty((0, max_len))
     masks_all = np.empty((0, max_len))
-    for i in range(len(trajectory_token_ids)):
+    for i in tqdm(range(len(trajectory_token_ids))):
         assert len(trajectory_token_ids[i]) == len(trajectory_segment_ids[i]), 'otherwise there is a serious problem'
         seqs_, segs_, poss_, msks_ = _exract_data_for_modeling(trajectory_token_ids[i], trajectory_segment_ids[i],
                                                                max_len)
@@ -194,8 +209,6 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         segments_all = np.concatenate([segments_all, segs_])
         positions_all = np.concatenate([positions_all, poss_])
         masks_all = np.concatenate([masks_all, msks_])
-
-        print('[PROGRESS]   . . .   %0.2f %s done' % (100 * (i + 1) / len(trajectory_token_ids), '%'), end='\r')
 
     # plot some histogram
     if do_plot:
@@ -287,7 +300,7 @@ if __name__ == "__main__":
     traj_data_all = {}
     lang_data_all = {}
 
-    for eps in tqdm(np.arange(0.0, 1.2, 0.2), desc='processing... S={:d}'.format(args.max_len)):
+    for eps in tqdm(np.arange(0.0, 2, 1), desc='processing... S={:d}'.format(args.max_len)):
         dir_ = os.path.join(load_dir, 'eps={:.2f}'.format(eps))
         files_ = os.listdir(dir_)
         data_files = [os.path.join(dir_, x) for x in sorted(files_)]

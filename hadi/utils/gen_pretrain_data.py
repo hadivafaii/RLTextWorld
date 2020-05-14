@@ -473,7 +473,7 @@ if __name__ == "__main__":
                         type=int, default=None)
     parser.add_argument("--eps_step",
                         help="(float) epsilon increment steps, i.e. eps in np.arange(0.0, eps_step * 11, eps_step). default: 0.10",
-                        type=float, default=0.20)
+                        type=float, default=1.0)
     parser.add_argument("--seeds",
                         help="(integers) random seeds, used only for corrupted data generation. default: [665]",
                         type=int, nargs='+', default=665)
