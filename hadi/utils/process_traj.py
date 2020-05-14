@@ -235,13 +235,24 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     token_types_all = segments_all.astype(int).copy()
     token_types_all[token_types_all > 0] = 1 - ((token_types_all[token_types_all > 0] % 2) - 1)
 
+    # quality control (check if each seq has at least one act and one obs token in it)
+    bad_indices = []
+    for i in range(len(sequences_all)):
+        if not (w2i['[OBS]'] in sequences_all[i] and w2i['[ACT]'] in sequences_all[i]):
+            bad_indices.append(i)
+
+    if len(bad_indices) > 0:
+        print('Found bad indices: ', bad_indices)
+
     traj_data = {
         'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids,
         'trajectory_segment_ids': trajectory_segment_ids, 'teacher_tuples': teacher_tuples,
-        'traj_admissible_cmds_pairs': processed_traj_adm_cmds,
-        'sequence_ids': sequences_all.astype(int), 'type_ids': token_types_all.astype(int),
-        'position_ids': positions_all.astype(int), 'masks': masks_all.astype(int),
-        'segment_ids': segments_all.astype(int), 'walkthroughs_len_counts': walkthroughs_len_counts,
+        'traj_admissible_cmds_pairs': processed_traj_adm_cmds, 'walkthroughs_len_counts': walkthroughs_len_counts,
+        'sequence_ids': np.delete(sequences_all, bad_indices, axis=0).astype(int),
+        'type_ids': np.delete(sequences_all, bad_indices, axis=0).astype(int),
+        'position_ids': np.delete(positions_all, bad_indices, axis=0).astype(int),
+        'masks': np.delete(masks_all, bad_indices, axis=0).astype(int),
+        'segment_ids': np.delete(segments_all, bad_indices, axis=0).astype(int),
     }
     lang_data = {
         'verb_counts': verb_counts, 'entity_counts': entity_counts,

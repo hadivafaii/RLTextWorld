@@ -1,7 +1,7 @@
 # game_type e.g. tw_cooking/train
 game_type=$1
-game_spec=$2
-mask_prob=$3
+mask_prob=$2
+game_spec=$3
 
 # get correct exploration mode
 if [[ $game_type =~ "tw_cooking" ]]; then

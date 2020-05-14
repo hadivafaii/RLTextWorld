@@ -21,11 +21,9 @@
   <component name="ChangeListManager">
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/training.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/scripts/gen_traj.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/gen_traj.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_pretrain_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/utils/gen_traj.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/gen_traj.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/model/transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/transformer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hadi/scripts/gen_corrupted_data.sh" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/scripts/gen_corrupted_data.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/utils/process_traj.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/utils/process_traj.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -108,10 +106,10 @@
       <screen x="64" y="27" width="1856" height="1053" />
     </state>
     <state x="688" y="292" width="1200" height="685" key="dock-window-1/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588912433510" />
-    <state width="878" height="366" key="javadoc.popup" timestamp="1589406421594">
+    <state width="878" height="366" key="javadoc.popup" timestamp="1589477316824">
       <screen x="1920" y="0" width="1600" height="900" />
     </state>
-    <state width="878" height="366" key="javadoc.popup/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1589406421594" />
+    <state width="878" height="366" key="javadoc.popup/64.27.1856.1053/1920.0.1600.900@1920.0.1600.900" timestamp="1589477316824" />
     <state width="600" height="428" key="javadoc.popup/64.27.1856.1053/1920.0.1600.900@64.27.1856.1053" timestamp="1588546084436" />
     <state x="2344" y="237" width="672" height="580" key="search.everywhere.popup" timestamp="1589314763891">
       <screen x="1920" y="0" width="1600" height="900" />

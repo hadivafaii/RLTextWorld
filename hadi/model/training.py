@@ -251,6 +251,14 @@ class OfflineTrainer:
         disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
             to_np(x_corrupt), to_np(masked_inputs[0]), to_np(sampled_indxs[masked_labels != -100]), pretrain_mode)
 
+        # correct predictions by the generator should have lbl +1 at disc_labels
+        non_ignore_indices = torch.where(masked_labels.flatten() != -100)[0]
+        correct_predictions = torch.where(
+            masked_labels.flatten()[non_ignore_indices] == sampled_indxs.flatten()[non_ignore_indices])[0]
+        disc_zeros = torch.where(disc_labels == 0)[0]
+        needs_update_indices = disc_zeros[correct_predictions]
+        disc_labels[needs_update_indices] = 1.0
+
         disc_preds = self.model.discriminator(corrupt_hiddens, flat_indices, pretrain_mode)
         discriminator_loss = self.model.discriminator.loss_fn(disc_preds, disc_labels.to(self.device))
 
@@ -259,9 +267,8 @@ class OfflineTrainer:
             'discriminator_loss': discriminator_loss * self.train_config.loss_imbalance_lambda,
         }
 
-        num_corrects = int(torch.eq(
-            masked_labels[masked_labels != -100], sampled_indxs[masked_labels != -100]).sum().item())
-        num_total = int(torch.sum(masked_labels != -100).item())
+        num_corrects = len(correct_predictions)
+        num_total = len(non_ignore_indices)
 
         if return_extras:
             extra_outputs = {

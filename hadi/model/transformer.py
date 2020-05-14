@@ -140,7 +140,7 @@ class Generator(nn.Module):
         if self.config.generator_temperature != 1.0:
             predictions = predictions / self.config.generator_temperature
         probs = F.softmax(predictions, dim=1)
-        sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape)
+        sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape).detach()
 
         return predictions, sampled_indxs
 
