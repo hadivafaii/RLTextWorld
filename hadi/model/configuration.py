@@ -191,7 +191,7 @@ class TrainConfig:
             lr=1e-3,
             betas=(0.9, 0.999),
             weight_decay: float = 0.01,
-            warmup_steps: int = 10000,
+            warmup_steps: int = 1000,
             use_cuda: bool = True,
             cuda_devices=None,
             log_freq: int = 10,

@@ -343,8 +343,6 @@ class OfflineTrainer:
 
         for type_key, data_tuple in data_dict.items():
             inputs, masks, labels = data_tuple
-            print(type_key)
-            print(inputs[0].shape, inputs[1].shape, inputs[2].shape, labels.shape)
             assert inputs[0].shape == inputs[1].shape == inputs[2].shape == labels.shape, "something wrong"
 
             num_samples = len(inputs[0])

@@ -320,6 +320,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
 
     # remove empty rows due to occurances of num_ = 0
     masked_token_ids = masked_token_ids[~np.all(masked_token_ids == config.pad_id, axis=1)]
+    labels_arr = labels_arr[~np.all(labels_arr == -100, axis=1)]
     masked_type_ids, masked_position_ids = compute_type_position_ids(masked_token_ids, config, starting_pos_ids)
     return [masked_token_ids, masked_type_ids, masked_position_ids], labels_arr.astype(int)
 

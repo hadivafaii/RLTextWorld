@@ -26,7 +26,7 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
     # initialize the datas you want to save
     all_trajectories = list()
     all_teacher_tuples = list()
-    all_admissible_commands = list()
+    all_traj_admissible_cmd_pairs = list()
     verb_counts = Counter()
     entity_counts = Counter()
     admissible_commands_counts = Counter()
@@ -56,13 +56,14 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
             print('warning, policy mode activated but no policy commands found')
 
         trajectory = [['[OBS]'] + preproc(x, tokenizer) for x in obs]
+        traj_admissible_cmd_pairs = [tup for tup in zip(trajectory, infos["admissible_commands"])]
         teacher_tuples = [list() for _ in range(batch_size)]
 
         nb_moves_this_episode = [0] * batch_size
         dones = [False] * batch_size
         trajectory_dones = [False] * batch_size
         while not all(dones):
-            all_admissible_commands.append(infos["admissible_commands"])
+           # all_admissible_commands.append(infos["admissible_commands"])
 
             cmds_flat = [z for sublist in infos["admissible_commands"] for z in sublist]
             for cmd in cmds_flat:
@@ -107,6 +108,8 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                                      ['[ACT]'] + preproc(commands[i], tokenizer) +
                                      ['[OBS]'] + preproc(obs[i], tokenizer))
 
+                    traj_admissible_cmd_pairs.append((trajectory[i], infos["admissible_commands"][i]))
+
                     # create teacher tuples
                     if mode == 'policy':
                         if infos['intermediate_reward'][i] == 1:
@@ -125,13 +128,15 @@ def generate_trajectory(game_files, tokenizer, max_steps=100, episodes=50,
                         trajectory_dones[i] = True
 
         all_trajectories.extend(trajectory)
+        all_traj_admissible_cmd_pairs.extend(traj_admissible_cmd_pairs)
         all_teacher_tuples.extend(teacher_tuples)
 
     data = {
         'trajectories': all_trajectories, 'teacher_tuples': all_teacher_tuples,
+        'traj_admissible_cmd_pairs': all_traj_admissible_cmd_pairs,
         'verb_counts': verb_counts, 'entity_counts': entity_counts,
         'admissible_commands_counts': admissible_commands_counts,
-        'walkthrough_len_counts': walkthroughs_len_counts
+        'walkthrough_len_counts': walkthroughs_len_counts,
     }
 
     return data

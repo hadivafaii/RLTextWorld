@@ -82,6 +82,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         data_files = [data_files]
 
     trajectories = []
+    traj_admissible_cmd_pairs = []
     teacher_tuples = []
     verb_counts = Counter()
     entity_counts = Counter()
@@ -97,6 +98,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
                 print('num trajectories found: ', len(data_['trajectories']))
 
             trajectories.extend(data_['trajectories'])
+            traj_admissible_cmd_pairs.extend(data_['traj_admissible_cmd_pairs'])
             teacher_tuples.extend(data_['teacher_tuples'])
             for k, v in data_['verb_counts'].most_common():
                 verb_counts[k] += v
@@ -169,6 +171,15 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         trajectory_token_ids.append(tau_indxed)
         trajectory_segment_ids.append(seg_indxed)
 
+    # process the traj/admissible cmds pairs
+    processed_traj_adm_cmds = []
+    for traj, cmds in traj_admissible_cmd_pairs:
+        traj_ids = [w2i[x] for x in traj]
+        cmds_ids = [[w2i[x] for x in ['[ACT]'] + preproc(c, tokenizer)] for c in cmds]
+        cmds_to_indx = [act2indx[tuple(item)] for item in cmds_ids]
+
+        processed_traj_adm_cmds.append((traj_ids, cmds_to_indx))
+
     # extract and pad data, ready for modeling
     sequences_all = np.empty((0, max_len))
     segments_all = np.empty((0, max_len))
@@ -214,6 +225,7 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     traj_data = {
         'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids,
         'trajectory_segment_ids': trajectory_segment_ids, 'teacher_tuples': teacher_tuples,
+        'processed_traj_adm_cmds': processed_traj_adm_cmds, 'traj_admissible_cmd_pairs': traj_admissible_cmd_pairs,
         'sequence_ids': sequences_all.astype(int), 'type_ids': token_types_all.astype(int),
         'position_ids': positions_all.astype(int), 'masks': masks_all.astype(int),
         'segment_ids': segments_all.astype(int), 'walkthroughs_len_counts': walkthroughs_len_counts,
