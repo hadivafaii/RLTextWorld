@@ -7,7 +7,9 @@ import torch
 from torch import nn
 from torch.optim import Adam
 from .optimizer import Lamb, ScheduledOptim
-import sys; sys.path.append('..')
+import sys;
+
+sys.path.append('..')
 from utils.gen_pretrain_data import compute_type_position_ids, load_data
 from utils.utils import to_np
 
@@ -132,7 +134,8 @@ class OfflineTrainer:
             num_batches = len(inputs[0])
 
             cuml_loss = 0.0
-            cuml_percent_corrects = 0.0
+            cuml_gen_corrects = 0.0
+            cuml_disc_corrects = 0.0
 
             pbar = tqdm(range(num_batches))
             for i in pbar:
@@ -147,35 +150,29 @@ class OfflineTrainer:
 
                 if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
                     if train:
-                        losses, num_corrects, num_total, _ = self.corrupted_fwd(
+                        losses, correct_prediction_stats, _ = self.corrupted_fwd(
                             hiddens=hiddens,
                             masked_inputs=batch_inputs,
                             masked_labels=batch_labels,
                             pretrain_mode=pretrain_mode,
                             return_extras=False)
                     else:
-                        losses, num_corrects, num_total, extra_outputs = self.corrupted_fwd(
+                        losses, correct_prediction_stats, extra_outputs = self.corrupted_fwd(
                             hiddens=hiddens,
                             masked_inputs=batch_inputs,
                             masked_labels=batch_labels,
                             pretrain_mode=pretrain_mode,
                             return_extras=True)
-                     #   print('hi')
-                     #   print(len(extra_outputs))
-
-                      #  yield extra_outputs
-
-                #    num_corrects = int(torch.eq(
-                #        batch_labels[batch_labels != -100], extra_outputs['generator_sampled_labels']).sum().item())
-                #    num_total = len(extra_outputs['generator_sampled_labels'])
-                 #   return losses, extra_outputs, (batch_inputs, batch_masks, batch_labels)
 
                 elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
                     losses, extra_outputs = self.permuted_fwd()
+                    raise NotImplementedError
                 elif pretrain_mode in ['ACT_PREDICT', 'OBS_PREDICT', 'PAIR_PRED']:
                     losses, extra_outputs = self.pred_fwd()
+                    raise NotImplementedError
                 elif pretrain_mode in ['ACT_ELIM']:
                     losses, extra_outputs = self.act_elim_fwd()
+                    raise NotImplementedError
                 else:
                     raise ValueError("Invalid pretrain mode: {}".format(pretrain_mode))
 
@@ -198,35 +195,44 @@ class OfflineTrainer:
                     msg1 += "{}: {:.3f}, ".format(k, v.item())
                 msg1 += "total loss: {:.3f}".format(loss.item())
 
-                msg2 = "corrects: {:d}, total = {:d}, percent correct = {:.2f} {:s}"
-                msg2 = msg2.format(num_corrects, num_total, 100 * (num_corrects / num_total), '%')
+                # msg2 = "corrects: {:d}, total = {:d}, percent correct = {:.2f} {:s}"
+                # msg2 = msg2.format(num_corrects, num_total, 100 * (num_corrects / num_total), '%')
 
-                desc1 = msg0 + ' |\t' + msg1 + ' |\t' + msg2
+                desc1 = msg0 + ' |\t' + msg1  # + ' |\t' + msg2
                 pbar.set_description(desc1)
 
                 cuml_loss += loss.item()
-                cuml_percent_corrects += 100 * (num_corrects / num_total)
+                cuml_gen_corrects += 100 * (
+                            correct_prediction_stats['num_gen_corrects'] / correct_prediction_stats['tot_masked'])
+                cuml_disc_corrects += 100 * (
+                            correct_prediction_stats['num_disc_corrects'] / correct_prediction_stats['tot_tokens'])
 
-                train_log = {
-                    "pretrain_mode": pretrain_mode,
-                    "epoch": epoch,
-                    "iter": i,
-                    "cuml_loss": cuml_loss,
-                    "cuml_acc": cuml_percent_corrects,
-                    "loss": loss.item(),
-                }
+                #   train_log = {
+                #      "pretrain_mode": pretrain_mode,
+                #      "epoch": epoch,
+                #      "iter": i,
+                #      "cuml_loss": cuml_loss,
+                #      "cuml_acc": cuml_percent_corrects,
+                #      "loss": loss.item(),
+                # }
 
-                for k, v in losses.items():
-                    train_log.update({k: v.item()})
+                #  for k, v in losses.items():
+                #     train_log.update({k: v.item()})
 
                 if i + 1 == num_batches:
-                    desc2 = '{:s}, epoch # {:d}, avg_loss: {:.4f}, avg_corrects: {:.3f} {:s}'
-                    desc2 = desc2.format(pretrain_mode, epoch, cuml_loss / num_batches, cuml_percent_corrects / num_batches, '%')
+                    desc2 = '{:s}, epoch # {:d}, avg_loss: {:.4f}, avg_gen_corrects: {:.3f} {:s}, avg_disc_corrects: {:.3f} {:s}'
+                    desc2 = desc2.format(
+                        pretrain_mode, epoch, cuml_loss / num_batches,
+                        cuml_gen_corrects / num_batches, '%',
+                        cuml_disc_corrects / num_batches, '%'
+                    )
                     pbar.set_description(desc2)
 
     def corrupted_fwd(self, hiddens, masked_inputs, masked_labels, pretrain_mode, return_extras=False):
         objects_embedded = self.model.generator.embed_objects(
             self.model.embeddings.word_embeddings, pretrain_mode, reduction='mean')
+
+        masked_labels.transpose_(0, 1)  # max_len x batch_size
 
         gen_preds, sampled_indxs = self.model.generator(hiddens, objects_embedded, masked_labels)
         generator_loss = self.model.generator.loss_fn(gen_preds, masked_labels.flatten())
@@ -240,7 +246,8 @@ class OfflineTrainer:
         corrupt_inputs = (x_corrupt, corrupt_type_ids, corrupt_position_ids)
         corrupt_inputs = tuple(
             map(
-                lambda z: torch.tensor(z, dtype=torch.long, device=self.device) if type(z) is not torch.Tensor else z.to(self.device),
+                lambda z: torch.tensor(z, dtype=torch.long, device=self.device) if type(
+                    z) is not torch.Tensor else z.to(self.device),
                 corrupt_inputs
             )
         )
@@ -249,15 +256,11 @@ class OfflineTrainer:
         corrupt_hiddens, _, _ = self.model(corrupt_inputs, corrupt_mask)
 
         disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
-            to_np(x_corrupt), to_np(masked_inputs[0]), to_np(sampled_indxs[masked_labels != -100]), pretrain_mode)
-
-        # correct predictions by the generator should have lbl +1 at disc_labels
-        non_ignore_indices = torch.where(masked_labels.flatten() != -100)[0]
-        correct_predictions = torch.where(
-            masked_labels.flatten()[non_ignore_indices] == sampled_indxs.flatten()[non_ignore_indices])[0]
-        disc_zeros = torch.where(disc_labels == 0)[0]
-        needs_update_indices = disc_zeros[correct_predictions]
-        disc_labels[needs_update_indices] = 1.0
+            to_np(x_corrupt).T,
+            to_np(masked_inputs[0]).T,
+            to_np(sampled_indxs[masked_labels != -100]),
+            to_np(masked_labels[masked_labels != -100]),
+            pretrain_mode)
 
         disc_preds = self.model.discriminator(corrupt_hiddens, flat_indices, pretrain_mode)
         discriminator_loss = self.model.discriminator.loss_fn(disc_preds, disc_labels.to(self.device))
@@ -266,10 +269,12 @@ class OfflineTrainer:
             'generator_loss': generator_loss,
             'discriminator_loss': discriminator_loss * self.train_config.loss_imbalance_lambda,
         }
-
-        num_corrects = len(correct_predictions)
-        num_total = len(non_ignore_indices)
-
+        correct_prediction_stats = {
+            'num_gen_corrects': masked_labels.eq(sampled_indxs).sum().item(),
+            'tot_masked': (~masked_labels.eq(-100)).sum().item(),
+            'num_disc_corrects': (torch.sigmoid(disc_preds).cpu().ge(0.5).float().eq(disc_labels)).sum().item(),
+            'tot_tokens': len(disc_labels),
+        }
         if return_extras:
             extra_outputs = {
                 'generator_predictions': gen_preds,
@@ -278,9 +283,9 @@ class OfflineTrainer:
                 'discriminator_predictions': disc_preds,
                 'discriminator_gold_labels': disc_labels,
             }
-            outputs = (losses, num_corrects, num_total, extra_outputs)
+            outputs = (losses, correct_prediction_stats, extra_outputs)
         else:
-            outputs = (losses, num_corrects, num_total, None)
+            outputs = (losses, correct_prediction_stats, None)
 
         return outputs
 

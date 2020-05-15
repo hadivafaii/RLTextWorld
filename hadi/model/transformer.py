@@ -49,14 +49,15 @@ class TransformerEncoder(nn.Module):
             state['activation'] = F.relu
         super(TransformerEncoder, self).__setstate__(state)
 
-    def forward(self, src, src_mask, src_key_padding_mask=None):
-        # type: (Tensor, Optional[Tensor], Optional[Tensor]) -> Tensor
+    def forward(self, src, src_mask, src_key_padding_mask=None, output_attentions=True):
+        # type: (Tensor, Optional[Tensor], Optional[Tensor], Optional[Bool]) -> Tensor
         r"""Pass the input through the encoder layer.
 
         Args:
             src: the sequence to the encoder layer (required).
             src_mask: the mask for the src sequence (optional).
             src_key_padding_mask: the mask for the src keys per batch (optional).
+            output_attentions: sss
 
         Shape:
             see the docs in Transformer class.
@@ -69,7 +70,11 @@ class TransformerEncoder(nn.Module):
 
         for _ in range(self.config.num_hidden_layers):
             src2, attn_weights = self.self_attn(
-                src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
+                src, src, src,
+                attn_mask=src_mask,
+                key_padding_mask=src_key_padding_mask,
+                need_weights=output_attentions,
+            )
             src = src + self.dropout1(src2)
             src = self.norm1(src)
 
@@ -139,8 +144,8 @@ class Generator(nn.Module):
 
         if self.config.generator_temperature != 1.0:
             predictions = predictions / self.config.generator_temperature
-        probs = F.softmax(predictions, dim=1)
-        sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape).detach()
+        probs = F.softmax(predictions, dim=1).detach()
+        sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape)
 
         return predictions, sampled_indxs
 
@@ -153,8 +158,9 @@ class Generator(nn.Module):
             indxs = list(conversion_dict.keys())
 
         if pretrain_mode == 'MLM':
-            _illegal_indices = [self.config.pad_id, self.config.obs_id, self.config.act_id, self.config.unk_id]
-            indxs = list(filter(lambda i: i not in _illegal_indices, indxs))
+            # TODO: well there is no illegal indices, the model should learn not to predict these
+            # _illegal_indices = [self.config.pad_id, self.config.obs_id, self.config.act_id, self.config.unk_id]
+            # indxs = list(filter(lambda i: i not in _illegal_indices, indxs))
             object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long, device=_device))
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
@@ -179,7 +185,7 @@ class Generator(nn.Module):
     def get_x_corrupt(self, x_masked, labels, sampled_indxs, pretrain_mode):
         if pretrain_mode == 'MLM':  # this corresponds to MLM
             x_corrupt = dc(x_masked)
-            x_corrupt[labels != -100] = sampled_indxs[labels != -100]
+            x_corrupt.T[labels != -100] = sampled_indxs[labels != -100]
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
             x_corrupt = np.zeros(x_masked.shape, dtype=int)
@@ -242,7 +248,9 @@ class Discriminator(nn.Module):
         # these are pre-sigmoid, the loss has sigmoid in it so no need to apply it here
         if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
             if pretrain_mode != 'MLM' and len(np.unique([len(item) for item in flat_indices])) > 1:
-                h = torch.cat(list(map(lambda z: torch.mean(transformer_hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), flat_indices)))
+                h = torch.cat(list(map(
+                    lambda z: torch.mean(transformer_hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), flat_indices
+                )))
             else:
                 try:    # first make sure flat_indices is a list, not a list of len 1 arrays
                     flat_indices = [inds.item() for inds in flat_indices]
@@ -263,19 +271,21 @@ class Discriminator(nn.Module):
 
         return predictions.flatten()
 
-    def get_discriminator_labels(self, corrupted_token_ids, masked_token_ids, generator_replaced_labels, pretrain_mode):
+    def get_discriminator_labels(self, corrupted_token_ids, masked_token_ids, generator_replaced_labels, gold_labels, pretrain_mode):
         conversion_dict = self.conversion_dicts[pretrain_mode]
 
         if pretrain_mode == 'MLM':
-            x_corrupt_flat = corrupted_token_ids.flatten()
             x_masked_flat = masked_token_ids.flatten()
+            x_corrupt_flat = corrupted_token_ids.flatten()
 
             labels = np.ones(len(x_corrupt_flat))
             unk_indices = np.where(x_masked_flat == self.config.unk_id)[0]
-            labels[unk_indices] = 0
+            assert len(unk_indices) == len(generator_replaced_labels) == len(gold_labels), "Otherwise something wrong"
+            remaining_fake_indices = np.delete(unk_indices, np.where(generator_replaced_labels == gold_labels)[0])
+            labels[remaining_fake_indices] = 0
 
-            _illegal_indices = [self.config.pad_id]     # discriminator loss will run on these
-            flat_indices = [tup[0] for tup in enumerate(x_corrupt_flat) if tup[1] not in _illegal_indices]
+            _ignore_indices = [self.config.pad_id]     # discriminator loss will not run on these
+            flat_indices = [tup[0] for tup in enumerate(x_corrupt_flat) if tup[1] not in _ignore_indices]
             final_discriminator_labels = labels[flat_indices]
 
         else:
