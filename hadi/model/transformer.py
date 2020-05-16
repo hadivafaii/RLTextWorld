@@ -185,7 +185,7 @@ class Generator(nn.Module):
     def get_x_corrupt(self, x_masked, labels, sampled_indxs, pretrain_mode):
         if pretrain_mode == 'MLM':  # this corresponds to MLM
             x_corrupt = dc(x_masked)
-            x_corrupt.T[labels != -100] = sampled_indxs[labels != -100]
+            x_corrupt[labels != -100] = sampled_indxs[labels != -100]
 
         elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
             x_corrupt = np.zeros(x_masked.shape, dtype=int)
@@ -365,7 +365,7 @@ class Transformer(nn.Module):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def save(self):
+    def save(self, prefix=None):
         config_dict = vars(self.config)
         data_config_dict = vars(self.data_config)
 
@@ -373,8 +373,13 @@ class Transformer(nn.Module):
         to_hash_dict_.update(data_config_dict)
         hashed_info = hash(frozenset(sorted(to_hash_dict_)))
 
+        if prefix is None:
+            prefix = 'chkpt:0'
+
         save_dir = os.path.join(
-            self.data_config.model_save_dir, "[{}]_{:s}".format(hashed_info, datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
+            self.data_config.model_save_dir, "{}_[{}]_{:s}"
+                .format(prefix, hashed_info, datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
+
         os.makedirs(save_dir, exist_ok=True)
 
         torch.save(self.state_dict(), os.path.join(save_dir, 'model.bin'))
@@ -386,13 +391,13 @@ class Transformer(nn.Module):
             yaml.dump(data_config_dict, f)
 
     @staticmethod
-    def load(load_dir=None, verbose=True):
+    def load(load_id=-1, load_dir=None, verbose=True):
         if load_dir is None:
             _dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/SAVED_MODELS')
             available_models = os.listdir(_dir)
             if verbose:
                 print('Available models to load:\n', available_models)
-            load_dir = os.path.join(_dir, available_models[-1])
+            load_dir = os.path.join(_dir, available_models[load_id])
 
         if verbose:
             print('\nLoading from:\n', load_dir)

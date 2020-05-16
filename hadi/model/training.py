@@ -189,16 +189,16 @@ class OfflineTrainer:
                         loss.backward()
                         self.optim.step()
 
-                msg0 = '{:s}, epoch # {:d}, iter. {:d}'.format(pretrain_mode, epoch, i)
+                msg0 = '{:s}, epoch # {:d}'.format(pretrain_mode, epoch)
                 msg1 = ""
                 for k, v in losses.items():
                     msg1 += "{}: {:.3f}, ".format(k, v.item())
-                msg1 += "total loss: {:.3f}".format(loss.item())
+                msg1 += "tot_loss: {:.3f}".format(loss.item())
 
                 # msg2 = "corrects: {:d}, total = {:d}, percent correct = {:.2f} {:s}"
                 # msg2 = msg2.format(num_corrects, num_total, 100 * (num_corrects / num_total), '%')
 
-                desc1 = msg0 + ' |\t' + msg1  # + ' |\t' + msg2
+                desc1 = msg0 + '\t|\t' + msg1  # + ' |\t' + msg2
                 pbar.set_description(desc1)
 
                 cuml_loss += loss.item()
@@ -238,7 +238,7 @@ class OfflineTrainer:
         generator_loss = self.model.generator.loss_fn(gen_preds, masked_labels.flatten())
 
         x_corrupt = self.model.generator.get_x_corrupt(
-            to_np(masked_inputs[0]), to_np(masked_labels), to_np(sampled_indxs), pretrain_mode)
+            to_np(masked_inputs[0]), to_np(masked_labels).T, to_np(sampled_indxs).T, pretrain_mode)
 
         corrupt_type_ids, corrupt_position_ids = compute_type_position_ids(
             x_corrupt, self.model.config, starting_position_ids=to_np(masked_inputs[2][:, 0]))
@@ -266,8 +266,8 @@ class OfflineTrainer:
         discriminator_loss = self.model.discriminator.loss_fn(disc_preds, disc_labels.to(self.device))
 
         losses = {
-            'generator_loss': generator_loss,
-            'discriminator_loss': discriminator_loss * self.train_config.loss_imbalance_lambda,
+            'gen_loss': generator_loss,
+            'disc_loss': discriminator_loss * self.train_config.loss_imbalance_lambda,
         }
         correct_prediction_stats = {
             'num_gen_corrects': masked_labels.eq(sampled_indxs).sum().item(),
