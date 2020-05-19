@@ -15,7 +15,7 @@ IFS=" "
 # where python scripts are at
 cd ../utils
 
-for ss in 384 512 768 1024 2048; do
+for ss in 384 512 768 1024; do
   screen -dmS "process_raw_${ADDR[0]}_${ADDR[1]}_${game_spec}_${ss}" &&
   if [ -z "$game_spec" ]; then # if game_spec is NULL
     screen -S "process_raw_${ADDR[0]}_${ADDR[1]}_${game_spec}_${ss}" -X stuff "python3 process_traj.py $game_type $ss ^M"

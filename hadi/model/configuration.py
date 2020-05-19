@@ -25,6 +25,7 @@ class TransformerConfig:
             obs_id=1,
             act_id=2,
             unk_id=3,
+            traj_id=4,
     ):
         super(TransformerConfig).__init__()
 
@@ -47,6 +48,7 @@ class TransformerConfig:
         self.obs_id = obs_id
         self.act_id = act_id
         self.unk_id = unk_id
+        self.traj_id = traj_id
 
 
 class DataConfig:
@@ -100,6 +102,7 @@ class DataConfig:
         self.train_valid_test = train_valid_test
 
         base_dir = os.path.join(os.environ['HOME'], base_dir)
+        self.lang_dir = os.path.join(base_dir, game_type, 'lang_data')
 
         if 'tw_cooking' not in game_type:
             yaml_dir = os.path.join(base_dir, '{:s}/{:s}_game_specs.yaml'.format(game_type, game_type))
@@ -199,6 +202,7 @@ class TrainConfig:
             use_cuda: bool = True,
             cuda_devices=None,
             log_freq: int = 10,
+            chkpt_freq: int = 5,
             batch_size: int = 128,
             loss_imbalance_lambda: float = 10.0,
     ):
@@ -215,5 +219,6 @@ class TrainConfig:
         self.use_cuda = use_cuda
         self.cuda_devices = cuda_devices
         self.log_freq = log_freq
+        self.chkpt_freq = chkpt_freq
         self.batch_size = batch_size
         self.loss_imbalance_lambda = loss_imbalance_lambda

@@ -7,11 +7,13 @@ import torch
 from torch import nn
 from torch.optim import Adam
 from .optimizer import Lamb, ScheduledOptim
-import sys;
-
-sys.path.append('..')
+import sys; sys.path.append('..')
 from utils.gen_pretrain_data import compute_type_position_ids, load_data
 from utils.utils import to_np
+
+
+def _shuffle(x, shuffled_indices):
+    return x.view(np.prod(x.size()[:2]), -1)[shuffled_indices].view(x.size())
 
 
 class OfflineTrainer:
@@ -24,6 +26,8 @@ class OfflineTrainer:
                  seed=665,
                  ):
 
+        torch.manual_seed(seed)
+        np.random.seed(seed)
         self.rng = np.random.RandomState(seed)
 
         cuda_condition = torch.cuda.is_available() and use_cuda
@@ -103,6 +107,9 @@ class OfflineTrainer:
         self.model.train()
         for epoch in range(nb_epochs):
             self.iteration(self.train_data, train=True, epoch=epoch)
+            if (epoch + 1) % self.train_config.chkpt_freq == 0:
+                print('Saving chkpt:{:d}'.format(epoch+1))
+                self.model.save('chkpt:{:d}'.format(epoch+1))
 
     def valid(self):
         self.model.eval()
@@ -131,6 +138,13 @@ class OfflineTrainer:
                 continue
 
             inputs, masks, labels = data_tuple
+
+            shuffled_indices = self.rng.permutation(np.prod(inputs[0].size()[:2]))
+            inputs = tuple(map(lambda z: _shuffle(z, shuffled_indices), inputs))
+            if masks is not None:
+                masks = _shuffle(masks, shuffled_indices)
+            labels = _shuffle(labels, shuffled_indices)
+
             num_batches = len(inputs[0])
 
             cuml_loss = 0.0

@@ -1,4 +1,5 @@
 import os
+from os.path import join as pjoin
 import sys
 import torch
 import numpy as np
@@ -18,6 +19,9 @@ def get_ranges(token_ids, config, flatten=False):
 
     _ids = [(where_fn(x == config.obs_id)[0], where_fn(x == config.act_id)[0]) for x in token_ids]
     obs_ids, act_ids = zip(*_ids)
+
+    # takes [TRAJ] into account
+    obs_ids = [where_fn(item == 1, 0, item) for item in obs_ids]
 
     max_len = len(token_ids[0])
 
@@ -238,42 +242,25 @@ def _get_masked_input(x, ranges, unk_id=3):
 
 def compute_type_position_ids(x, config, starting_position_ids=None):
     if starting_position_ids is None:
-        starting_position_ids = np.ones(len(x))
+        starting_position_ids = np.one(len(x))
 
-    init = np.ones(x.shape, dtype=int) * config.pad_id
-    if type(x) == torch.Tensor:
-        init = torch.ones(x.shape, dtype=torch.long) * config.pad_id
+    position_ids = np.concatenate(
+        [np.expand_dims(np.pad(np.arange(
+            tup[0], tup[0] + tup[1]),
+            (0, x.shape[-1] - tup[1]), constant_values=config.pad_id), axis=0)
+            for tup in zip(starting_position_ids, (x > 0).sum(1))]
+    )
 
-    type_ids = dc(init)
-    position_ids = dc(init)
+    type_ids = (np.ones(x.shape, dtype=int) * config.pad_id).flatten()
 
-    arange_fn = np.arange
-    if type(x) == torch.Tensor:
-        arange_fn = torch.arange
+    obs_ranges_flat, act_ranges_flat = get_ranges(x, config, flatten=True)
+    act_ranges_flat_chained = list(chain(*act_ranges_flat))
+    obs_ranges_flat_chained = list(chain(*obs_ranges_flat))
 
-    obs_ranges, act_ranges = get_ranges(x, config)
+    type_ids[obs_ranges_flat_chained] = 1
+    type_ids[act_ranges_flat_chained] = 2
 
-    obs_indices_arr = np.zeros(x.shape)
-    act_indices_arr = np.zeros(x.shape)
-
-    for i in range(len(x)):
-        num_tokens = len(x[i][x[i] != config.pad_id])
-        position_ids[i][:num_tokens] = arange_fn(starting_position_ids[i],
-                                                 starting_position_ids[i] + num_tokens)
-
-        obs_ranges_list = [list(z) for z in obs_ranges[i]]
-        act_ranges_list = [list(z) for z in act_ranges[i]]
-
-        obs_ranges_flat = [z for sublist in obs_ranges_list for z in sublist]
-        act_ranges_flat = [z for sublist in act_ranges_list for z in sublist]
-
-        obs_indices_arr[i][obs_ranges_flat] = config.obs_id
-        act_indices_arr[i][act_ranges_flat] = config.act_id
-
-    type_ids.flatten()[obs_indices_arr.flatten() == config.obs_id] = config.obs_id
-    type_ids.flatten()[act_indices_arr.flatten() == config.act_id] = config.act_id
-
-    return type_ids, position_ids
+    return type_ids.reshape(x.shape).astype(int), position_ids.astype(int)
 
 
 def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_prob=0.25, mode='act', seed=665):
@@ -297,7 +284,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
         elif mode == 'mlm':
             detected_ranges = [(range(j, j + 1), token_ids[ii][j]) for j in
                                range(int(np.sum(token_ids[ii] != config.pad_id)))
-                               if token_ids[ii][j] not in [config.obs_id, config.act_id]]
+                               if token_ids[ii][j] not in [config.pad_id, config.obs_id, config.act_id, config.traj_id]]
         else:
             raise NotImplementedError
 
@@ -331,7 +318,7 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
 # ----------------------------------------------- Save & Load ------------------------------------------- #
 # ------------------------------------------------------------------------------------------------------- #
 def save_data(save_dir, data_dict, pretrain_mode='ACT_ORDER'):
-    save_ = os.path.join(save_dir, "{:s}_{:s}.hdf5".format(
+    save_ = pjoin(save_dir, "{:s}_{:s}.hdf5".format(
         pretrain_mode, datetime.datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
     f = h5py.File(save_, "w")
     pretrain_group = f.create_group(pretrain_mode)
@@ -398,7 +385,7 @@ def load_data(data_config, file_names=None, load_extra_stuff=False, verbose=Fals
             else:
                 file_name = file_names[j]
 
-            load_ = os.path.join(load_dir, file_name)
+            load_ = pjoin(load_dir, file_name)
             loaded_from[j] = load_
             if verbose:
                 print('\nLoading data from {:s}\n'.format(load_))
@@ -514,12 +501,12 @@ if __name__ == "__main__":
     elif args.game_type.split('/')[1] == 'test':
         load_dir = data_config.processed_dirs[2]
         save_dir = data_config.pretrain_dirs[2]
-        assert 'est' in load_dir and 'test' in save_dir, "..."
+        assert 'test' in load_dir and 'test' in save_dir, "..."
     else:
         raise ValueError("Invalid game type entered (e.g. custom/train is correct)")
 
     if args.max_lengths is None:
-        max_lengths = [384, 512, 768, 1024, 2048]
+        max_lengths = [384, 512, 768, 1024]
     else:
         max_lengths = [args.max_lengths]
 
@@ -529,8 +516,8 @@ if __name__ == "__main__":
         for eps in np.arange(0.0, args.eps_step + 1, args.eps_step):
             print('\n\n')
             print('-' * 25, 'max_len={:d},eps={:.2f}'.format(max_len, eps), '-' * 25)
-            traj_load_ = os.path.join(load_dir, 'traj_data_max_len={:d}.npy'.format(max_len))
-            lang_load_ = os.path.join(load_dir, 'lang_data_max_len={:d}.npy'.format(max_len))
+            traj_load_ = pjoin(load_dir, 'traj_data_max_len={:d}.npy'.format(max_len))
+            lang_load_ = pjoin(data_config.lang_dir, 'lang_data_max_len={:d}.npy'.format(max_len))
             traj_data_all = np.load(traj_load_, allow_pickle=True).item()
             lang_data_all = np.load(lang_load_, allow_pickle=True).item()
             traj_data = traj_data_all['eps={:.2f}'.format(eps)]

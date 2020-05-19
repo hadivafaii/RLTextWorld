@@ -1,4 +1,5 @@
 import os
+from os.path import join as pjoin
 import re
 import spacy
 import numpy as np
@@ -77,17 +78,24 @@ def _exract_data_for_modeling(seq_, segment_, max_len):
     return sequences, segments, positions, masks
 
 
-def process_data(data_files, max_len=512, do_plot=True, verbose=False):
+def process_data(data_files, lang_data=None, max_len=512, do_plot=False, verbose=False):
     if type(data_files) is not list:
         data_files = [data_files]
 
     trajectories = []
     traj_admissible_cmd_pairs = []
     teacher_tuples = []
+
+    unigram_counts = Counter()
     verb_counts = Counter()
     entity_counts = Counter()
     act_counts = Counter()
     walkthroughs_len_counts = Counter()
+
+    w2i = {'<PAD>': 0, '[OBS]': 1, '[ACT]': 2, '<UNK>': 3, '[TRAJ]': 4}
+    entity2indx = {}
+    verb2indx = {}
+    act2indx = {}
 
     for f in data_files:
         try:
@@ -100,6 +108,13 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
             trajectories.extend(data_['trajectories'])
             traj_admissible_cmd_pairs.extend(data_['traj_admissible_cmd_pairs'])
             teacher_tuples.extend(data_['teacher_tuples'])
+
+            if lang_data is not None:
+                unigram_counts = lang_data['unigram_counts']
+                verb_counts = lang_data['verb_counts']
+                entity_counts = lang_data['entity_counts']
+                act_counts = lang_data['act_counts']
+
             for k, v in data_['verb_counts'].most_common():
                 verb_counts[k] += v
             for k, v in data_['entity_counts'].most_common():
@@ -111,13 +126,17 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         except FileNotFoundError:
             print('File .../{:s} not found'.format(f.split('/')[-1]))
 
+    if lang_data is not None:
+        w2i = lang_data['w2i']
+        entity2indx = lang_data['entity2indx']
+        verb2indx = lang_data['verb2indx']
+        act2indx = lang_data['act2indx']
+
     # get unigrams, w2i and i2w
-    unigram_counts = Counter()
     for tau in trajectories:
         for tok in tau:
             unigram_counts[tok] += 1
 
-    w2i = {'<PAD>': 0, '[OBS]': 1, '[ACT]': 2, '<UNK>': 3}
     for tok in unigram_counts:
         if tok not in w2i:
             w2i.update({tok: len(w2i)})
@@ -145,21 +164,21 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
 
     # Get entity and verb to indx and vice versa
     entities_tokenized = [tuple(w2i[x] for x in preproc(ent, tokenizer)) for ent in list(entity_counts.keys())]
-    entity2indx = {}
     for ent in entities_tokenized:
-        entity2indx.update({ent: len(entity2indx)})
+        if ent not in entity2indx:
+            entity2indx.update({ent: len(entity2indx)})
     indx2entity = {entity2indx[ent]: ent for ent in entity2indx}
 
     verbs_tokenized = [tuple(w2i[x] for x in preproc(verb, tokenizer)) for verb in list(verb_counts.keys())]
-    verb2indx = {}
     for verb in verbs_tokenized:
-        verb2indx.update({verb: len(verb2indx)})
+        if verb not in verb2indx:
+            verb2indx.update({verb: len(verb2indx)})
     indx2verb = {verb2indx[verb]: verb for verb in verb2indx}
 
     acts_tokenized = [tuple(['[ACT]'] + preproc(act, tokenizer)) for act in list(act_counts.keys())]
-    act2indx = {}
     for act in acts_tokenized:
-        act2indx.update({act: len(act2indx)})
+        if act not in act2indx:
+            act2indx.update({act: len(act2indx)})
 
     # update act2indx if necessary
     for _, cmds in traj_admissible_cmd_pairs:
@@ -196,14 +215,14 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
         processed_traj_adm_cmds.append((traj_ids, cmds_turned_to_indx))
 
     # extract and pad data, ready for modeling
-    sequences_all = np.empty((0, max_len))
-    segments_all = np.empty((0, max_len))
-    positions_all = np.empty((0, max_len))
-    masks_all = np.empty((0, max_len))
+    sequences_all = np.empty((0, max_len - 1))
+    segments_all = np.empty((0, max_len - 1))
+    positions_all = np.empty((0, max_len - 1))
+    masks_all = np.empty((0, max_len - 1))
     for i in tqdm(range(len(trajectory_token_ids))):
         assert len(trajectory_token_ids[i]) == len(trajectory_segment_ids[i]), 'otherwise there is a serious problem'
         seqs_, segs_, poss_, msks_ = _exract_data_for_modeling(trajectory_token_ids[i], trajectory_segment_ids[i],
-                                                               max_len)
+                                                               max_len - 1)
 
         sequences_all = np.concatenate([sequences_all, seqs_])
         segments_all = np.concatenate([segments_all, segs_])
@@ -244,15 +263,31 @@ def process_data(data_files, max_len=512, do_plot=True, verbose=False):
     if len(bad_indices) > 0:
         print('Found bad indices: ', bad_indices)
 
+    # delete the bad indices:
+    sequences_all = np.delete(sequences_all, bad_indices, axis=0)
+    token_types_all = np.delete(token_types_all, bad_indices, axis=0)
+    positions_all = np.delete(positions_all, bad_indices, axis=0)
+    masks_all = np.delete(masks_all, bad_indices, axis=0)
+    segments_all = np.delete(segments_all, bad_indices, axis=0)
+
+    # finally, add the [TRAJ] token to the beginning of all
+    _cat_column = np.ones((len(sequences_all), 1))
+
+    sequences_all = np.concatenate((_cat_column * w2i['[TRAJ]'], sequences_all), axis=1)
+
+    token_types_all = np.concatenate((_cat_column, token_types_all), axis=1)
+    masks_all = np.concatenate((_cat_column, masks_all), axis=1)
+    segments_all = np.concatenate((_cat_column, segments_all), axis=1)
+
+    positions_all[positions_all > 0] += 1
+    positions_all = np.concatenate((_cat_column, positions_all), axis=1)
+
     traj_data = {
         'trajectories': trajectories, 'trajectory_token_ids': trajectory_token_ids,
         'trajectory_segment_ids': trajectory_segment_ids, 'teacher_tuples': teacher_tuples,
         'traj_admissible_cmds_pairs': processed_traj_adm_cmds, 'walkthroughs_len_counts': walkthroughs_len_counts,
-        'sequence_ids': np.delete(sequences_all, bad_indices, axis=0).astype(int),
-        'type_ids': np.delete(sequences_all, bad_indices, axis=0).astype(int),
-        'position_ids': np.delete(positions_all, bad_indices, axis=0).astype(int),
-        'masks': np.delete(masks_all, bad_indices, axis=0).astype(int),
-        'segment_ids': np.delete(segments_all, bad_indices, axis=0).astype(int),
+        'sequence_ids': sequences_all.astype(int), 'type_ids': token_types_all.astype(int), 'position_ids': positions_all.astype(int),
+        'masks': masks_all.astype(int), 'segment_ids': segments_all.astype(int),
     }
     lang_data = {
         'verb_counts': verb_counts, 'entity_counts': entity_counts,
@@ -271,7 +306,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "game_type", help="(str) game type. (e.g. tw_cooking/train)",
+        "game_type", help="(str) game type. (e.g. tw_cooking)",
         type=str
     )
     parser.add_argument(
@@ -292,39 +327,46 @@ if __name__ == "__main__":
     from model.configuration import DataConfig
 
     data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec, train_valid_test=True)
+    _game_variants = ['train', 'valid', 'test']
 
-    if args.game_type.split('/')[1] == 'train':
-        load_dir = os.path.join(data_config.base_dirs[0], 'raw_trajectories')
-        save_dir = data_config.processed_dirs[0]
-        assert 'train' in load_dir and 'train' in save_dir, "..."
-    elif args.game_type.split('/')[1] == 'valid':
-        load_dir = os.path.join(data_config.base_dirs[1], 'raw_trajectories')
-        save_dir = data_config.processed_dirs[1]
-        assert 'valid' in load_dir and 'valid' in save_dir, "..."
-    elif args.game_type.split('/')[1] == 'test':
-        load_dir = os.path.join(data_config.base_dirs[2], 'raw_trajectories')
-        save_dir = data_config.processed_dirs[2]
-        assert 'est' in load_dir and 'test' in save_dir, "..."
-    else:
-        raise ValueError("Invalid game type entered (e.g. custom/train is correct)")
+    lang_save_dir = data_config.lang_dir
+    os.makedirs(lang_save_dir, exist_ok=True)
 
-    traj_data_all = {}
-    lang_data_all = {}
+    for gvar_id, game_var in enumerate(_game_variants):
+        load_dir = pjoin(data_config.base_dirs[gvar_id], 'raw_trajectories')
+        traj_save_dir = data_config.processed_dirs[gvar_id]
+        assert (game_var in load_dir) and (game_var in traj_save_dir), "..."
 
-    for eps in tqdm(np.arange(0.0, 2, 1), desc='processing... S={:d}'.format(args.max_len)):
-        dir_ = os.path.join(load_dir, 'eps={:.2f}'.format(eps))
-        files_ = os.listdir(dir_)
-        data_files = [os.path.join(dir_, x) for x in sorted(files_)]
+        lang_dir_file = pjoin(lang_save_dir, 'lang_data_max_len={:d}.npy'.format(args.max_len))
+        try:
+            lang_data_all = np.load(lang_dir_file, allow_pickle=True).item()
+        except FileNotFoundError:
+            lang_data_all = {}
 
-        traj_data_, lang_data_ = process_data(data_files, max_len=args.max_len, do_plot=False, verbose=False)
-        traj_data_all.update({'eps={:.2f}'.format(eps): traj_data_})
-        lang_data_all.update({'eps={:.2f}'.format(eps): lang_data_})
+        traj_data_all = {}
 
-    os.makedirs(save_dir, exist_ok=True)
-    traj_dir_ = os.path.join(save_dir, 'traj_data_max_len={:d}.npy'.format(args.max_len))
-    lang_dir_ = os.path.join(save_dir, 'lang_data_max_len={:d}.npy'.format(args.max_len))
+        for eps in tqdm(np.arange(0.0, 2, 1), desc='processing {:s}, S={:d}'.format(game_var, args.max_len)):
+            dir_ = pjoin(load_dir, 'eps={:.2f}'.format(eps))
+            files_ = os.listdir(dir_)
+            data_files = [pjoin(dir_, x) for x in sorted(files_)]
 
-    np.save(traj_dir_, traj_data_all)
-    np.save(lang_dir_, lang_data_all)
+            try:
+                current_lang_data = lang_data_all['eps={:.2f}'.format(eps)]
+            except KeyError:
+                current_lang_data = None
+
+            traj_data_, lang_data_ = process_data(
+                data_files=data_files,
+                lang_data=current_lang_data,
+                max_len=args.max_len,
+                do_plot=False, verbose=False)
+            traj_data_all.update({'eps={:.2f}'.format(eps): traj_data_})
+            lang_data_all.update({'eps={:.2f}'.format(eps): lang_data_})
+
+        os.makedirs(traj_save_dir, exist_ok=True)
+        traj_dir_file = pjoin(traj_save_dir, 'traj_data_max_len={:d}.npy'.format(args.max_len))
+
+        np.save(traj_dir_file, traj_data_all)
+        np.save(lang_dir_file, lang_data_all)
 
     print('Done!')

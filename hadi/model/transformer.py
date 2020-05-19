@@ -1,4 +1,5 @@
 import os
+from os.path import join as pjoin
 import numpy as np
 from copy import deepcopy as dc
 from itertools import chain, compress
@@ -371,44 +372,45 @@ class Transformer(nn.Module):
 
         to_hash_dict_ = dc(config_dict)
         to_hash_dict_.update(data_config_dict)
-        hashed_info = hash(frozenset(sorted(to_hash_dict_)))
+        hashed_info = str(hash(frozenset(sorted(to_hash_dict_))))
 
         if prefix is None:
             prefix = 'chkpt:0'
 
-        save_dir = os.path.join(
-            self.data_config.model_save_dir, "{}_[{}]_{:s}"
-                .format(prefix, hashed_info, datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
+        save_dir = pjoin(
+            self.data_config.model_save_dir,
+            "[{:s}]".format(hashed_info),
+            "{}_{:s}".format(prefix, datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
 
         os.makedirs(save_dir, exist_ok=True)
 
-        torch.save(self.state_dict(), os.path.join(save_dir, 'model.bin'))
+        torch.save(self.state_dict(), pjoin(save_dir, 'model.bin'))
 
-        with open(os.path.join(save_dir, 'config.yaml'), 'w') as f:
+        with open(pjoin(save_dir, 'config.yaml'), 'w') as f:
             yaml.dump(config_dict, f)
 
-        with open(os.path.join(save_dir, 'data_config.yaml'), 'w') as f:
+        with open(pjoin(save_dir, 'data_config.yaml'), 'w') as f:
             yaml.dump(data_config_dict, f)
 
     @staticmethod
     def load(load_id=-1, load_dir=None, verbose=True):
         if load_dir is None:
-            _dir = os.path.join(os.environ['HOME'], 'Documents/FTWP/SAVED_MODELS')
+            _dir = pjoin(os.environ['HOME'], 'Documents/FTWP/SAVED_MODELS')
             available_models = os.listdir(_dir)
             if verbose:
                 print('Available models to load:\n', available_models)
-            load_dir = os.path.join(_dir, available_models[load_id])
+            load_dir = pjoin(_dir, available_models[load_id])
 
         if verbose:
             print('\nLoading from:\n', load_dir)
 
-        with open(os.path.join(load_dir, 'config.yaml'), 'r') as stream:
+        with open(pjoin(load_dir, 'config.yaml'), 'r') as stream:
             try:
                 config_dict = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
 
-        with open(os.path.join(load_dir, 'data_config.yaml'), 'r') as stream:
+        with open(pjoin(load_dir, 'data_config.yaml'), 'r') as stream:
             try:
                 data_config_dict = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
@@ -427,17 +429,15 @@ class Transformer(nn.Module):
             train_valid_test=data_config_dict['train_valid_test'])
 
         loaded_tmr = Transformer(loaded_config, loaded_data_config)
-        loaded_tmr.load_state_dict(torch.load(os.path.join(load_dir, 'model.bin')))
+        loaded_tmr.load_state_dict(torch.load(pjoin(load_dir, 'model.bin')))
 
         return loaded_tmr
 
 
 class Language(object):
     def __init__(self, data_config):
-        lang_load_ = os.path.join(
-            data_config.processed_dirs[0],
-            'lang_data_max_len={:d}.npy'.format(data_config.max_len))
-        lang_data_all = np.load(lang_load_, allow_pickle=True).item()
+        lang_load_file = pjoin(data_config.lang_dir, 'lang_data_max_len={:d}.npy'.format(data_config.max_len))
+        lang_data_all = np.load(lang_load_file, allow_pickle=True).item()
 
         # TODO: different epssilons have different dictionaries so this is not gonna work as is. One hacky way out
         #  is to choose the winner epsilon and fix the dictionary for that epsilon, but the when loading the data
@@ -464,6 +464,9 @@ class Language(object):
 
         self.verb2indx = lang_data['verb2indx']
         self.indx2verb = lang_data['indx2verb']
+
+        self.act2indx = lang_data['act2indx']
+        self.indx2act = lang_data['indx2act']
 
         self.data_config = data_config
         self.tokenizer = get_nlp().tokenizer

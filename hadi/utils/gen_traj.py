@@ -1,4 +1,5 @@
 import os
+from os.path import join as pjoin
 import numpy as np
 
 from time import time
@@ -197,21 +198,21 @@ if __name__ == "__main__":
 
     if args.game_type.split('/')[1] == 'train':
         load_dir = data_config.games_dirs[0]
-        save_dir = os.path.join(data_config.base_dirs[0], 'raw_trajectories')
+        save_dir = pjoin(data_config.base_dirs[0], 'raw_trajectories')
         assert 'train' in load_dir and 'train' in save_dir, "..."
     elif args.game_type.split('/')[1] == 'valid':
         load_dir = data_config.games_dirs[1]
-        save_dir = os.path.join(data_config.base_dirs[1], 'raw_trajectories')
+        save_dir = pjoin(data_config.base_dirs[1], 'raw_trajectories')
         assert 'valid' in load_dir and 'valid' in save_dir, "..."
     elif args.game_type.split('/')[1] == 'test':
         load_dir = data_config.games_dirs[2]
-        save_dir = os.path.join(data_config.base_dirs[2], 'raw_trajectories')
+        save_dir = pjoin(data_config.base_dirs[2], 'raw_trajectories')
         assert 'test' in load_dir and 'test' in save_dir, "..."
     else:
         raise ValueError("Invalid game type entered (e.g. custom/train is correct)")
 
     game_files = os.listdir(load_dir)
-    game_files = [os.path.join(load_dir, g) for g in game_files if '.ulx' in g]
+    game_files = [pjoin(load_dir, g) for g in game_files if '.ulx' in g]
 
     group_size = int(np.ceil(len(game_files) / args.num_groups))
 
@@ -242,11 +243,11 @@ if __name__ == "__main__":
     end_time = time()
 
     # save data
-    save_ = os.path.join(save_dir, 'eps={:.2f}'.format(args.epsilon))
+    save_ = pjoin(save_dir, 'eps={:.2f}'.format(args.epsilon))
     os.makedirs(save_, exist_ok=True)
     file_name = 'iter={:d}.npy'.format(args.iter)
     np.save(
-        os.path.join(save_, file_name),
+        pjoin(save_, file_name),
         raw_trajectories)
 
     if not args.silent:
