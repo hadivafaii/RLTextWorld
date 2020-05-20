@@ -263,7 +263,10 @@ def compute_type_position_ids(x, config, starting_position_ids=None):
     return type_ids.reshape(x.shape).astype(int), position_ids.astype(int)
 
 
-def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_prob=0.25, mode='act', seed=665):
+def generate_corrupted_data(inputs, config, conversion_dict=None, bag_of_object_tokens=None,
+                            max_len=512, mask_prob=0.25, mode='MLM', seed=665):
+    # TODO: if you actualy verified that ACT_ENTITY etc are useless, come back and fix this
+    #  function to make it faster. Remove the whole detect ranges thing and mask the flattened input
     rng = np.random.RandomState(seed)
     token_ids, type_ides, position_ids = inputs
 
@@ -277,14 +280,18 @@ def generate_corrupted_data(inputs, config, conversion_dict, max_len=512, mask_p
 
     for ii in tqdm(range(len(token_ids)), desc='mask_prob: {:.2f}, mdoe: {:s}'.format(mask_prob, mode)):
         # get ranges for objects of interest
-        if mode == 'act':
+        if 'ACT' in mode:
             detected_ranges = detect_objects(token_ids[ii], act_ranges[ii], conversion_dict)
-        elif mode == 'obs':
+        elif 'OBS' in mode:
             detected_ranges = detect_objects(token_ids[ii], obs_ranges[ii], conversion_dict)
-        elif mode == 'mlm':
+        elif mode == 'MLM':
             detected_ranges = [(range(j, j + 1), token_ids[ii][j]) for j in
                                range(int(np.sum(token_ids[ii] != config.pad_id)))
                                if token_ids[ii][j] not in [config.pad_id, config.obs_id, config.act_id, config.traj_id]]
+        elif mode == 'MOM':
+            detected_ranges = [(range(j, j + 1), token_ids[ii][j]) for j in
+                               range(int(np.sum(token_ids[ii] != config.pad_id)))
+                               if token_ids[ii][j] in bag_of_object_tokens]
         else:
             raise NotImplementedError
 
@@ -471,8 +478,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     ALLOWED_MODES = [
-        'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
-        'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB', 'MLM',
+        'MLM', 'MOM',
+        'ACT_ENTITY', 'ACT_VERB',
+        'OBS_ENTITY', 'OBS_VERB',
+        'ACT_ORDER', 'OBS_ORDER',
         'ACT_PREDICT', 'OBS_PREDICT', 'ACT_ELIM',
     ]
 
@@ -541,21 +550,40 @@ if __name__ == "__main__":
                 loop_data.update(
                     {'max_len={:d},eps={:.2f}'.format(max_len, eps): (*outputs, labels, permutations_used)})
 
-            elif args.pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
+            elif args.pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM', 'MOM']:
                 generated_data_ = []
                 for seed in args.seeds:
                     print('[PROGRESS] generating corrupted data using seed = {:d}'.format(seed))
                     if args.pretrain_mode == 'MLM':
                         conversion_dict = None
+                        bag_of_object_tokens = None
+
+                    elif args.pretrain_mode == 'MOM':
+                        conversion_dict = None
+                        entities = lang_data['entity2indx'].keys()
+                        verbs = lang_data['verb2indx'].keys()
+
+                        bag_of_object_tokens = []
+                        for verb_tup in verbs:
+                            for tok_id in verb_tup:
+                                bag_of_object_tokens.append(tok_id)
+                        for ent_tup in entities:
+                            for tok_id in ent_tup:
+                                bag_of_object_tokens.append(tok_id)
+                        bag_of_object_tokens = np.unique(bag_of_object_tokens)
+
                     else:
                         conversion_dict = lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())]
+                        bag_of_object_tokens = None
+
                     outputs, labels = generate_corrupted_data(
                         inputs=inputs,
                         config=config,
                         conversion_dict=conversion_dict,
+                        bag_of_object_tokens=bag_of_object_tokens,
                         max_len=max_len,
                         mask_prob=args.mask_prob,
-                        mode=args.pretrain_mode[:3].lower(),
+                        mode=args.pretrain_mode,
                         seed=seed,
                     )
                     generated_data_.append([*outputs, labels])

@@ -47,10 +47,10 @@ class Embeddings(nn.Module):
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
         # TODO: uncomment these guys after your tests are done
-        # if config.embedding_size != config.hidden_size:
-        #     self.embedding_hidden_mapping_out = nn.Linear(config.embedding_size, config.hidden_size)
-        # else:
-        #     self.embedding_hidden_mapping_out = None
+        if config.embedding_size != config.hidden_size:
+            self.embedding_hidden_mapping_out = nn.Linear(config.embedding_size, config.hidden_size)
+        else:
+            self.embedding_hidden_mapping_out = None
 
     def forward(self, token_ids, type_ids, position_ids=None):
         """
@@ -71,16 +71,22 @@ class Embeddings(nn.Module):
         else:
             position_embeddings = self.position_embeddings(position_ids)
 
-        embeddings = (
-            np.sqrt(self.embedding_size) * (token_embeddings + type_embeddings)
-            + position_embeddings
-        )
+        # embeddings = (
+        #    np.sqrt(self.embedding_size) * (token_embeddings + type_embeddings)
+        #    + position_embeddings
+        # )
+
+        # this lead to an interesting phenomenon:
+        # gold: see     predicted: here
+        # gold: here    predicted: see
+
+        embeddings = token_embeddings + type_embeddings + position_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)   # (S, N, E)
 
         # TODO: uncomment these guys after done
-        # if self.embedding_hidden_mapping_out is not None:
-        #     embeddings = self.embedding_hidden_mapping_out(embeddings)   # (S, N, H)
+        if self.embedding_hidden_mapping_out is not None:
+            embeddings = self.embedding_hidden_mapping_out(embeddings)   # (S, N, H)
 
         return embeddings   # (S, N, H)
 

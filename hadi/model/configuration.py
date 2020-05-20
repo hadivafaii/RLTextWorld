@@ -60,6 +60,7 @@ class DataConfig:
             k=3,
             mask_prob=0.30,
             mlm_mask_prob=None,
+            mom_mask_prob=None,
             max_len=512,
             eps=0.8,
             train_valid_test=True,
@@ -73,7 +74,7 @@ class DataConfig:
         _allowed_modes = [
             'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
             'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB',
-            'MLM',
+            'MLM', 'MOM',
         ]
         _allowed_tw_simple_specs = [
             'ns', 'nb', 'nd',
@@ -98,6 +99,9 @@ class DataConfig:
 
         if mlm_mask_prob is None:
             mlm_mask_prob = mask_prob
+
+        if mom_mask_prob is None:
+            mom_mask_prob = mlm_mask_prob
 
         self.train_valid_test = train_valid_test
 
@@ -159,6 +163,8 @@ class DataConfig:
                 pretrain_dir = 'k={:d}'.format(k)
             elif mode == 'MLM':
                 pretrain_dir = 'mask_prob={:.2f}'.format(mlm_mask_prob)
+            elif mode == 'MOM':
+                pretrain_dir = 'mask_prob={:.2f}'.format(mom_mask_prob)
             elif mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
                 pretrain_dir = 'mask_prob={:.2f}'.format(mask_prob)
             else:
@@ -176,6 +182,7 @@ class DataConfig:
         self.k = k
         self.mask_prob = mask_prob
         self.mlm_mask_prob = mlm_mask_prob
+        self.mom_mask_prob = mom_mask_prob
         self.max_len = max_len
 
         if type(eps) is not list:

@@ -22,6 +22,7 @@ class OfflineTrainer:
                  train_config,
                  pretrain_focus=None,
                  use_cuda=True,
+                 data_on_cuda=False,
                  load_masks=False,
                  seed=665,
                  ):
@@ -32,6 +33,7 @@ class OfflineTrainer:
 
         cuda_condition = torch.cuda.is_available() and use_cuda
         self.device = torch.device("cuda" if cuda_condition else "cpu")
+        self.data_on_cuda = data_on_cuda
 
         self.model = transformer.to(self.device)
         self.train_config = train_config
@@ -138,6 +140,13 @@ class OfflineTrainer:
                 continue
 
             inputs, masks, labels = data_tuple
+
+            # put data on cuda if it's not there already
+            if not self.data_on_cuda and self.device.type == 'cuda':
+                inputs = tuple(map(lambda z: z.to(self.device), inputs))
+                if masks is not None:
+                    masks = masks.to(self.device)
+                labels = labels.to(self.device)
 
             shuffled_indices = self.rng.permutation(np.prod(inputs[0].size()[:2]))
             inputs = tuple(map(lambda z: _shuffle(z, shuffled_indices), inputs))
@@ -315,18 +324,14 @@ class OfflineTrainer:
     def act_elim_fwd(self):
         raise NotImplementedError
 
-    def save(self, epoch, file_path="output/bert_trained.model"):
-        """
-        Saving the current BERT model on file_path
-        :param epoch: current epoch number
-        :param file_path: model output path which gonna be file_path+"ep%d" % epoch
-        :return: final_output_path
-        """
-        output_path = file_path + ".ep%d" % epoch
-        torch.save(self.bert.cpu(), output_path)
-        self.bert.to(self.device)
-        print("EP:%d Model Saved on:" % epoch, output_path)
-        return output_path
+    def set_pretrain_focus(self, new_pretrain_objectives):
+        if not isinstance(new_pretrain_objectives, list):
+            new_pretrain_objectives = [new_pretrain_objectives]
+
+        print('Previous focus was on:\n{}\n'.format(self.pretrain_focus))
+        print('Setting new focus on:\n{}\n'.format(self.new_pretrain_objectives))
+
+        self.pretrain_focus = new_pretrain_objectives
 
     def _load_data(self, only_load_best_eps=True, load_masks=False):
         data_dict_dict, loaded_from = load_data(self.data_config, load_extra_stuff=False, verbose=False)
@@ -396,26 +401,48 @@ class OfflineTrainer:
                     batched_masks.append(self.model.encoder.create_attention_mask(masks[batch_indices]).unsqueeze(0))
                 batched_labels[b] = labels[batch_indices]
 
-            if batched_masks:
-                batched_data_tuple = (
-                    (
-                        torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
-                        torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
-                        torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
-                    ),
-                    torch.cat(batched_masks).to(self.device),
-                    torch.tensor(batched_labels, dtype=torch.long, device=self.device),
-                )
+            if self.data_on_cuda:
+                if batched_masks:
+                    batched_data_tuple = (
+                        (
+                            torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
+                            torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
+                            torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
+                        ),
+                        torch.cat(batched_masks).to(self.device),
+                        torch.tensor(batched_labels, dtype=torch.long, device=self.device),
+                    )
+                else:
+                    batched_data_tuple = (
+                        (
+                            torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
+                            torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
+                            torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
+                        ),
+                        None,
+                        torch.tensor(batched_labels, dtype=torch.long, device=self.device),
+                    )
             else:
-                batched_data_tuple = (
-                    (
-                        torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
-                        torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
-                        torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
-                    ),
-                    None,
-                    torch.tensor(batched_labels, dtype=torch.long, device=self.device),
-                )
+                if batched_masks:
+                    batched_data_tuple = (
+                        (
+                            torch.tensor(batched_token_ids, dtype=torch.long),
+                            torch.tensor(batched_type_ids, dtype=torch.long),
+                            torch.tensor(batched_position_ids, dtype=torch.long),
+                        ),
+                        torch.cat(batched_masks),
+                        torch.tensor(batched_labels, dtype=torch.long),
+                    )
+                else:
+                    batched_data_tuple = (
+                        (
+                            torch.tensor(batched_token_ids, dtype=torch.long),
+                            torch.tensor(batched_type_ids, dtype=torch.long),
+                            torch.tensor(batched_position_ids, dtype=torch.long),
+                        ),
+                        None,
+                        torch.tensor(batched_labels, dtype=torch.long),
+                    )
 
             batched_data_dict.update({type_key: batched_data_tuple})
 

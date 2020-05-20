@@ -15,7 +15,7 @@ IFS=" "
 # where python scripts are at
 cd ../utils
 
-for pretrain_mode in 'ACT_VERB' 'ACT_ENTITY' 'OBS_VERB' 'OBS_ENTITY' 'MLM'
+for pretrain_mode in 'MLM' 'MOM' # 'ACT_VERB' 'ACT_ENTITY' 'OBS_VERB' 'OBS_ENTITY'
 do
   echo "getting pretrain data $game_type mask_prob = $mask_prob $pretrain_mode"
   screen -dmS "get_corrupted_${ADDR[0]}_${ADDR[1]}_$pretrain_mode"

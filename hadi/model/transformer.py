@@ -68,7 +68,7 @@ class TransformerEncoder_NEW(nn.Module):
     def __init__(self, config, encoder_layer):
         super(TransformerEncoder_NEW, self).__init__()
         if config.tie_weights:
-            self.encoder_layer = encoder_layer
+            self.layer = encoder_layer
         else:
             self.layers = _get_clones(encoder_layer, config.num_hidden_layers)
         self.norm = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
@@ -90,7 +90,7 @@ class TransformerEncoder_NEW(nn.Module):
 
         if self.tie_weights:
             for _ in range(self.config.num_hidden_layers):
-                src, attention_weights = self.encoder_layer(src, src_mask=mask, src_key_padding_mask=src_key_padding_mask)
+                src, attention_weights = self.layer(src, src_mask=mask, src_key_padding_mask=src_key_padding_mask)
                 outputs += (src,)
                 attention_outputs += (attention_weights,)
         else:
@@ -206,7 +206,7 @@ class Generator(nn.Module):
                 conversion_dicts.update({mode_: nlp.indx2entity})
             elif 'VERB' in mode_:
                 conversion_dicts.update({mode_: nlp.indx2verb})
-            elif 'MLM' in mode_:
+            elif 'MLM' in mode_ or 'MOM' in mode_:
                 conversion_dicts.update({mode_: nlp.i2w})
             else:   # the rest is PERMUTE data
                 continue
@@ -245,7 +245,7 @@ class Generator(nn.Module):
         if indxs is None:
             indxs = list(conversion_dict.keys())
 
-        if pretrain_mode == 'MLM':
+        if pretrain_mode in ['MLM', 'MOM']:
             # TODO: well there is no illegal indices, the model should learn not to predict these
             # _illegal_indices = [self.config.pad_id, self.config.obs_id, self.config.act_id, self.config.unk_id]
             # indxs = list(filter(lambda i: i not in _illegal_indices, indxs))
@@ -271,7 +271,7 @@ class Generator(nn.Module):
         return object_vectors
 
     def get_x_corrupt(self, x_masked, labels, sampled_indxs, pretrain_mode):
-        if pretrain_mode == 'MLM':  # this corresponds to MLM
+        if pretrain_mode in ['MLM', 'MOM']:  # this corresponds to MLM
             x_corrupt = dc(x_masked)
             x_corrupt[labels != -100] = sampled_indxs[labels != -100]
 
@@ -305,7 +305,7 @@ class Discriminator(nn.Module):
                 conversion_dicts.update({mode_: nlp.entity2indx})
             elif 'VERB' in mode_:
                 conversion_dicts.update({mode_: nlp.verb2indx})
-            elif 'MLM' in mode_:
+            elif 'MLM' in mode_ or 'MOM' in mode_:
                 conversion_dicts.update({mode_: nlp.w2i})
             elif 'ORDER' in mode_:
                 raise NotImplementedError
@@ -320,7 +320,7 @@ class Discriminator(nn.Module):
         self.activation = _get_activation_fn(config.hidden_act)
 
         # TODO: have a single weight for different modes or give each unique w?
-        if set(pretrain_modes).intersection({'ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM'}):
+        if set(pretrain_modes).intersection({'ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM', 'MOM'}):
             self.lin_proj = nn.Linear(config.hidden_size, 1, bias=True)
         elif set(pretrain_modes).intersection({'ACT_ORDER', 'OBS_ORDER', 'ACT_PREDICT', 'OBS_PREDICT'}):
             # self.rnn_proj = nn.GRUCell(config.hidden_size, 1) ## for when 2nd stage attn is needed
@@ -334,8 +334,8 @@ class Discriminator(nn.Module):
 
     def forward(self, transformer_hidden, flat_indices, pretrain_mode):
         # these are pre-sigmoid, the loss has sigmoid in it so no need to apply it here
-        if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM']:
-            if pretrain_mode != 'MLM' and len(np.unique([len(item) for item in flat_indices])) > 1:
+        if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM', 'MOM']:
+            if pretrain_mode not in ['MLM', 'MOM'] and len(np.unique([len(item) for item in flat_indices])) > 1:
                 h = torch.cat(list(map(
                     lambda z: torch.mean(transformer_hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), flat_indices
                 )))
@@ -362,7 +362,7 @@ class Discriminator(nn.Module):
     def get_discriminator_labels(self, corrupted_token_ids, masked_token_ids, generator_replaced_labels, gold_labels, pretrain_mode):
         conversion_dict = self.conversion_dicts[pretrain_mode]
 
-        if pretrain_mode == 'MLM':
+        if pretrain_mode in ['MLM', 'MOM']:
             x_masked_flat = masked_token_ids.flatten()
             x_corrupt_flat = corrupted_token_ids.flatten()
 
@@ -414,6 +414,20 @@ class Discriminator(nn.Module):
             flat_indices = [np.array(ranges_chained)[tup[0]] for tup in final_ranges_labels]
 
         return torch.tensor(final_discriminator_labels, dtype=torch.float), flat_indices
+
+
+class Pooler(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.dense = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
+        self.activation = nn.Tanh()
+
+    def forward(self, hidden_states):
+        # hidden_states: (S x N x H)
+        first_token_tensor = hidden_states[0]   # (N x H)
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+        return pooled_output
 
 
 class Transformer(nn.Module):
@@ -517,6 +531,7 @@ class Transformer(nn.Module):
                 k=data_config_dict['k'],
                 mask_prob=data_config_dict['mask_prob'],
                 mlm_mask_prob=data_config_dict['mlm_mask_prob'],
+                mom_mask_prob=data_config_dict['mom_mask_prob'],
                 max_len=data_config_dict['max_len'],
                 eps=data_config_dict['epsilons'][0],
                 train_valid_test=data_config_dict['train_valid_test'])
