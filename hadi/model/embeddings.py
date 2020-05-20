@@ -46,7 +46,19 @@ class Embeddings(nn.Module):
         self.LayerNorm = nn.LayerNorm(config.embedding_size, eps=config.layer_norm_eps, elementwise_affine=True)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
+        # TODO: uncomment these guys after your tests are done
+        # if config.embedding_size != config.hidden_size:
+        #     self.embedding_hidden_mapping_out = nn.Linear(config.embedding_size, config.hidden_size)
+        # else:
+        #     self.embedding_hidden_mapping_out = None
+
     def forward(self, token_ids, type_ids, position_ids=None):
+        """
+        :param token_ids: max_len x batch_size (S, N)
+        :param type_ids: max_len x batch_size (S, N)
+        :param position_ids: max_len x batch_size (S, N)
+        :return: embedded inputs
+        """
         batch_size, seq_length = token_ids.size()
 
         token_embeddings = self.word_embeddings(token_ids)
@@ -64,5 +76,13 @@ class Embeddings(nn.Module):
             + position_embeddings
         )
         embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
-        return embeddings
+        embeddings = self.dropout(embeddings)   # (S, N, E)
+
+        # TODO: uncomment these guys after done
+        # if self.embedding_hidden_mapping_out is not None:
+        #     embeddings = self.embedding_hidden_mapping_out(embeddings)   # (S, N, H)
+
+        return embeddings   # (S, N, H)
+
+
+

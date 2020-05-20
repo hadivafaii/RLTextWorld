@@ -514,6 +514,8 @@ if __name__ == "__main__":
     loop_data = {}
     for max_len in max_lengths:
         for eps in np.arange(0.0, args.eps_step + 1, args.eps_step):
+            if not (eps == 1.00 and max_len in [512]):     # not necessary for now
+                continue
             print('\n\n')
             print('-' * 25, 'max_len={:d},eps={:.2f}'.format(max_len, eps), '-' * 25)
             traj_load_ = pjoin(load_dir, 'traj_data_max_len={:d}.npy'.format(max_len))
@@ -531,7 +533,10 @@ if __name__ == "__main__":
 
             if args.pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
                 outputs, labels, permutations_used = generate_permutated_data(
-                    inputs, config, k=args.k, mode=args.pretrain_mode[:3].lower(),
+                    inputs=inputs,
+                    config=config,
+                    k=args.k,
+                    mode=args.pretrain_mode[:3].lower(),
                 )
                 loop_data.update(
                     {'max_len={:d},eps={:.2f}'.format(max_len, eps): (*outputs, labels, permutations_used)})
@@ -545,9 +550,13 @@ if __name__ == "__main__":
                     else:
                         conversion_dict = lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())]
                     outputs, labels = generate_corrupted_data(
-                        inputs, config, conversion_dict,
-                        max_len=max_len, mask_prob=args.mask_prob,
-                        mode=args.pretrain_mode[:3].lower(), seed=seed,
+                        inputs=inputs,
+                        config=config,
+                        conversion_dict=conversion_dict,
+                        max_len=max_len,
+                        mask_prob=args.mask_prob,
+                        mode=args.pretrain_mode[:3].lower(),
+                        seed=seed,
                     )
                     generated_data_.append([*outputs, labels])
                 outputs, labels = _corrupted_data_processing(generated_data_)

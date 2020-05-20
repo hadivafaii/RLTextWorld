@@ -234,9 +234,9 @@ class OfflineTrainer:
                 #     train_log.update({k: v.item()})
 
                 if i + 1 == num_batches:
-                    desc2 = '{:s}, epoch # {:d}, avg_loss: {:.4f}, avg_gen_corrects: {:.3f} {:s}, avg_disc_corrects: {:.3f} {:s}'
+                    desc2 = 'epoch # {:d}, {:s}, avg_loss: {:.4f}, avg_gen_corrects: {:.3f} {:s}, avg_disc_corrects: {:.3f} {:s}'
                     desc2 = desc2.format(
-                        pretrain_mode, epoch, cuml_loss / num_batches,
+                        epoch, pretrain_mode, cuml_loss / num_batches,
                         cuml_gen_corrects / num_batches, '%',
                         cuml_disc_corrects / num_batches, '%'
                     )
@@ -252,7 +252,10 @@ class OfflineTrainer:
         generator_loss = self.model.generator.loss_fn(gen_preds, masked_labels.flatten())
 
         x_corrupt = self.model.generator.get_x_corrupt(
-            to_np(masked_inputs[0]), to_np(masked_labels).T, to_np(sampled_indxs).T, pretrain_mode)
+            x_masked=to_np(masked_inputs[0]),
+            labels=to_np(masked_labels).T,
+            sampled_indxs=to_np(sampled_indxs).T,
+            pretrain_mode=pretrain_mode)
 
         corrupt_type_ids, corrupt_position_ids = compute_type_position_ids(
             x_corrupt, self.model.config, starting_position_ids=to_np(masked_inputs[2][:, 0]))
@@ -270,11 +273,11 @@ class OfflineTrainer:
         corrupt_hiddens, _, _ = self.model(corrupt_inputs, corrupt_mask)
 
         disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
-            to_np(x_corrupt).T,
-            to_np(masked_inputs[0]).T,
-            to_np(sampled_indxs[masked_labels != -100]),
-            to_np(masked_labels[masked_labels != -100]),
-            pretrain_mode)
+            corrupted_token_ids=to_np(x_corrupt).T,
+            masked_token_ids=to_np(masked_inputs[0]).T,
+            generator_replaced_labels=to_np(sampled_indxs[masked_labels != -100]),
+            gold_labels=to_np(masked_labels[masked_labels != -100]),
+            pretrain_mode=pretrain_mode)
 
         disc_preds = self.model.discriminator(corrupt_hiddens, flat_indices, pretrain_mode)
         discriminator_loss = self.model.discriminator.loss_fn(disc_preds, disc_labels.to(self.device))

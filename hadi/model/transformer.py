@@ -17,6 +17,93 @@ import sys; sys.path.append('..')
 from utils.gen_pretrain_data import get_ranges
 
 
+class TransformerEncoderLayer(nn.Module):
+    def __init__(self, config):
+        super(TransformerEncoderLayer, self).__init__()
+
+        self.self_attn = nn.MultiheadAttention(
+            embed_dim=config.hidden_size,
+            num_heads=config.num_attention_heads,
+            dropout=config.attention_probs_dropout_prob,
+        )
+
+        self.linear1 = nn.Linear(config.hidden_size, config.intermediate_size)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.linear2 = nn.Linear(config.intermediate_size, config.hidden_size)
+
+        self.norm1 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
+        self.norm2 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
+        self.dropout1 = nn.Dropout(config.attention_probs_dropout_prob)
+        self.dropout2 = nn.Dropout(config.hidden_dropout_prob)
+
+        # self.config = config
+        self.activation = _get_activation_fn(config.hidden_act)
+
+    def forward(self, src, src_mask=None, src_key_padding_mask=None):
+        """Pass the input through the encoder layer.
+
+        Args:
+            src: the sequence to the encoder layer (required).
+            src_mask: the mask for the src sequence (optional).
+            src_key_padding_mask: the mask for the src keys per batch (optional).
+
+        Shape:
+            see the docs in Transformer class.
+        """
+        src2, attention_weights = self.self_attn(
+            src, src, src,
+            attn_mask=src_mask,
+            key_padding_mask=src_key_padding_mask
+        )
+        src = src + self.dropout1(src2)
+        src = self.norm1(src)
+        src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
+        src = src + self.dropout2(src2)
+        src = self.norm2(src)
+
+        return src, attention_weights
+
+
+class TransformerEncoder_NEW(nn.Module):
+    def __init__(self, config, encoder_layer):
+        super(TransformerEncoder_NEW, self).__init__()
+        if config.tie_weights:
+            self.encoder_layer = encoder_layer
+        else:
+            self.layers = _get_clones(encoder_layer, config.num_hidden_layers)
+        self.norm = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
+        self.tie_weights = config.tie_weights
+
+    def forward(self, src, mask=None, src_key_padding_mask=None):
+        ## type: (Tensor, Optional[Tensor], Optional[Tensor]) -> Tensor
+        """Pass the input through the encoder layers in turn.
+
+        Args:
+            src: the sequence to the encoder (required).
+            mask: the mask for the src sequence (optional).
+            src_key_padding_mask: the mask for the src keys per batch (optional).
+
+        Shape:
+            see the docs in Transformer class.
+        """
+        outputs, attention_outputs = (src,), ()
+
+        if self.tie_weights:
+            for _ in range(self.config.num_hidden_layers):
+                src, attention_weights = self.encoder_layer(src, src_mask=mask, src_key_padding_mask=src_key_padding_mask)
+                outputs += (src,)
+                attention_outputs += (attention_weights,)
+        else:
+            for layer in self.layers:
+                src, attention_weights = layer(src, src_mask=mask, src_key_padding_mask=src_key_padding_mask)
+                outputs += (src,)
+                attention_outputs += (attention_weights,)
+
+        src = self.norm(src)
+
+        return src, outputs, attention_outputs
+
+
 # TODO: add TransformerEncoderLayer and then if share_weights=True then go ALBERT style
 #  in TransformerEncoder, if not then have separate laters and define _clone_layers function
 class TransformerEncoder(nn.Module):
@@ -291,7 +378,7 @@ class Discriminator(nn.Module):
 
         else:
             ranges_chained, corrupted_ranges_labels = _extract_object_info(
-                corrupted_token_ids,
+                corrupted_token_ids.T,
                 conversion_dict,
                 pretrain_mode,
                 self.config)
@@ -300,7 +387,7 @@ class Discriminator(nn.Module):
             all_lbls_found_corrupt = [tup[1] for tup in corrupted_ranges_labels]
 
             _, masked_ranges_labels = _extract_object_info(
-                masked_token_ids,
+                masked_token_ids.T,
                 conversion_dict,
                 pretrain_mode,
                 self.config)
@@ -313,7 +400,7 @@ class Discriminator(nn.Module):
             pos_i = 0
             neg_i = 0
             for i, lbl in enumerate(all_lbls_found_corrupt):
-                if neg_i < len(generator_replaced_labels) and lbl == generator_replaced_labels[neg_i]:
+                if neg_i < len(generator_replaced_labels.T) and lbl == generator_replaced_labels.T[neg_i]:
                     discriminator_labels[i] = 0
                     neg_i += 1
                 elif pos_i < len(all_lbls_found_masked) and lbl == all_lbls_found_masked[pos_i]:
@@ -393,42 +480,48 @@ class Transformer(nn.Module):
             yaml.dump(data_config_dict, f)
 
     @staticmethod
-    def load(load_id=-1, load_dir=None, verbose=True):
+    def load(model_id=-1, chkpt_id=-1, config=None, data_config=None, load_dir=None, verbose=True):
         if load_dir is None:
             _dir = pjoin(os.environ['HOME'], 'Documents/FTWP/SAVED_MODELS')
             available_models = os.listdir(_dir)
             if verbose:
                 print('Available models to load:\n', available_models)
-            load_dir = pjoin(_dir, available_models[load_id])
+            model_dir = pjoin(_dir, available_models[model_id])
+            available_chkpts = os.listdir(model_dir)
+            if verbose:
+                print('\nAvailable chkpts to load:\n', available_chkpts)
+            load_dir = pjoin(model_dir, available_chkpts[chkpt_id])
 
         if verbose:
-            print('\nLoading from:\n', load_dir)
+            print('\nLoading from:\n{}\n'.format(load_dir))
 
-        with open(pjoin(load_dir, 'config.yaml'), 'r') as stream:
-            try:
-                config_dict = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+        if config is None:
+            with open(pjoin(load_dir, 'config.yaml'), 'r') as stream:
+                try:
+                    config_dict = yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print(exc)
+            config = TransformerConfig(**config_dict)
 
-        with open(pjoin(load_dir, 'data_config.yaml'), 'r') as stream:
-            try:
-                data_config_dict = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+        if data_config is None:
+            with open(pjoin(load_dir, 'data_config.yaml'), 'r') as stream:
+                try:
+                    data_config_dict = yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print(exc)
 
-        loaded_config = TransformerConfig(**config_dict)
-        loaded_data_config = DataConfig(
-            pretrain_modes=data_config_dict['pretrain_modes'],
-            game_type=data_config_dict['game_types'][0].split('/')[0],
-            game_spec=data_config_dict['game_spec'],
-            k=data_config_dict['k'],
-            mask_prob=data_config_dict['mask_prob'],
-            mlm_mask_prob=data_config_dict['mlm_mask_prob'],
-            max_len=data_config_dict['max_len'],
-            eps=data_config_dict['epsilons'][0],
-            train_valid_test=data_config_dict['train_valid_test'])
+            data_config = DataConfig(
+                pretrain_modes=data_config_dict['pretrain_modes'],
+                game_type=data_config_dict['game_types'][0].split('/')[0],
+                game_spec=data_config_dict['game_spec'],
+                k=data_config_dict['k'],
+                mask_prob=data_config_dict['mask_prob'],
+                mlm_mask_prob=data_config_dict['mlm_mask_prob'],
+                max_len=data_config_dict['max_len'],
+                eps=data_config_dict['epsilons'][0],
+                train_valid_test=data_config_dict['train_valid_test'])
 
-        loaded_tmr = Transformer(loaded_config, loaded_data_config)
+        loaded_tmr = Transformer(config, data_config)
         loaded_tmr.load_state_dict(torch.load(pjoin(load_dir, 'model.bin')))
 
         return loaded_tmr
@@ -439,10 +532,7 @@ class Language(object):
         lang_load_file = pjoin(data_config.lang_dir, 'lang_data_max_len={:d}.npy'.format(data_config.max_len))
         lang_data_all = np.load(lang_load_file, allow_pickle=True).item()
 
-        # TODO: different epssilons have different dictionaries so this is not gonna work as is. One hacky way out
-        #  is to choose the winner epsilon and fix the dictionary for that epsilon, but the when loading the data
-        #  in trainer, remember to translate trajectories (token_ids) from other epsilons to this fixed dictionary
-        #  so that you would have a universally consitent dictionary
+        # TODO: different epssilons have different dictionaries so multiple epsilon scenarios are not going to work as is.
 
         max_vocab_size = 0
         winnder_eps = 1.00
@@ -482,6 +572,10 @@ class Language(object):
 
     def preproc(self, string):
         return preproc(string, self.tokenizer)
+
+
+def _get_clones(module, num_copies):
+    return nn.ModuleList([dc(module) for _ in range(num_copies)])
 
 
 # Helper functions
