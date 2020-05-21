@@ -10,10 +10,13 @@ class TransformerConfig:
             type_vocab_size=3,
             embedding_size=32,
             hidden_size=128,
-            num_hidden_layers=3,
-            num_attention_heads=2,
             intermediate_size=512,
-            max_position_embeddings=2048+1,
+            num_hidden_layers=3,
+            decoder_hidden_size=None,
+            decoder_intermediate_size=None,
+            decoder_num_hidden_layers=None,
+            num_attention_heads=2,
+            max_position_embeddings=512+1,
             tie_weights="True",
             hidden_act="gelu",
             hidden_dropout_prob=0.0,
@@ -32,10 +35,26 @@ class TransformerConfig:
         self.vocab_size = vocab_size
         self.type_vocab_size = type_vocab_size
         self.embedding_size = embedding_size
+
         self.hidden_size = hidden_size
-        self.num_hidden_layers = num_hidden_layers
-        self.num_attention_heads = num_attention_heads
+        if decoder_hidden_size is None:
+            self.decoder_hidden_size = hidden_size
+        else:
+            self.decoder_hidden_size = decoder_hidden_size
+
         self.intermediate_size = intermediate_size
+        if decoder_intermediate_size is None:
+            self.decoder_intermediate_size = intermediate_size
+        else:
+            self.decoder_intermediate_size = decoder_intermediate_size
+
+        self.num_hidden_layers = num_hidden_layers
+        if decoder_num_hidden_layers is None:
+            self.decoder_num_hidden_layers = num_hidden_layers
+        else:
+            self.decoder_num_hidden_layers = decoder_num_hidden_layers
+
+        self.num_attention_heads = num_attention_heads
         self.max_position_embeddings = max_position_embeddings
         self.tie_weights = tie_weights
         self.hidden_act = hidden_act

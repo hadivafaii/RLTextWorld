@@ -412,11 +412,9 @@ def load_data(data_config, file_names=None, load_extra_stuff=False, verbose=Fals
                         token_ids = np.array(subgroup['token_ids'])
                         type_ids = np.array(subgroup['type_ids'])
                         position_ids = np.array(subgroup['position_ids'])
-                        mask = np.ones(position_ids.shape)
-                        mask[position_ids == 0] = 0
                         labels = np.array(subgroup['labels'])
 
-                        outputs = (token_ids, type_ids, position_ids, mask, labels)
+                        outputs = (token_ids, type_ids, position_ids, labels)
 
                         if load_extra_stuff:
                             for k in range(4, len(subgroup)):
