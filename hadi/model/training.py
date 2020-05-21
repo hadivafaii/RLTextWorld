@@ -109,9 +109,8 @@ class OfflineTrainer:
         for r in range(nb_rounds):
             for mode in self.pretrain_modes:
                 for epoch in range(ratio_dict[mode]):
-                    self.iteration(
-                        self.train_data, pretrain_mode=mode,
-                        r=r, epoch=epoch, train=True)
+                    self.iteration(self.train_data, pretrain_mode=mode,
+                                   r=r, epoch=epoch, train=True)
 
             if (r + 1) % self.train_config.chkpt_freq == 0:
                 print('Saving chkpt:{:d}'.format(r+1))
@@ -150,10 +149,10 @@ class OfflineTrainer:
         pbar = tqdm(range(num_batches))
         for i in pbar:
             batch_inputs = tuple(map(lambda z: z[i], inputs))
-            batch_masks = self.model.create_attention_mask(batch_inputs[0], mask_unk=True)
+            # batch_masks = self.model.create_attention_mask(batch_inputs[0])
             batch_labels = labels[i]
 
-            encoder_hiddens, _ = self.model(src_inputs=batch_inputs, src_mask=batch_masks)[0]
+            encoder_hiddens, _ = self.model(src_inputs=batch_inputs)[0]
 
             if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM', 'MOM']:
                 if train:
@@ -258,13 +257,13 @@ class OfflineTrainer:
         corrupt_inputs = (x_corrupt, corrupt_type_ids.T, corrupt_position_ids.T)
         corrupt_inputs = tuple(
             map(
-                lambda z: torch.tensor(z, dtype=torch.long, device=self.device) if type(
-                    z) is not torch.Tensor else z.to(self.device), corrupt_inputs
+                lambda z: torch.tensor(z, dtype=torch.long, device=self.device) if
+                type(z) is not torch.Tensor else z.to(self.device), corrupt_inputs
             )
         )
-        corrupt_mask = self.model.create_attention_mask(corrupt_inputs[0])
+        # corrupt_mask = self.model.create_attention_mask(corrupt_inputs[0])
 
-        corrupt_hiddens, _ = self.model(src_inputs=corrupt_inputs, src_mask=corrupt_mask)[0]
+        corrupt_hiddens, _ = self.model(src_inputs=corrupt_inputs)[0]
 
         disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
             corrupted_token_ids=to_np(x_corrupt),

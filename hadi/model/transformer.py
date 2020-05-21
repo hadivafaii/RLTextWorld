@@ -194,152 +194,6 @@ class TransformerDecoder(nn.Module):
 
         return tgt, self_attention_outputs, cross_attention_outputs
 
-# Here lies the old TransformerEncoder
-"""
-# TODO: add TransformerEncoderLayer and then if share_weights=True then go ALBERT style
-#  in TransformerEncoder, if not then have separate laters and define _clone_layers function
-class TransformerEncoder(nn.Module):
-
-    def __init__(self, config):
-        super(TransformerEncoder, self).__init__()
-
-        self.embedding_hidden_mapping_in = nn.Linear(config.embedding_size, config.hidden_size)
-
-        self.self_attn = nn.MultiheadAttention(
-            config.hidden_size, config.num_attention_heads,
-            dropout=config.attention_probs_dropout_prob)
-
-        self.linear1 = nn.Linear(config.hidden_size, config.intermediate_size)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.linear2 = nn.Linear(config.intermediate_size, config.hidden_size)
-
-        self.norm1 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
-        self.norm2 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
-        self.dropout1 = nn.Dropout(config.attention_probs_dropout_prob)
-        self.dropout2 = nn.Dropout(config.hidden_dropout_prob)
-
-      #  self.pooler = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
-      #  self.poooler_activation = nn.Tanh()
-
-        self.config = config
-        self.activation = _get_activation_fn(config.hidden_act)
-
-    def __setstate__(self, state):
-        if 'activation' not in state:
-            state['activation'] = F.relu
-        super(TransformerEncoder, self).__setstate__(state)
-
-    def forward(self, src, src_mask, src_key_padding_mask=None, output_attentions=True):
-        # type: (Tensor, Optional[Tensor], Optional[Tensor], Optional[Bool]) -> Tensor
-        Pass the input through the encoder layer.
-
-        Args:
-            src: the sequence to the encoder layer (required).
-            src_mask: the mask for the src sequence (optional).
-            src_key_padding_mask: the mask for the src keys per batch (optional).
-            output_attentions: sss
-
-        Shape:
-            see the docs in Transformer class.
-        
-
-        # be sure to transpose embedded inside forward of Transformer to get: embedded size = (S, N, E)
-        src 
-# TODO: add TransformerEncoderLayer and then if share_weights=True then go ALBERT style
-#  in TransformerEncoder, if not then have separate laters and define _clone_layers function
-class TransformerEncoder(nn.Module):
-
-    def __init__(self, config):
-        super(TransformerEncoder, self).__init__()
-
-        self.embedding_hidden_mapping_in = nn.Linear(config.embedding_size, config.hidden_size)
-
-        self.self_attn = nn.MultiheadAttention(
-            config.hidden_size, config.num_attention_heads,
-            dropout=config.attention_probs_dropout_prob)
-
-        self.linear1 = nn.Linear(config.hidden_size, config.intermediate_size)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.linear2 = nn.Linear(config.intermediate_size, config.hidden_size)
-
-        self.norm1 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
-        self.norm2 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
-        self.dropout1 = nn.Dropout(config.attention_probs_dropout_prob)
-        self.dropout2 = nn.Dropout(config.hidden_dropout_prob)
-
-      #  self.pooler = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
-      #  self.poooler_activation = nn.Tanh()
-
-        self.config = config
-        self.activation = _get_activation_fn(config.hidden_act)
-
-    def __setstate__(self, state):
-        if 'activation' not in state:
-            state['activation'] = F.relu
-        super(TransformerEncoder, self).__setstate__(state)
-
-    def forward(self, src, src_mask, src_key_padding_mask=None, output_attentions=True):
-        # type: (Tensor, Optional[Tensor], Optional[Tensor], Optional[Bool]) -> Tensor
-        Pass the input through the encoder layer.
-
-        Args:
-            src: the sequence to the encoder layer (required).
-            src_mask: the mask for the src sequence (optional).
-            src_key_padding_mask: the mask for the src keys per batch (optional).
-            output_attentions: sss
-
-        Shape:
-            see the docs in Transformer class.
-        
-
-        # be sure to transpose embedded inside forward of Transformer to get: embedded size = (S, N, E)
-        src = self.embedding_hidden_mapping_in(src)     # (S, N, H)
-
-        outputs, attn_outputs = (src,), ()
-
-        for _ in range(self.config.num_hidden_layers):
-            src2, attn_weights = self.self_attn(
-                src, src, src,
-                attn_mask=src_mask,
-                key_padding_mask=src_key_padding_mask,
-                need_weights=output_attentions,
-            )
-            src = src + self.dropout1(src2)
-            src = self.norm1(src)
-
-            src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-            src = src + self.dropout2(src2)
-            src = self.norm2(src)
-
-            outputs += (src,)
-            attn_outputs += (attn_weights,)
-
-        return src, outputs, attn_outputs
-
-= self.embedding_hidden_mapping_in(src)     # (S, N, H)
-
-        outputs, attn_outputs = (src,), ()
-
-        for _ in range(self.config.num_hidden_layers):
-            src2, attn_weights = self.self_attn(
-                src, src, src,
-                attn_mask=src_mask,
-                key_padding_mask=src_key_padding_mask,
-                need_weights=output_attentions,
-            )
-            src = src + self.dropout1(src2)
-            src = self.norm1(src)
-
-            src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-            src = src + self.dropout2(src2)
-            src = self.norm2(src)
-
-            outputs += (src,)
-            attn_outputs += (attn_weights,)
-
-        return src, outputs, attn_outputs
-"""
-
 
 class Pooler(nn.Module):
     def __init__(self, hidden_size):
@@ -396,9 +250,9 @@ class Transformer(nn.Module):
         Args:
             src_inputs: tuple of tensors (token_ids, type_ids, position_ids) each has size: (S, N)
             tgt_inputs: tuple of tensors (token_ids, type_ids, position_ids) each has size: (T, N)
-                can be None when pretraining encoder
-            src_mask: additive mask for the src sequence. prevents attending to <PAD> and <UNK> tokens
-            tgt_mask: additive mask for the tgt sequence. prevents attending to <PAD> and <UNK> tokens
+                can be None when pretraining only the encoder
+            src_mask: additive mask for the src sequence.
+            tgt_mask: additive mask for the tgt sequence.
             memory_mask: the additive mask for the encoder output. will be set to src_mask if not provided.
             src_key_padding_mask: the ByteTensor mask for src keys per batch (optional).
             tgt_key_padding_mask: the ByteTensor mask for tgt keys per batch (optional).
@@ -427,11 +281,17 @@ class Transformer(nn.Module):
             src_embedded = self.encoder_embedding_mapping_in(src_embedded)      # (S, N, H_enc)
 
         # create attention masks if not provided
-        if src_mask is None:
-            src_mask = self.create_attention_mask(src_inputs[2] > 0)
+        # if src_mask is None:
+        #     src_mask = self.create_attention_mask(src_inputs[2] > 0)
         # TODO: verify this below is actualy what memory_mask is meant to do:
-        if memory_mask is None:
-            memory_mask = src_mask
+        #  I just found out that no this is not correct because: attn_mask: (N*num_heads, T, S)
+        #  So maybe memory_mask = src_mask[:, :max_len_decoder, :],
+        #  where max_len_decoder = len(tgt_inputs[0])
+        # if memory_mask is None:
+        #    memory_mask = src_mask
+
+        if src_key_padding_mask is None:
+            src_key_padding_mask = src_inputs[0].T == self.config.pad_id
 
         encoder_outputs = self.encoder(src_embedded, src_mask=src_mask,
                                        src_key_padding_mask=src_key_padding_mask,
@@ -443,7 +303,7 @@ class Transformer(nn.Module):
             # embed tgt_intputs
             tgt_embedded = self.embeddings(*tgt_inputs)     # (T, N, E)
             if self.config.embedding_size != self.config.decoder_hidden_size:
-                tgt_embedded = self.decoder_embedding_mapping_in(tgt_embedded)  # (S, N, H_dec)
+                tgt_embedded = self.decoder_embedding_mapping_in(tgt_embedded)  # (T, N, H_dec)
 
             memory = encoder_outputs[0]
             if self.config.hidden_size != self.config.decoder_hidden_size:
@@ -454,8 +314,11 @@ class Transformer(nn.Module):
             if not (memory.size(2) == tgt_embedded.size(2) == self.config.hidden_size):
                 raise RuntimeError("the feature number of memory and tgt must be equal to hidden size of the model")
 
-            if tgt_mask is None:
-                tgt_mask = self.create_attention_mask(tgt_inputs[2] > 0)
+            if tgt_key_padding_mask is None:
+                tgt_key_padding_mask = tgt_inputs[0].T == self.config.pad_id
+
+            if memory_key_padding_mask is None:
+                memory_key_padding_mask = src_inputs[0].T == self.config.pad_id
 
             decoder_outputs = self.decoder(tgt, memory=memory,
                                            tgt_mask=tgt_mask, memory_mask=memory_mask,
@@ -489,6 +352,7 @@ class Transformer(nn.Module):
         :param mask_unk: if True the <UNK> positions will be masked
         :return: mask_square_additive: bath_size x max_len x max_len
         """
+        # TODO: this is wrong, completely unnecessary
         if mask_unk:
             mask = torch.logical_and(token_ids != self.config.pad_id,
                                      token_ids != self.config.unk_id).float()
@@ -513,6 +377,8 @@ class Transformer(nn.Module):
         to_hash_dict_ = dc(config_dict)
         to_hash_dict_.update(data_config_dict)
         hashed_info = str(hash(frozenset(sorted(to_hash_dict_))))
+
+        # TODO: add a better save name
 
         if prefix is None:
             prefix = 'chkpt:0'
