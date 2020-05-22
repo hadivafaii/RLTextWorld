@@ -16,7 +16,7 @@ class TransformerConfig:
             decoder_intermediate_size=None,
             decoder_num_hidden_layers=None,
             num_attention_heads=2,
-            max_position_embeddings=512+1,
+            max_position_embeddings=4096,  # 4096
             tie_weights="True",
             hidden_act="gelu",
             hidden_dropout_prob=0.0,
@@ -196,7 +196,6 @@ class DataConfig:
 
         self.game_types = [os.path.join(game_type, _type) for _type in _types]
         self.game_spec = game_spec
-       # self.game_specs = game_specs
 
         self.k = k
         self.mask_prob = mask_prob

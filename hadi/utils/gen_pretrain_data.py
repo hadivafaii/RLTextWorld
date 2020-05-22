@@ -241,6 +241,7 @@ def _get_masked_input(x, ranges, unk_id=3):
 
 
 def compute_type_position_ids(x, config, starting_position_ids=None):
+    # TODO: this function is absolutely fucking not necessary
     if starting_position_ids is None:
         starting_position_ids = np.one(len(x))
 
@@ -250,6 +251,9 @@ def compute_type_position_ids(x, config, starting_position_ids=None):
             (0, x.shape[-1] - tup[1]), constant_values=config.pad_id), axis=0)
             for tup in zip(starting_position_ids, (x > 0).sum(1))]
     )
+
+    # The [TRAJ] always has position = 1
+    # position_ids[:, 0] = np.ones(len(x))
 
     type_ids = (np.ones(x.shape, dtype=int) * config.pad_id).flatten()
 
@@ -316,7 +320,7 @@ def generate_corrupted_data(inputs, config, conversion_dict=None, bag_of_object_
     masked_token_ids = masked_token_ids[~np.all(masked_token_ids == config.pad_id, axis=1)]
     labels_arr = labels_arr[~np.all(labels_arr == -100, axis=1)]
     masked_type_ids, masked_position_ids = compute_type_position_ids(masked_token_ids, config, starting_pos_ids)
-    return [masked_token_ids, masked_type_ids, masked_position_ids], labels_arr.astype(int)
+    return [masked_token_ids, masked_type_ids, position_ids], labels_arr.astype(int)
 
 
 # ------------------------------------------------------------------------------------------------------- #

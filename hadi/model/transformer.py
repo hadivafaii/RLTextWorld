@@ -239,6 +239,9 @@ class Transformer(nn.Module):
         if config.hidden_size != config.decoder_hidden_size:
             self.decoder_src_mapping_in = nn.Linear(config.hidden_size, config.decoder_hidden_size)
 
+        # TODO: the only scenario where this is inefficient is when enc_dim == dec_dim != emb_dim
+        #  in that case there are two separate mapping in layers from emb that have identical shapes
+
         self.init_weights()
 
     def forward(self, src_inputs, tgt_inputs=None,
@@ -279,16 +282,6 @@ class Transformer(nn.Module):
         src_embedded = self.embeddings(*src_inputs)     # (S, N, E)
         if self.config.embedding_size != self.config.hidden_size:
             src_embedded = self.encoder_embedding_mapping_in(src_embedded)      # (S, N, H_enc)
-
-        # create attention masks if not provided
-        # if src_mask is None:
-        #     src_mask = self.create_attention_mask(src_inputs[2] > 0)
-        # TODO: verify this below is actualy what memory_mask is meant to do:
-        #  I just found out that no this is not correct because: attn_mask: (N*num_heads, T, S)
-        #  So maybe memory_mask = src_mask[:, :max_len_decoder, :],
-        #  where max_len_decoder = len(tgt_inputs[0])
-        # if memory_mask is None:
-        #    memory_mask = src_mask
 
         if src_key_padding_mask is None:
             src_key_padding_mask = src_inputs[0].T == self.config.pad_id

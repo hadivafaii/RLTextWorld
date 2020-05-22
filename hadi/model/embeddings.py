@@ -74,6 +74,8 @@ class Embeddings(nn.Module):
         # gold: see     predicted: here
         # gold: here    predicted: see
 
+        # Holy shit the positional embeddings are important! After fixing this my models fit much better
+
         embeddings = token_embeddings + type_embeddings + position_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)

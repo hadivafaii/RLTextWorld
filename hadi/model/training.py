@@ -100,15 +100,18 @@ class OfflineTrainer:
 
         print("\nTotal Parameters:", sum([p.nelement() for p in self.model.parameters()]))
 
-    def train(self, nb_rounds, ratio_dict=None):
-        if ratio_dict is None:
-            ratio_dict = {pretrain_mode: 1 for pretrain_mode in self.pretrain_modes}
-
+    def train(self, rounds, epochs_per_round=None):
         self.model.train()
 
-        for r in range(nb_rounds):
+        if epochs_per_round is None:
+            epochs_per_round = {pretrain_mode: 1 for pretrain_mode in self.pretrain_modes}
+
+        assert type(rounds) in [int, range], "Please provide either range or int"
+
+        rounds = range(rounds) if isinstance(rounds, int) else rounds
+        for r in rounds:
             for mode in self.pretrain_modes:
-                for epoch in range(ratio_dict[mode]):
+                for epoch in range(epochs_per_round[mode]):
                     self.iteration(self.train_data, pretrain_mode=mode,
                                    r=r, epoch=epoch, train=True)
 
@@ -119,12 +122,14 @@ class OfflineTrainer:
     def valid(self):
         self.model.eval()
         with torch.no_grad():
-            self.iteration(self.valid_data)
+            for mode in self.pretrain_modes:
+                self.iteration(self.valid_data, mode)
 
     def test(self):
         self.model.eval()
         with torch.no_grad():
-            self.iteration(self.test_data)
+            for mode in self.pretrain_modes:
+                self.iteration(self.test_data, mode)
 
     def iteration(self, data_dict, pretrain_mode=None, r=0, epoch=0, train=False):
 
@@ -238,36 +243,33 @@ class OfflineTrainer:
         objects_embedded = self.model.generator.embed_objects(
             self.model.embeddings.word_embeddings, pretrain_mode, reduction='mean')
 
-        # masked_labels.transpose_(0, 1)  # max_len x batch_size
+        masked_token_ids, masked_type_ids, masked_position_ids = masked_inputs
 
         gen_preds, sampled_indxs = self.model.generator(encoder_outputs, objects_embedded, masked_labels)
         generator_loss = self.model.generator.loss_fn(gen_preds, masked_labels.flatten())
 
         x_corrupt = self.model.generator.get_x_corrupt(
-            x_masked=to_np(masked_inputs[0]),
+            x_masked=to_np(masked_token_ids),
             labels=to_np(masked_labels),
             sampled_indxs=to_np(sampled_indxs),
             pretrain_mode=pretrain_mode)
 
-        # TODO: there bunch of .T s here that won't be necessary once
-        #  functions in gen pretrain are fixed to go with (S, N) rather than (N, S)
-        corrupt_type_ids, corrupt_position_ids = compute_type_position_ids(
-            x_corrupt.T, self.model.config, starting_position_ids=to_np(masked_inputs[2].T[:, 0]))
+        # corrupt_type_ids, corrupt_position_ids = compute_type_position_ids(
+        #    x_corrupt.T, self.model.config, starting_position_ids=to_np(masked_position_ids.T[:, 0]))
 
-        corrupt_inputs = (x_corrupt, corrupt_type_ids.T, corrupt_position_ids.T)
+        corrupt_inputs = (x_corrupt, masked_type_ids, masked_position_ids)
         corrupt_inputs = tuple(
             map(
                 lambda z: torch.tensor(z, dtype=torch.long, device=self.device) if
                 type(z) is not torch.Tensor else z.to(self.device), corrupt_inputs
             )
         )
-        # corrupt_mask = self.model.create_attention_mask(corrupt_inputs[0])
 
         corrupt_hiddens, _ = self.model(src_inputs=corrupt_inputs)[0]
 
         disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
             corrupted_token_ids=to_np(x_corrupt),
-            masked_token_ids=to_np(masked_inputs[0]),
+            masked_token_ids=to_np(masked_token_ids),
             generator_replaced_labels=to_np(sampled_indxs[masked_labels != -100]),
             gold_labels=to_np(masked_labels[masked_labels != -100]),
             pretrain_mode=pretrain_mode)
