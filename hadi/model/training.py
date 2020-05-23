@@ -364,8 +364,14 @@ class OfflineTrainer:
             batched_position_ids = empty_arr.copy()
             batched_labels = empty_arr.copy()
 
+            shuffled_indices = self.rng.permutation(num_samples)
+            inputs = tuple(map(lambda z: z[:, shuffled_indices], inputs))
+            labels = labels[:, shuffled_indices]
+
             for b in range(num_batches):
-                batch_indices = self.rng.choice(num_samples, size=self.train_config.batch_size)
+                batch_indices = slice(b * self.train_config.batch_size, (b + 1) * self.train_config.batch_size)
+                if b == num_batches - 1 and num_samples % self.train_config.batch_size != 0:
+                    batch_indices = slice(num_samples - self.train_config.batch_size, num_samples)
                 batched_token_ids[b] = inputs[0][:, batch_indices]
                 batched_type_ids[b] = inputs[1][:, batch_indices]
                 batched_position_ids[b] = inputs[2][:, batch_indices]
