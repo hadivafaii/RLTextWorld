@@ -4,6 +4,7 @@ import numpy as np
 from copy import deepcopy as dc
 from itertools import chain, compress
 from datetime import datetime
+from prettytable import PrettyTable
 import yaml
 
 import torch
@@ -227,9 +228,6 @@ class Transformer(nn.Module):
         self.decoder = TransformerDecoder(config, decoder_layer)
         self.decoder_pooler = Pooler(config.decoder_hidden_size)
 
-        self.generator = Generator(config, self.nlp, pretrain_modes=data_config.pretrain_modes)
-        self.discriminator = Discriminator(config, self.nlp, pretrain_modes=data_config.pretrain_modes)
-
         if config.embedding_size != config.hidden_size:
             self.encoder_embedding_mapping_in = nn.Linear(config.embedding_size, config.hidden_size)
 
@@ -242,7 +240,23 @@ class Transformer(nn.Module):
         # TODO: the only scenario where this is inefficient is when enc_dim == dec_dim != emb_dim
         #  in that case there are two separate mapping in layers from emb that have identical shapes
 
+        generator_dicts, discriminator_dicts = {}, {}
+        for pretrain_mode in data_config.pretrain_modes:
+            if pretrain_mode in ['MLM', 'MOM']:
+                generator_dicts.update({pretrain_mode: Generator(config)})
+                discriminator_dicts.update({pretrain_mode: Discriminator(config, pretrain_mode=pretrain_mode)})
+            elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'PAIR_PRED', 'ACT_ELIM']:
+                discriminator_dicts.update({pretrain_mode: Discriminator(config, pretrain_mode=pretrain_mode)})
+            elif pretrain_mode == 'ACT_GEN':
+                continue
+            else:
+                raise ValueError("Invalid pretrain value, '{}', encountered in discriminator".format(pretrain_mode))
+
+        self.generators = nn.ModuleDict(generator_dicts)
+        self.discriminators = nn.ModuleDict(discriminator_dicts)
+
         self.init_weights()
+        self.print_num_params()
 
     def forward(self, src_inputs, tgt_inputs=None,
                 src_mask=None, tgt_mask=None, memory_mask=None,
@@ -339,6 +353,24 @@ class Transformer(nn.Module):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
+    def get_word_embeddings(self):
+        return self.embeddings.word_embeddings(
+            torch.tensor(list[self.nlp.i2w.keys()], dtype=torch.long,
+                         device=self.embeddings.word_embeddings.weight.device))
+
+    def print_num_params(self):
+        t = PrettyTable(['Module Name', 'Num Params'])
+
+        for name, m in self.named_modules():
+            total_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
+            if '.' not in name:
+                if isinstance(m, type(self)):
+                    t.add_row(["Total", "{} k".format(np.round(total_params / 1000, decimals=1))])
+                    t.add_row(['---', '---'])
+                else:
+                    t.add_row([name, "{} k".format(np.round(total_params / 1000, decimals=1))])
+        print(t, '\n\n')
+
     def create_attention_mask(self, token_ids, mask_unk=False):
         """
         :param token_ids: max_len x batch_size
@@ -363,7 +395,8 @@ class Transformer(nn.Module):
 
         return mask_repeated
 
-    def save(self, prefix=None):
+    # TODO: add comment after adding summary writer
+    def save(self, prefix=None, comment=None):
         config_dict = vars(self.config)
         data_config_dict = vars(self.data_config)
 
@@ -441,24 +474,8 @@ class Transformer(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, config, nlp, pretrain_modes):
+    def __init__(self, config):
         super(Generator, self).__init__()
-
-        self.config = config
-        self.pretrain_modes = pretrain_modes
-
-        conversion_dicts = {}
-        for mode_ in pretrain_modes:
-            if 'ENTITY' in mode_:
-                conversion_dicts.update({mode_: nlp.indx2entity})
-            elif 'VERB' in mode_:
-                conversion_dicts.update({mode_: nlp.indx2verb})
-            elif 'MLM' in mode_ or 'MOM' in mode_:
-                conversion_dicts.update({mode_: nlp.i2w})
-            else:   # the rest is PERMUTE data
-                continue
-
-        self.conversion_dicts = conversion_dicts
 
         self.linear = nn.Linear(config.hidden_size, config.embedding_size, bias=True)
         self.norm = nn.LayerNorm(config.embedding_size, config.layer_norm_eps)
@@ -466,198 +483,68 @@ class Generator(nn.Module):
 
         self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
-    def forward(self, encoder_outputs, objects_embedded, labels):
-        x = self.norm(self.activation(self.linear(encoder_outputs)))
+    def forward(self, hiddens, objects_embedded, labels):
+        x = self.norm(self.activation(self.linear(hiddens)))
 
         num_classes = len(objects_embedded)
         predictions = x @ objects_embedded.T
         predictions = predictions.view(-1, num_classes)
 
         if self.config.generator_temperature != 1.0:
-            predictions = predictions / self.config.generator_temperature
+            predictions = predictions / config.generator_temperature
         probs = F.softmax(predictions, dim=1).detach()
         sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape)
 
         return predictions, sampled_indxs
 
-    def embed_objects(self, word_embeddings, pretrain_mode, indxs=None, reduction='mean'):
-        conversion_dict = self.conversion_dicts[pretrain_mode]
-
-        _device = word_embeddings.weight.device
-
-        if indxs is None:
-            indxs = list(conversion_dict.keys())
-
-        if pretrain_mode in ['MLM', 'MOM']:
-            # TODO: well there is no illegal indices, the model should learn not to predict these
-            # _illegal_indices = [self.config.pad_id, self.config.obs_id, self.config.act_id, self.config.unk_id]
-            # indxs = list(filter(lambda i: i not in _illegal_indices, indxs))
-            object_vectors = word_embeddings(torch.tensor(indxs, dtype=torch.long, device=_device))
-
-        elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
-            object_vectors_list_ = []
-            for i in indxs:
-                obj_is = torch.tensor(conversion_dict[i], dtype=torch.long, device=_device)
-                obj_v = word_embeddings(obj_is)
-
-                if reduction == 'mean':
-                    obj_v = torch.mean(obj_v, dim=0, keepdim=True)
-                elif reduction == 'sum':
-                    obj_v = torch.sum(obj_v, dim=0, keepdim=True)
-
-                object_vectors_list_.append(obj_v)
-            object_vectors = torch.cat(object_vectors_list_, dim=0)
-
-        else:
-            raise ValueError("Invalid pretrain mode, {}, encountered in generator".format(pretrain_mode))
-
-        return object_vectors
-
-    def get_x_corrupt(self, x_masked, labels, sampled_indxs, pretrain_mode):
-        if pretrain_mode in ['MLM', 'MOM']:  # this corresponds to MLM
-            x_corrupt = dc(x_masked)
-            x_corrupt[labels != -100] = sampled_indxs[labels != -100]
-
-        elif pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB']:
-            x_corrupt = np.zeros(x_masked.shape, dtype=int)
-            for i in range(len(x_masked)):
-                unk_pos = np.where(labels[i] != -100)[0]
-                x_corrupt[i] = _replace_objects(
-                    x_masked[i],
-                    indices=unk_pos,
-                    replace_with=sampled_indxs[i][unk_pos],
-                    conversion_dict=self.conversion_dicts[pretrain_mode],
-                    unk_id=self.config.unk_id,
-                )[:x_masked.shape[-1]]
-        else:
-            raise ValueError("Invalid pretrain mode, {}, encountered in generator".format(pretrain_mode))
+    @staticmethod
+    def get_x_corrupt(x_masked, labels, sampled_indxs):
+        x_corrupt = dc(x_masked)
+        x_corrupt[labels != -100] = sampled_indxs[labels != -100]
 
         return x_corrupt
 
 
 class Discriminator(nn.Module):
-    def __init__(self, config, nlp, pretrain_modes):
+    def __init__(self, config, pretrain_mode):
         super(Discriminator, self).__init__()
 
         self.config = config
-        self.pretrain_modes = pretrain_modes
 
-        conversion_dicts = {}
-        for mode_ in pretrain_modes:
-            if 'ENTITY' in mode_:
-                conversion_dicts.update({mode_: nlp.entity2indx})
-            elif 'VERB' in mode_:
-                conversion_dicts.update({mode_: nlp.verb2indx})
-            elif 'MLM' in mode_ or 'MOM' in mode_:
-                conversion_dicts.update({mode_: nlp.w2i})
-            elif 'ORDER' in mode_:
-                raise NotImplementedError
-            elif 'PREDICT' in mode_:
-                raise NotImplementedError
-            else:
-                raise ValueError("invalid pretrain mode")
+        if pretrain_mode == 'ACT_ELIM':
+            self.hidden_dim = config.decoder_hidden_size
+        else:
+            self.hidden_dim = config.hidden_size
 
-        self.conversion_dicts = conversion_dicts
-
-        self.dense = nn.Linear(config.hidden_size, config.hidden_size, bias=True)
+        self.dense = nn.Linear(self.hidden_dim, self.hidden_dim, bias=True)
         self.activation = _get_activation_fn(config.hidden_act)
 
-        # TODO: have a single weight for different modes or give each unique w?
-        if set(pretrain_modes).intersection({'ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM', 'MOM'}):
-            # TODO: experiment with bias=False (mathematically there should be no bias here)
-            #  and btw it doesn really matter, maybe this bias helps with that flat line you get initially?
-            self.lin_proj = nn.Linear(config.hidden_size, 1, bias=True)
-        elif set(pretrain_modes).intersection({'ACT_ORDER', 'OBS_ORDER', 'ACT_PREDICT', 'OBS_PREDICT'}):
-            # self.rnn_proj = nn.GRUCell(config.hidden_size, 1) ## for when 2nd stage attn is needed
-            self.rnn_proj = nn.LSTM(config.hidden_size, 1)
-
-        #  self.linear2 = nn.Linear(config.hidden_size, config.embedding_size, bias=True)
-        #  self.norm1 = nn.LayerNorm(config.hidden_size, config.layer_norm_eps)
-        #  self.activation = _get_activation_fn(config.hidden_act)
-
+        self.lin_proj = nn.Linear(self.hidden_dim, 1, bias=True)
         self.loss_fn = nn.BCEWithLogitsLoss()
 
-    def forward(self, transformer_hidden, flat_indices, pretrain_mode):
-        # these are pre-sigmoid, the loss has sigmoid in it so no need to apply it here
-        if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM', 'MOM']:
-            if pretrain_mode not in ['MLM', 'MOM'] and len(np.unique([len(item) for item in flat_indices])) > 1:
-                h = torch.cat(list(map(
-                    lambda z: torch.mean(transformer_hidden.view(-1, self.config.hidden_size)[z], dim=0, keepdim=True), flat_indices
-                )))
-            else:
-                try:    # first make sure flat_indices is a list, not a list of len 1 arrays
-                    flat_indices = [inds.item() for inds in flat_indices]
-                except AttributeError:
-                    pass
-                h = transformer_hidden.view(-1, self.config.hidden_size)[flat_indices]
-            predictions = self.lin_proj(self.activation(self.dense(h)))
-
-        elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
-            predictions = self.rnn_proj(hidden)
-
-        elif pretrain_mode in ['ACT_PREDICT', 'OBS_PREDICT']:
-            raise NotImplemented
-
+    def forward(self, hiddens, flat_indices=None):
+        if flat_indices is not None:
+            h_flat = hiddens.view(-1, self.hidden_dim)[flat_indices]
         else:
-            raise ValueError('invalid pretrain mdoe')
-        #  predictions += do contrastive s
+            h_flat = hiddens.view(-1, self.hidden_dim)
 
-        return predictions.flatten()
+        predictions = self.lin_proj(self.activation(self.dense(h_flat))).flatten()
+        return predictions
 
     def get_discriminator_labels(self, corrupted_token_ids, masked_token_ids,
-                                 generator_replaced_labels, gold_labels, pretrain_mode):
-        conversion_dict = self.conversion_dicts[pretrain_mode]
+                                 generator_replaced_labels, gold_labels):
+        x_masked_flat = masked_token_ids.flatten()
+        x_corrupt_flat = corrupted_token_ids.flatten()
 
-        if pretrain_mode in ['MLM', 'MOM']:
-            x_masked_flat = masked_token_ids.flatten()
-            x_corrupt_flat = corrupted_token_ids.flatten()
+        labels = np.ones(len(x_corrupt_flat))
+        unk_indices = np.where(x_masked_flat == self.config.unk_id)[0]
+        assert len(unk_indices) == len(generator_replaced_labels) == len(gold_labels), "Otherwise something wrong"
+        remaining_fake_indices = np.delete(unk_indices, np.where(generator_replaced_labels == gold_labels)[0])
+        labels[remaining_fake_indices] = 0
 
-            labels = np.ones(len(x_corrupt_flat))
-            unk_indices = np.where(x_masked_flat == self.config.unk_id)[0]
-            assert len(unk_indices) == len(generator_replaced_labels) == len(gold_labels), "Otherwise something wrong"
-            remaining_fake_indices = np.delete(unk_indices, np.where(generator_replaced_labels == gold_labels)[0])
-            labels[remaining_fake_indices] = 0
-
-            _ignore_indices = [self.config.pad_id]     # discriminator loss will not run on these
-            flat_indices = [tup[0] for tup in enumerate(x_corrupt_flat) if tup[1] not in _ignore_indices]
-            final_discriminator_labels = labels[flat_indices]
-
-        else:
-            ranges_chained, corrupted_ranges_labels = _extract_object_info(
-                corrupted_token_ids,
-                conversion_dict,
-                pretrain_mode,
-                self.config)
-
-            corrupted_ranges_labels = sorted(corrupted_ranges_labels, key=lambda tup: tup[0].start)
-            all_lbls_found_corrupt = [tup[1] for tup in corrupted_ranges_labels]
-
-            _, masked_ranges_labels = _extract_object_info(
-                masked_token_ids.T,
-                conversion_dict,
-                pretrain_mode,
-                self.config)
-
-            masked_ranges_labels = sorted(masked_ranges_labels, key=lambda tup: tup[0].start)
-            all_lbls_found_masked = [tup[1] for tup in masked_ranges_labels]
-
-            discriminator_labels = np.ones(len(all_lbls_found_corrupt), dtype=int) * -1
-
-            pos_i = 0
-            neg_i = 0
-            for i, lbl in enumerate(all_lbls_found_corrupt):
-                if neg_i < len(generator_replaced_labels) and lbl == generator_replaced_labels[neg_i]:
-                    discriminator_labels[i] = 0
-                    neg_i += 1
-                elif pos_i < len(all_lbls_found_masked) and lbl == all_lbls_found_masked[pos_i]:
-                    discriminator_labels[i] = 1
-                    pos_i += 1
-
-            valid_obj_indices = np.where(discriminator_labels >= 0)[0]
-            final_discriminator_labels = discriminator_labels[valid_obj_indices]
-            final_ranges_labels = [
-                tup[0] for tup in zip(corrupted_ranges_labels, final_discriminator_labels) if tup[1] >= 0]
-            flat_indices = [np.array(ranges_chained)[tup[0]] for tup in final_ranges_labels]
+        _ignore_indices = [self.config.pad_id]     # discriminator loss will not run on these
+        flat_indices = [tup[0] for tup in enumerate(x_corrupt_flat) if tup[1] not in _ignore_indices]
+        final_discriminator_labels = labels[flat_indices]
 
         return torch.tensor(final_discriminator_labels, dtype=torch.float), flat_indices
 

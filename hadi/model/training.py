@@ -6,6 +6,7 @@ from pprint import pprint
 import torch
 from torch import nn
 from torch.optim import Adam
+from .forward import *
 from .optimizer import Lamb, ScheduledOptim
 import sys; sys.path.append('..')
 from utils.gen_pretrain_data import compute_type_position_ids, load_data
@@ -65,6 +66,9 @@ class OfflineTrainer:
 
         self.pretrain_modes = list(np.unique(pretrain_modes))
 
+        # TODO: take these out into a separate clean function
+        # TODO: add the possibility of easily having separate learning rates for different moduels
+        #  perhaps copy that snipped of code code from GATA repo
         # Setting the optimizer with hyper-param
         if train_config.optim_choice == 'lamb':
             self.optim = Lamb(
@@ -157,32 +161,28 @@ class OfflineTrainer:
             # batch_masks = self.model.create_attention_mask(batch_inputs[0])
             batch_labels = labels[i]
 
-            encoder_hiddens, _ = self.model(src_inputs=batch_inputs)[0]
+            batch_hiddens, _ = self.model(src_inputs=batch_inputs)[0]
 
-            if pretrain_mode in ['ACT_ENTITY', 'ACT_VERB', 'OBS_ENTITY', 'OBS_VERB', 'MLM', 'MOM']:
-                if train:
-                    losses, correct_prediction_stats, _ = self.corrupted_fwd(
-                        encoder_outputs=encoder_hiddens,
-                        masked_inputs=batch_inputs,
-                        masked_labels=batch_labels,
-                        pretrain_mode=pretrain_mode,
-                        return_extras=False)
-                else:
-                    losses, correct_prediction_stats, extra_outputs = self.corrupted_fwd(
-                        encoder_outputs=encoder_hiddens,
-                        masked_inputs=batch_inputs,
-                        masked_labels=batch_labels,
-                        pretrain_mode=pretrain_mode,
-                        return_extras=True)
+            if pretrain_mode in ['MLM', 'MOM']:
+                losses, correct_prediction_stats, _ = corrupted_fwd(
+                    model=self.model,
+                    masked_hiddens=batch_hiddens,
+                    masked_inputs=batch_inputs,
+                    masked_labels=batch_labels,
+                    pretrain_mode=pretrain_mode,
+                    loss_imbalance_lambda=self.train_config.loss_imbalance_lambda)
 
             elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
-                losses, extra_outputs = self.permuted_fwd()
+                losses, extra_outputs = self.permuted_fwd(self.model)
                 raise NotImplementedError
-            elif pretrain_mode in ['ACT_PREDICT', 'OBS_PREDICT', 'PAIR_PRED']:
-                losses, extra_outputs = self.pred_fwd()
+            elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'PAIR_PRED']:
+                losses, extra_outputs = self.pred_fwd(self.model)
                 raise NotImplementedError
             elif pretrain_mode in ['ACT_ELIM']:
-                losses, extra_outputs = self.act_elim_fwd()
+                losses, extra_outputs = self.act_elim_fwd(self.model)
+                raise NotImplementedError
+            elif pretrain_mode in ['ACT_GEN']:
+                losses, extra_outputs = self.act_gen_fwd(self.model)
                 raise NotImplementedError
             else:
                 raise ValueError("Invalid pretrain mode: {}".format(pretrain_mode))
@@ -238,77 +238,6 @@ class OfflineTrainer:
                     cuml_disc_corrects / num_batches, '%'
                 )
                 pbar.set_description(desc2)
-
-    def corrupted_fwd(self, encoder_outputs, masked_inputs, masked_labels, pretrain_mode, return_extras=False):
-        objects_embedded = self.model.generator.embed_objects(
-            self.model.embeddings.word_embeddings, pretrain_mode, reduction='mean')
-
-        masked_token_ids, masked_type_ids, masked_position_ids = masked_inputs
-
-        gen_preds, sampled_indxs = self.model.generator(encoder_outputs, objects_embedded, masked_labels)
-        generator_loss = self.model.generator.loss_fn(gen_preds, masked_labels.flatten())
-
-        x_corrupt = self.model.generator.get_x_corrupt(
-            x_masked=to_np(masked_token_ids),
-            labels=to_np(masked_labels),
-            sampled_indxs=to_np(sampled_indxs),
-            pretrain_mode=pretrain_mode)
-
-        # corrupt_type_ids, corrupt_position_ids = compute_type_position_ids(
-        #    x_corrupt.T, self.model.config, starting_position_ids=to_np(masked_position_ids.T[:, 0]))
-
-        corrupt_inputs = (x_corrupt, masked_type_ids, masked_position_ids)
-        corrupt_inputs = tuple(
-            map(
-                lambda z: torch.tensor(z, dtype=torch.long, device=self.device) if
-                type(z) is not torch.Tensor else z.to(self.device), corrupt_inputs
-            )
-        )
-
-        corrupt_hiddens, _ = self.model(src_inputs=corrupt_inputs)[0]
-
-        disc_labels, flat_indices = self.model.discriminator.get_discriminator_labels(
-            corrupted_token_ids=to_np(x_corrupt),
-            masked_token_ids=to_np(masked_token_ids),
-            generator_replaced_labels=to_np(sampled_indxs[masked_labels != -100]),
-            gold_labels=to_np(masked_labels[masked_labels != -100]),
-            pretrain_mode=pretrain_mode)
-
-        disc_preds = self.model.discriminator(corrupt_hiddens, flat_indices, pretrain_mode)
-        discriminator_loss = self.model.discriminator.loss_fn(disc_preds, disc_labels.to(self.device))
-
-        losses = {
-            'gen_loss': generator_loss,
-            'disc_loss': discriminator_loss * self.train_config.loss_imbalance_lambda,
-        }
-        correct_prediction_stats = {
-            'num_gen_corrects': masked_labels.eq(sampled_indxs).sum().item(),
-            'tot_masked': (~masked_labels.eq(-100)).sum().item(),
-            'num_disc_corrects': (torch.sigmoid(disc_preds).cpu().ge(0.5).float().eq(disc_labels)).sum().item(),
-            'tot_tokens': len(disc_labels),
-        }
-        if return_extras:
-            extra_outputs = {
-                'generator_predictions': gen_preds,
-                'generator_sampled_labels': sampled_indxs[masked_labels != -100],
-                'x_corrupt': x_corrupt, 'flat_indices': flat_indices,
-                'discriminator_predictions': disc_preds,
-                'discriminator_gold_labels': disc_labels,
-            }
-            outputs = (losses, correct_prediction_stats, extra_outputs)
-        else:
-            outputs = (losses, correct_prediction_stats, None)
-
-        return outputs
-
-    def permuted_fwd(self):
-        raise NotImplementedError
-
-    def pred_fwd(self):
-        raise NotImplementedError
-
-    def act_elim_fwd(self):
-        raise NotImplementedError
 
     def _load_data(self, only_load_best_eps=True):
         data_dict_dict, loaded_from = load_data(self.data_config, load_extra_stuff=False, verbose=False)
