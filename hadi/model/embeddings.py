@@ -41,7 +41,8 @@ class Embeddings(nn.Module):
         pe = _get_postitional_embeddings(config.max_position_embeddings - 1, config.embedding_size)
         pe = torch.cat([torch.zeros((1, config.embedding_size)), pe])  # padding_idx = 0
         self.position_embeddings.weight.data.copy_(pe)
-        self.position_embeddings.weight.requaire_grad = False
+        for param in self.position_embeddings.parameters():
+            param.requires_grad = False
 
         self.LayerNorm = nn.LayerNorm(config.embedding_size, eps=config.layer_norm_eps, elementwise_affine=True)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)

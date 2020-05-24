@@ -1,4 +1,18 @@
 import torch
+import sys; sys.path.append('..')
+from utils.utils import to_np
+
+
+def pred_fwd(model):
+    raise NotImplementedError
+
+
+def act_elim_fwd(model):
+    raise NotImplementedError
+
+
+def act_gen_fwd(model):
+    raise NotImplementedError
 
 
 def corrupted_fwd(model, masked_hiddens, masked_inputs, masked_labels,
@@ -9,9 +23,9 @@ def corrupted_fwd(model, masked_hiddens, masked_inputs, masked_labels,
 
     gen_preds, sampled_indxs = model.generators[pretrain_mode](
         hiddens=masked_hiddens,
-        objects_embedded=model.get_word_embeddings(),
+        objects_embedded=model.get_word_embeddings(_device),
         labels=masked_labels)
-    generator_loss = model.generator.loss_fn(gen_preds, masked_labels.flatten())
+    generator_loss = model.generators[pretrain_mode].loss_fn(gen_preds, masked_labels.flatten())
 
     x_corrupt = model.generators[pretrain_mode].get_x_corrupt(
         x_masked=to_np(masked_token_ids),
@@ -60,15 +74,3 @@ def corrupted_fwd(model, masked_hiddens, masked_inputs, masked_labels,
         outputs = (losses, correct_prediction_stats, None)
 
     return outputs
-
-
-def pred_fwd(model):
-    raise NotImplementedError
-
-
-def act_elim_fwd(model):
-    raise NotImplementedError
-
-
-def act_gen_fwd(model):
-    raise NotImplementedError

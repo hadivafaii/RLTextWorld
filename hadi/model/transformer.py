@@ -353,10 +353,9 @@ class Transformer(nn.Module):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def get_word_embeddings(self):
-        return self.embeddings.word_embeddings(
-            torch.tensor(list[self.nlp.i2w.keys()], dtype=torch.long,
-                         device=self.embeddings.word_embeddings.weight.device))
+    def get_word_embeddings(self, device):
+        indxs = torch.tensor(list(self.nlp.i2w.keys()), dtype=torch.long, device=device)
+        return self.embeddings.word_embeddings(indxs)
 
     def print_num_params(self):
         t = PrettyTable(['Module Name', 'Num Params'])
@@ -481,6 +480,7 @@ class Generator(nn.Module):
         self.norm = nn.LayerNorm(config.embedding_size, config.layer_norm_eps)
         self.activation = _get_activation_fn(config.hidden_act)
 
+        self.temperature = config.generator_temperature
         self.loss_fn = nn.CrossEntropyLoss(ignore_index=-100)
 
     def forward(self, hiddens, objects_embedded, labels):
@@ -490,7 +490,7 @@ class Generator(nn.Module):
         predictions = x @ objects_embedded.T
         predictions = predictions.view(-1, num_classes)
 
-        if self.config.generator_temperature != 1.0:
+        if self.temperature != 1.0:
             predictions = predictions / config.generator_temperature
         probs = F.softmax(predictions, dim=1).detach()
         sampled_indxs = probs.multinomial(num_samples=1).view(labels.shape)

@@ -9,7 +9,7 @@ from torch.optim import Adam
 from .forward import *
 from .optimizer import Lamb, ScheduledOptim
 import sys; sys.path.append('..')
-from utils.gen_pretrain_data import compute_type_position_ids, load_data
+from utils.gen_pretrain_data import load_data
 from utils.utils import to_np
 
 
@@ -66,41 +66,9 @@ class OfflineTrainer:
 
         self.pretrain_modes = list(np.unique(pretrain_modes))
 
-        # TODO: take these out into a separate clean function
-        # TODO: add the possibility of easily having separate learning rates for different moduels
-        #  perhaps copy that snipped of code code from GATA repo
-        # Setting the optimizer with hyper-param
-        if train_config.optim_choice == 'lamb':
-            self.optim = Lamb(
-                filter(lambda p: p.requires_grad, self.model.parameters()),
-                lr=train_config.lr,
-                betas=train_config.betas,
-                weight_decay=train_config.weight_decay,
-                adam=False,
-            )
-
-        elif train_config.optim_choice == 'adam':
-            self.optim = Adam(
-                filter(lambda p: p.requires_grad, self.model.parameters()),
-                lr=train_config.lr,
-                betas=train_config.betas,
-                weight_decay=train_config.weight_decay,
-            )
-
-        elif train_config.optim_choice == 'adam_with_warmup':
-            self.optim = Adam(
-                filter(lambda p: p.requires_grad, self.model.parameters()),
-                lr=train_config.lr,
-                betas=train_config.betas,
-                weight_decay=train_config.weight_decay,
-            )
-            self.optim_schedule = ScheduledOptim(
-                self.optim, transformer.config.hidden_size, n_warmup_steps=self.train_config.warmup_steps)
-
-        else:
-            raise ValueError("Invalid optimizer choice: {}".format(train_config.optim_chioce))
-
-        self.log_freq = train_config.log_freq
+        self.optim = None
+        self.optim_schedule = None
+        self.setup_optim()
 
         print("\nTotal Parameters:", sum([p.nelement() for p in self.model.parameters()]))
 
@@ -136,20 +104,20 @@ class OfflineTrainer:
                 self.iteration(self.test_data, mode)
 
     def iteration(self, data_dict, pretrain_mode=None, r=0, epoch=0, train=False):
+        # get data tuple: (token_ids, type_ids, position_ids, labels)
+        data_tuple = data_dict[pretrain_mode]
+
+        # shuffle data
+        num_batches = len(data_tuple[0])
+        shuffled_indices = self.rng.permutation(num_batches)
+        data_tuple = tuple(map(lambda z: z[shuffled_indices], data_tuple))
 
         # put data on cuda if it's not there already
         if not self.data_on_cuda and self.device.type == 'cuda':
             data_tuple = tuple(map(lambda z: z.to(self.device), data_dict[pretrain_mode]))
-        else:
-            data_tuple = data_dict[pretrain_mode]
-
-        shuffled_indices = self.rng.permutation(data_tuple[0].size()[0])
-        data_tuple = tuple(map(lambda z: z[shuffled_indices], data_tuple))
 
         inputs = data_tuple[:3]
         labels = data_tuple[3]
-
-        num_batches = len(inputs[0])
 
         cuml_loss = 0.0
         cuml_gen_corrects = 0.0
@@ -158,7 +126,6 @@ class OfflineTrainer:
         pbar = tqdm(range(num_batches))
         for i in pbar:
             batch_inputs = tuple(map(lambda z: z[i], inputs))
-            # batch_masks = self.model.create_attention_mask(batch_inputs[0])
             batch_labels = labels[i]
 
             batch_hiddens, _ = self.model(src_inputs=batch_inputs)[0]
@@ -206,10 +173,7 @@ class OfflineTrainer:
                 msg1 += "{}: {:.3f}, ".format(k, v.item())
             msg1 += "tot_loss: {:.3f}".format(loss.item())
 
-            # msg2 = "corrects: {:d}, total = {:d}, percent correct = {:.2f} {:s}"
-            # msg2 = msg2.format(num_corrects, num_total, 100 * (num_corrects / num_total), '%')
-
-            desc1 = msg0 + '\t|\t' + msg1  # + ' |\t' + msg2
+            desc1 = msg0 + '\t|\t' + msg1
             pbar.set_description(desc1)
 
             cuml_loss += loss.item()
@@ -238,6 +202,84 @@ class OfflineTrainer:
                     cuml_disc_corrects / num_batches, '%'
                 )
                 pbar.set_description(desc2)
+
+    def setup_optim(self, large_lr_parameters_keywords=None, freeze_parameters_keywords=None):
+        if large_lr_parameters_keywords is None:
+            large_lr_parameters_keywords = ['generators', 'discriminators']
+        else:
+            assert isinstance(large_lr_parameters_keywords, list), "Must provide a list of keywords"
+        if freeze_parameters_keywords is None:
+            freeze_parameters_keywords = []
+        else:
+            assert isinstance(freeze_parameters_keywords, list), "Must provide a list of keywords"
+
+        # should be changed into torch.nn.ParameterList()
+        param_freeze_list = []
+        param_small_lr_list = []
+        param_large_lr_list = []
+
+        for k, v in self.model.named_parameters():
+            small_lr = True
+            for large_keyword in large_lr_parameters_keywords:
+                if large_keyword in k:
+                    param_large_lr_list.append(v)
+                    small_lr = False
+                    break
+            for freeze_keyword in freeze_parameters_keywords:
+                if freeze_keyword in k:
+                    param_freeze_list.append(v)
+                    small_lr = False
+                    break
+            if small_lr:
+                param_small_lr_list.append(v)
+
+        param_freeze_list = nn.ParameterList(param_freeze_list)
+        for param in param_freeze_list:
+            param.requires_grad = False
+
+        param_small_lr_list = nn.ParameterList(param_small_lr_list)
+        param_large_lr_list = nn.ParameterList(param_large_lr_list)
+
+        params_dict = [
+            {'params': param_small_lr_list, 'lr': self.train_config.lr},
+            {'params': param_large_lr_list, 'lr': 25 * self.train_config.lr},
+        ]
+
+        print('Total number of freeze params: {}'.format(
+            sum(p.numel() for p in self.model.parameters() if not p.requires_grad)))
+        print('Total number of params with small lr: {}'.format(
+            sum(p.numel() for p in param_small_lr_list if p.requires_grad)))
+        print('Total number of params with large lr: {}'.format(
+            sum(p.numel() for p in param_large_lr_list if p.requires_grad)))
+
+        if self.train_config.optim_choice == 'lamb':
+            self.optim = Lamb(
+                params_dict,
+                lr=self.train_config.lr,
+                betas=self.train_config.betas,
+                weight_decay=self.train_config.weight_decay,
+                adam=False,
+            )
+
+        elif self.train_config.optim_choice == 'adam':
+            self.optim = Adam(
+                params_dict,
+                lr=self.train_config.lr,
+                betas=self.train_config.betas,
+                weight_decay=self.train_config.weight_decay,
+            )
+
+        elif self.train_config.optim_choice == 'adam_with_warmup':
+            self.optim = Adam(
+                params_dict,
+                lr=self.train_config.lr,
+                betas=self.train_config.betas,
+                weight_decay=self.train_config.weight_decay,
+            )
+            self.optim_schedule = ScheduledOptim(
+                self.optim, self.model.config.hidden_size, n_warmup_steps=self.train_config.warmup_steps)
+        else:
+            raise ValueError("Invalid optimizer choice: {}".format(train_config.optim_chioce))
 
     def _load_data(self, only_load_best_eps=True):
         data_dict_dict, loaded_from = load_data(self.data_config, load_extra_stuff=False, verbose=False)
@@ -273,6 +315,7 @@ class OfflineTrainer:
         print('Data loaded from:')
         try:
             pprint(list(map(lambda s: s.replace(redundant_str, '~'), loaded_from)))
+            print('\n')
         except AttributeError:
             pass
         return data_dict_cat_eps
