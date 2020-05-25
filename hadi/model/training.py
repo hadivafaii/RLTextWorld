@@ -72,8 +72,10 @@ class OfflineTrainer:
 
         if comment is None:
             comment = ""
-            for k, v in epochs_per_round.items():
-                comment += "{}:{}-".format(k, v)
+            for pretrain_modes in self.pretrain_modes:
+                comment += "{}+".format(pretrain_modes)
+            comment += 'lr:{:.1e}'.format(self.train_config.lr)
+            comment += 'lr:{:.1e}'.format(self.train_config.batch_size)
 
         self.writer = SummaryWriter(
             pjoin(self.train_config.runs_dir, "{}_{}".format(comment, datetime.now().strftime("[%Y_%m_%d_%H:%M]"))))

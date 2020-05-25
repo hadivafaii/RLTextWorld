@@ -1,6 +1,5 @@
 import os
 import yaml
-from collections import namedtuple
 
 
 class TransformerConfig:
@@ -8,8 +7,7 @@ class TransformerConfig:
         self,
             vocab_size=1024,
             type_vocab_size=3,
-            max_len=512,
-            max_position_embeddings=None,
+            max_position_embeddings=512 + 1,
             embedding_size=32,
             hidden_size=128,
             intermediate_size=512,
@@ -36,13 +34,7 @@ class TransformerConfig:
 
         self.vocab_size = vocab_size
         self.type_vocab_size = type_vocab_size
-        self.max_len = max_len
-
-        if max_position_embeddings is None:
-            self.max_position_embeddings = max_len + 1
-        else:
-            self.max_position_embeddings = max_position_embeddings
-
+        self.max_position_embeddings = max_position_embeddings
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
         self.intermediate_size = intermediate_size
@@ -100,9 +92,10 @@ class DataConfig:
         super(DataConfig).__init__()
 
         _allowed_modes = [
-            'ACT_ORDER', 'ACT_ENTITY', 'ACT_VERB',
-            'OBS_ORDER', 'OBS_ENTITY', 'OBS_VERB',
             'MLM', 'MOM',
+            'ACT_PRED', 'OBS_PRED',
+            'ACT_ELIM', 'ACT_GEN',
+            # 'ACT_ORDER', 'OBS_ORDER',
         ]
         _allowed_tw_simple_specs = [
             'ns', 'nb', 'nd',
@@ -115,7 +108,6 @@ class DataConfig:
         ]
 
         # TODO: add 'ALL' here and figure out a way to jointly train on all datasets
-        # TODO: add MLM also
 
         if train_valid_test:
             _types = ['train', 'valid', 'test']
@@ -152,26 +144,18 @@ class DataConfig:
             if game_spec not in _allowed_tw_simple_specs:
                 raise ValueError('incorrect game spec for {:s}.  allowed opetions: \n{}'.format(
                     game_type, _allowed_tw_simple_specs))
-            GameSpecs = namedtuple('GameSpecs', ['goal', 'rewards', 'alias'])
             goal = specs_xtracted[0][1]
             rewards = specs_xtracted[1][1]
-            game_specs = GameSpecs(goal, rewards, game_spec)
             spec_dir = 'goal={:s}-rewards={:s}'.format(goal, rewards)
 
         elif game_type == 'custom':
             if game_spec not in _allowed_custom_specs:
                 raise ValueError('incorrect game spec for {:s}.  allowed opetions: \n{}'.format(
                     game_type, _allowed_custom_specs))
-            GameSpecs = namedtuple('GameSpecs', ['goal', 'wsz', 'nbobj', 'qlen', 'alias'])
             goal = specs_xtracted[0][1]
-            wsz = int(specs_xtracted[1][1])
-            nbobj = int(specs_xtracted[2][1])
-            qlen = int(specs_xtracted[3][1])
-            game_specs = GameSpecs(goal, wsz, nbobj, qlen, game_spec)
             spec_dir = '{:s}/{:s}'.format(goal, game_spec.split('-')[1])
 
         elif game_type == 'tw_cooking':
-            game_specs = None
             spec_dir = ''
         else:
             raise ValueError("Invalid game type value encountered")

@@ -240,17 +240,26 @@ class Transformer(nn.Module):
         # TODO: the only scenario where this is inefficient is when enc_dim == dec_dim != emb_dim
         #  in that case there are two separate mapping in layers from emb that have identical shapes
 
+        self.pretrain_category_dict = {}
+
+        self.pretrain_category_dict.update(dict.fromkeys(['MLM', 'MOM'], 'MLM'))
+        self.pretrain_category_dict.update(dict.fromkeys(['ACT_PRED', 'OBS_PRED'], 'PRED'))
+        self.pretrain_category_dict.update(dict.fromkeys(['ACT_ELIM'], 'AE'))
+        self.pretrain_category_dict.update(dict.fromkeys(['ACT_GEN'], 'AG'))
+
+        current_categories = list(np.unique([self.pretrain_category_dict[x] for x in data_config.pretrain_modes]))
+
         generator_dicts, discriminator_dicts = {}, {}
-        for pretrain_mode in data_config.pretrain_modes:
-            if pretrain_mode in ['MLM', 'MOM']:
-                generator_dicts.update({pretrain_mode: Generator(config)})
-                discriminator_dicts.update({pretrain_mode: Discriminator(config, pretrain_mode=pretrain_mode)})
-            elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'PAIR_PRED', 'ACT_ELIM']:
-                discriminator_dicts.update({pretrain_mode: Discriminator(config, pretrain_mode=pretrain_mode)})
-            elif pretrain_mode == 'ACT_GEN':
+        for category in current_categories:
+            if category == 'MLM':
+                generator_dicts.update({category: Generator(config)})
+                discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
+            elif category in ['PRED', 'AE']:
+                discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
+            elif category == 'AG':
                 continue
             else:
-                raise ValueError("Invalid pretrain value, '{}', encountered in discriminator".format(pretrain_mode))
+                raise ValueError("Invalid pretrain category, '{}', encountered in discriminator".format(category))
 
         self.generators = nn.ModuleDict(generator_dicts)
         self.discriminators = nn.ModuleDict(discriminator_dicts)
@@ -394,7 +403,6 @@ class Transformer(nn.Module):
 
         return mask_repeated
 
-    # TODO: add comment after adding summary writer
     def save(self, prefix=None, comment=None):
         config_dict = vars(self.config)
         data_config_dict = vars(self.data_config)
@@ -403,14 +411,12 @@ class Transformer(nn.Module):
         to_hash_dict_.update(data_config_dict)
         hashed_info = str(hash(frozenset(sorted(to_hash_dict_))))
 
-        # TODO: add a better save name
-
         if prefix is None:
             prefix = 'chkpt:0'
 
         save_dir = pjoin(
             self.data_config.model_save_dir,
-            "[{:s}]".format(hashed_info),
+            "[{}_{:s}]".format(comment, hashed_info),
             "{}_{:s}".format(prefix, datetime.now().strftime("[%Y_%m_%d_%H:%M]")))
 
         os.makedirs(save_dir, exist_ok=True)
@@ -506,12 +512,12 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, config, pretrain_mode):
+    def __init__(self, config, pretrain_category):
         super(Discriminator, self).__init__()
 
         self.config = config
 
-        if pretrain_mode == 'ACT_ELIM':
+        if pretrain_category == 'AE':
             self.hidden_dim = config.decoder_hidden_size
         else:
             self.hidden_dim = config.hidden_size

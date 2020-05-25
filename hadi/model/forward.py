@@ -21,13 +21,15 @@ def corrupted_fwd(model, masked_hiddens, masked_inputs, masked_labels,
     masked_token_ids, masked_type_ids, masked_position_ids = masked_inputs
     _device = masked_hiddens.device
 
-    gen_preds, sampled_indxs = model.generators[pretrain_mode](
+    pretrain_category = model.pretrain_category_dict[pretrain_mode]
+
+    gen_preds, sampled_indxs = model.generators[pretrain_category](
         hiddens=masked_hiddens,
         objects_embedded=model.get_word_embeddings(_device),
         labels=masked_labels)
-    generator_loss = model.generators[pretrain_mode].loss_fn(gen_preds, masked_labels.flatten())
+    generator_loss = model.generators[pretrain_category].loss_fn(gen_preds, masked_labels.flatten())
 
-    x_corrupt = model.generators[pretrain_mode].get_x_corrupt(
+    x_corrupt = model.generators[pretrain_category].get_x_corrupt(
         x_masked=to_np(masked_token_ids),
         labels=to_np(masked_labels),
         sampled_indxs=to_np(sampled_indxs))
@@ -42,14 +44,14 @@ def corrupted_fwd(model, masked_hiddens, masked_inputs, masked_labels,
 
     corrupt_hiddens, _ = model(src_inputs=corrupt_inputs)[0]
 
-    disc_labels, flat_indices = model.discriminators[pretrain_mode].get_discriminator_labels(
+    disc_labels, flat_indices = model.discriminators[pretrain_category].get_discriminator_labels(
         corrupted_token_ids=to_np(x_corrupt),
         masked_token_ids=to_np(masked_token_ids),
         generator_replaced_labels=to_np(sampled_indxs[masked_labels != -100]),
         gold_labels=to_np(masked_labels[masked_labels != -100]))
 
-    disc_preds = model.discriminators[pretrain_mode](corrupt_hiddens, flat_indices)
-    discriminator_loss = model.discriminators[pretrain_mode].loss_fn(disc_preds, disc_labels.to(_device))
+    disc_preds = model.discriminators[pretrain_category](corrupt_hiddens, flat_indices)
+    discriminator_loss = model.discriminators[pretrain_category].loss_fn(disc_preds, disc_labels.to(_device))
 
     losses = {
         'gen_loss': generator_loss,
