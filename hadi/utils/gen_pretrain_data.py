@@ -268,7 +268,7 @@ def compute_type_position_ids(x, config, starting_position_ids=None):
 
 
 def generate_corrupted_data(inputs, config, conversion_dict=None, bag_of_object_tokens=None,
-                            max_len=512, mask_prob=0.25, mode='MLM', seed=665):
+                            reset_positions=True, max_len=512, mask_prob=0.25, mode='MLM', seed=665):
     # TODO: if you actualy verified that ACT_ENTITY etc are useless, come back and fix this
     #  function to make it faster. Remove the whole detect ranges thing and mask the flattened input
     rng = np.random.RandomState(seed)
@@ -320,7 +320,13 @@ def generate_corrupted_data(inputs, config, conversion_dict=None, bag_of_object_
     masked_token_ids = masked_token_ids[~np.all(masked_token_ids == config.pad_id, axis=1)]
     labels_arr = labels_arr[~np.all(labels_arr == -100, axis=1)]
     masked_type_ids, masked_position_ids = compute_type_position_ids(masked_token_ids, config, starting_pos_ids)
-    return [masked_token_ids, masked_type_ids, position_ids], labels_arr.astype(int)
+
+    if reset_positions:
+        outputs = ([masked_token_ids, masked_type_ids, masked_position_ids], labels_arr.astype(int))
+    else:
+        outputs = ([masked_token_ids, masked_type_ids, position_ids], labels_arr.astype(int))
+
+    return outputs
 
 
 # ------------------------------------------------------------------------------------------------------- #

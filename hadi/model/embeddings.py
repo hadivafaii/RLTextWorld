@@ -38,33 +38,33 @@ class Embeddings(nn.Module):
             padding_idx=config.pad_id,
         )
 
-        pe = _get_postitional_embeddings(config.max_position_embeddings - 1, config.embedding_size)
-        pe = torch.cat([torch.zeros((1, config.embedding_size)), pe])  # padding_idx = 0
-        self.position_embeddings.weight.data.copy_(pe)
-        for param in self.position_embeddings.parameters():
-            param.requires_grad = False
+        if config.fixed_pe:
+            pe = _get_postitional_embeddings(config.max_position_embeddings - 1, config.embedding_size)
+            pe = torch.cat([torch.zeros((1, config.embedding_size)), pe])  # padding_idx = 0
+            self.position_embeddings.weight.data.copy_(pe)
+            for param in self.position_embeddings.parameters():
+                param.requires_grad = False
 
         self.LayerNorm = nn.LayerNorm(config.embedding_size, eps=config.layer_norm_eps, elementwise_affine=True)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, token_ids, type_ids, position_ids=None):
+    def forward(self, token_ids, type_ids, position_ids):
         """
         :param token_ids: max_len x batch_size (S, N)
         :param type_ids: max_len x batch_size (S, N)
         :param position_ids: max_len x batch_size (S, N)
         :return: embedded inputs
         """
-        batch_size, seq_length = token_ids.size()
 
         token_embeddings = self.word_embeddings(token_ids)
         type_embeddings = self.type_embeddings(type_ids)
+        position_embeddings = self.position_embeddings(position_ids)
 
-        device = token_ids.device
-        if position_ids is None:
-            position_ids = torch.arange(seq_length, dtype=torch.long, device=device)
-            position_embeddings = self.position_embeddings(position_ids).expand(token_embeddings.size())
-        else:
-            position_embeddings = self.position_embeddings(position_ids)
+        embeddings = token_embeddings + type_embeddings + position_embeddings
+        embeddings = self.LayerNorm(embeddings)
+        embeddings = self.dropout(embeddings)
+
+        return embeddings   # (S, N, H)
 
         # embeddings = (
         #    np.sqrt(self.embedding_size) * (token_embeddings + type_embeddings)
@@ -76,9 +76,3 @@ class Embeddings(nn.Module):
         # gold: here    predicted: see
 
         # Holy shit the positional embeddings are important! After fixing this my models fit much better
-
-        embeddings = token_embeddings + type_embeddings + position_embeddings
-        embeddings = self.LayerNorm(embeddings)
-        embeddings = self.dropout(embeddings)
-
-        return embeddings   # (S, N, H)

@@ -1,9 +1,9 @@
 
 """Lamb optimizer."""
 
-import collections
 import math
 import numpy as np
+from collections import defaultdict
 
 import torch
 from tensorboardX import SummaryWriter
@@ -12,7 +12,7 @@ from torch.optim import Optimizer
 
 def log_lamb_rs(optimizer: Optimizer, event_writer: SummaryWriter, token_count: int):
     """Log a histogram of trust ratio scalars in across layers."""
-    results = collections.defaultdict(list)
+    results = defaultdict(list)
     for group in optimizer.param_groups:
         for p in group['params']:
             state = optimizer.state[p]

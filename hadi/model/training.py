@@ -1,13 +1,21 @@
 import numpy as np
 from tqdm import tqdm
-from tqdm.notebook import tnrange
+# from tqdm.notebook import tnrange
+from os.path import join as pjoin
 from time import sleep
+from datetime import datetime
 from pprint import pprint
+
 import torch
 from torch import nn
 from torch.optim import Adam
+from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
+
 from .forward import *
-from .optimizer import Lamb, ScheduledOptim
+from .dataset import *
+from .optimizer import Lamb, log_lamb_rs, ScheduledOptim
+
 import sys; sys.path.append('..')
 from utils.gen_pretrain_data import load_data
 from utils.utils import to_np
@@ -40,31 +48,21 @@ class OfflineTrainer:
             print("Using {:d} GPUS".format(torch.cuda.device_count()))
             self.model = nn.DataParallel(self.model, device_ids=cuda_devices)
 
+        self.pretrain_modes = None
+
+        self.train_datasets = None
+        self.valid_datasets = None
+        self.test_datasets = None
+
+        self.train_dataloaders = None
+        self.valid_dataloaders = None
+        self.test_dataloaders = None
+
         # Load data
-        loaded_data_all = self._batchify(self._load_data())
-        train_data, valid_data, test_data = {}, {}, {}
-        pretrain_modes = []
-        for type_key, data_tuple in loaded_data_all.items():
-            try:
-                mode_, _type = type_key.split('/')
-                pretrain_mode = mode_.split('-')[0]
-                pretrain_modes.append(pretrain_mode)
-                if _type == 'train':
-                    train_data.update({pretrain_mode: data_tuple})
-                elif _type == 'valid':
-                    valid_data.update({pretrain_mode: data_tuple})
-                elif _type == 'test':
-                    test_data.update({pretrain_mode: data_tuple})
-                else:
-                    raise ValueError("Invalid game type encountered")
-            except IndexError:
-                continue
+        self._setup_datasets(self._load_data())
+        self._setup_dataloaders()
 
-        self.train_data = train_data
-        self.valid_data = valid_data
-        self.test_data = test_data
-
-        self.pretrain_modes = list(np.unique(pretrain_modes))
+        self.writer = None
 
         self.optim = None
         self.optim_schedule = None
@@ -72,24 +70,26 @@ class OfflineTrainer:
 
         print("\nTotal Parameters:", sum([p.nelement() for p in self.model.parameters()]))
 
-    def train(self, rounds, epochs_per_round=None):
+    def train(self, nb_epochs, comment=None):
+        assert type(nb_epochs) in [int, range], "Please provide either range or int"
+
+        if comment is None:
+            comment = ""
+            for k, v in epochs_per_round.items():
+                comment += "{}:{}-".format(k, v)
+
+        self.writer = SummaryWriter(
+            pjoin(self.train_config.runs_dir, "{}_{}".format(comment, datetime.now().strftime("[%Y_%m_%d_%H:%M]"))))
+
         self.model.train()
 
-        if epochs_per_round is None:
-            epochs_per_round = {pretrain_mode: 1 for pretrain_mode in self.pretrain_modes}
+        epochs_range = range(nb_epochs) if isinstance(nb_epochs, int) else nb_epochs
+        for epoch in epochs_range:
+            self.iteration(self.train_dataloaders, epoch=epoch, train=True)
 
-        assert type(rounds) in [int, range], "Please provide either range or int"
-
-        rounds = range(rounds) if isinstance(rounds, int) else rounds
-        for r in rounds:
-            for mode in self.pretrain_modes:
-                for epoch in range(epochs_per_round[mode]):
-                    self.iteration(self.train_data, pretrain_mode=mode,
-                                   r=r, epoch=epoch, train=True)
-
-            if (r + 1) % self.train_config.chkpt_freq == 0:
-                print('Saving chkpt:{:d}'.format(r+1))
-                self.model.save('chkpt:{:d}'.format(r+1))
+            if (epoch + 1) % self.train_config.chkpt_freq == 0:
+                print('Saving chkpt:{:d}'.format(epoch+1))
+                self.model.save('chkpt:{:d}'.format(epoch+1), comment=comment)
 
     def valid(self):
         self.model.eval()
@@ -103,115 +103,136 @@ class OfflineTrainer:
             for mode in self.pretrain_modes:
                 self.iteration(self.test_data, mode)
 
-    def iteration(self, data_dict, pretrain_mode=None, r=0, epoch=0, train=False):
-        # get data tuple: (token_ids, type_ids, position_ids, labels)
-        data_tuple = data_dict[pretrain_mode]
-
-        # shuffle data
-        num_batches = len(data_tuple[0])
-        shuffled_indices = self.rng.permutation(num_batches)
-        data_tuple = tuple(map(lambda z: z[shuffled_indices], data_tuple))
-
-        # put data on cuda if it's not there already
-        if not self.data_on_cuda and self.device.type == 'cuda':
-            data_tuple = tuple(map(lambda z: z.to(self.device), data_dict[pretrain_mode]))
-
-        inputs = data_tuple[:3]
-        labels = data_tuple[3]
-
+    def iteration(self, dataloader_dict, epoch=0, train=False):
         cuml_loss = 0.0
         cuml_gen_corrects = 0.0
         cuml_disc_corrects = 0.0
 
-        pbar = tqdm(range(num_batches))
+        data_iterators = {k: iter(v) for k, v in dataloader_dict.items()}
+        max_num_batches = max([len(dataloader) for dataloader in dataloader_dict.values()])
+
+        pbar = tqdm(range(max_num_batches))
         for i in pbar:
-            batch_inputs = tuple(map(lambda z: z[i], inputs))
-            batch_labels = labels[i]
+            pretrain_losses = {}
+            for pretrain_mode in self.pretrain_modes:
+                _iter = data_iterators[pretrain_mode]
+                try:
+                    data_tuple = next(_iter)
+                except StopIteration:
+                    _iter = iter(dataloader_dict[pretrain_mode])
+                    data_tuple = next(_iter)
 
-            batch_hiddens, _ = self.model(src_inputs=batch_inputs)[0]
+                batch_data_tuple = transpose_send_to_cuda(data_tuple, self.device)
 
-            if pretrain_mode in ['MLM', 'MOM']:
-                losses, correct_prediction_stats, _ = corrupted_fwd(
-                    model=self.model,
-                    masked_hiddens=batch_hiddens,
-                    masked_inputs=batch_inputs,
-                    masked_labels=batch_labels,
-                    pretrain_mode=pretrain_mode,
-                    loss_imbalance_lambda=self.train_config.loss_imbalance_lambda)
+                batch_inputs = batch_data_tuple[:3]
+                batch_labels = batch_data_tuple[3]
 
-            elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
-                losses, extra_outputs = self.permuted_fwd(self.model)
-                raise NotImplementedError
-            elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'PAIR_PRED']:
-                losses, extra_outputs = self.pred_fwd(self.model)
-                raise NotImplementedError
-            elif pretrain_mode in ['ACT_ELIM']:
-                losses, extra_outputs = self.act_elim_fwd(self.model)
-                raise NotImplementedError
-            elif pretrain_mode in ['ACT_GEN']:
-                losses, extra_outputs = self.act_gen_fwd(self.model)
-                raise NotImplementedError
-            else:
-                raise ValueError("Invalid pretrain mode: {}".format(pretrain_mode))
+                batch_hiddens, _ = self.model(src_inputs=batch_inputs)[0]
 
-            loss = sum(loss for loss in losses.values())
+                if pretrain_mode in ['MLM', 'MOM']:
+                    losses, correct_prediction_stats, _ = corrupted_fwd(
+                        model=self.model,
+                        masked_hiddens=batch_hiddens,
+                        masked_inputs=batch_inputs,
+                        masked_labels=batch_labels,
+                        pretrain_mode=pretrain_mode,
+                        loss_imbalance_lambda=self.train_config.loss_imbalance_lambda)
+
+                elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
+                    losses, extra_outputs = self.permuted_fwd(self.model)
+                    raise NotImplementedError
+                elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'PAIR_PRED']:
+                    losses, extra_outputs = self.pred_fwd(self.model)
+                    raise NotImplementedError
+                elif pretrain_mode in ['ACT_ELIM']:
+                    losses, extra_outputs = self.act_elim_fwd(self.model)
+                    raise NotImplementedError
+                elif pretrain_mode in ['ACT_GEN']:
+                    losses, extra_outputs = self.act_gen_fwd(self.model)
+                    raise NotImplementedError
+                else:
+                    raise ValueError("Invalid pretrain mode: {}".format(pretrain_mode))
+
+                loss = sum(x for x in losses.values()) / len(self.pretrain_modes)
+                pretrain_losses.update({pretrain_mode: loss})
+
+                cuml_loss += loss.item()
+
+                try:
+                    percent_gen_corrects = 100.0 * (
+                                correct_prediction_stats['num_gen_corrects'] / correct_prediction_stats['tot_masked'])
+                except KeyError:
+                    percent_gen_corrects = 0.0
+
+                try:
+                    percent_disc_corrects = 100.0 * (
+                            correct_prediction_stats['num_disc_corrects'] / correct_prediction_stats['tot_tokens'])
+                except KeyError:
+                    percent_disc_corrects = 0.0
+
+                cuml_gen_corrects += percent_gen_corrects
+                cuml_disc_corrects += percent_disc_corrects
+
+                global_step = epoch * max_num_batches + i
+                if (global_step + 1) % self.train_config.log_freq == 0:
+                    # add losses to writer
+                    for k, v in losses.items():
+                        self.writer.add_scalar("{}/{}".format(pretrain_mode, k), v.item(), global_step)
+
+                    # add accuracy performance to writer
+                    self.writer.add_scalar('{}/gen_corrects'.format(pretrain_mode), percent_gen_corrects, global_step)
+                    self.writer.add_scalar('{}/disc_corrects'.format(pretrain_mode), percent_disc_corrects, global_step)
+
+                    # add optim state to writer
+                    log_lamb_rs(self.optim, self.writer, global_step)
+
+            final_loss = sum(x for x in pretrain_losses.values())
 
             # backward and optimization only in train
             if train:
                 if self.train_config.optim_choice == 'adam_with_warmup':
-                    self.optim_schedule.zero_grad()
-                    loss.backward()
+                    # self.optim_schedule.zero_grad()
+                    final_loss.backward()
                     self.optim_schedule.step_and_update_lr()
                 else:
                     self.optim.zero_grad()
-                    loss.backward()
+                    final_loss.backward()
                     self.optim.step()
 
-            msg0 = '{:s}, round {:d}. epoch {:d}.'.format(pretrain_mode, r, epoch)
+            msg0 = 'epoch {:d}'.format(epoch)
             msg1 = ""
-            for k, v in losses.items():
+            for k, v in pretrain_losses.items():
                 msg1 += "{}: {:.3f}, ".format(k, v.item())
-            msg1 += "tot_loss: {:.3f}".format(loss.item())
+            msg1 += "tot_loss: {:.3f}".format(final_loss.item())
 
             desc1 = msg0 + '\t|\t' + msg1
             pbar.set_description(desc1)
 
-            cuml_loss += loss.item()
-            cuml_gen_corrects += 100 * (
-                        correct_prediction_stats['num_gen_corrects'] / correct_prediction_stats['tot_masked'])
-            cuml_disc_corrects += 100 * (
-                        correct_prediction_stats['num_disc_corrects'] / correct_prediction_stats['tot_tokens'])
-
-            #   train_log = {
-            #      "pretrain_mode": pretrain_mode,
-            #      "epoch": epoch,
-            #      "iter": i,
-            #      "cuml_loss": cuml_loss,
-            #      "cuml_acc": cuml_percent_corrects,
-            #      "loss": loss.item(),
-            # }
-
-            #  for k, v in losses.items():
-            #     train_log.update({k: v.item()})
-
-            if i + 1 == num_batches:
-                desc2 = 'round # {:d}, {:s}, avg_loss: {:.4f}, avg_gen_corrects: {:.3f} {:s}, avg_disc_corrects: {:.3f} {:s}'
+            global_step = epoch * max_num_batches + i
+            if i + 1 == max_num_batches:
+                desc2 = 'epoch # {:d}, avg_loss: {:.4f}, avg_gen_corrects: {:.3f} {:s}, avg_disc_corrects: {:.3f} {:s}'
                 desc2 = desc2.format(
-                    r, pretrain_mode, cuml_loss / num_batches,
-                    cuml_gen_corrects / num_batches, '%',
-                    cuml_disc_corrects / num_batches, '%'
+                    epoch, cuml_loss / max_num_batches / len(self.pretrain_modes),
+                    cuml_gen_corrects / max_num_batches / len(self.pretrain_modes), '%',
+                    cuml_disc_corrects / max_num_batches / len(self.pretrain_modes), '%',
                 )
                 pbar.set_description(desc2)
 
-    def setup_optim(self, large_lr_parameters_keywords=None, freeze_parameters_keywords=None):
-        if large_lr_parameters_keywords is None:
-            large_lr_parameters_keywords = ['generators', 'discriminators']
-        else:
-            assert isinstance(large_lr_parameters_keywords, list), "Must provide a list of keywords"
-        if freeze_parameters_keywords is None:
-            freeze_parameters_keywords = []
-        else:
-            assert isinstance(freeze_parameters_keywords, list), "Must provide a list of keywords"
+                self.writer.add_embedding(
+                    self.model.get_word_embeddings(self.device),
+                    metadata=list(self.model.nlp.i2w.values()),
+                    global_step=global_step,
+                    tag='Word Emb')
+
+                self.writer.add_embedding(
+                    self.model.embeddings.position_embeddings.weight.data,
+                    metadata=range(self.model.config.max_position_embeddings),
+                    global_step=global_step,
+                    tag='Pos Emb')
+
+    def setup_optim(self):
+        freeze_parameters_keywords = self.train_config.freeze_parameters_keywords
+        large_lr_parameters_keywords = self.train_config.large_lr_parameters_keywords
 
         # should be changed into torch.nn.ParameterList()
         param_freeze_list = []
@@ -242,15 +263,15 @@ class OfflineTrainer:
 
         params_dict = [
             {'params': param_small_lr_list, 'lr': self.train_config.lr},
-            {'params': param_large_lr_list, 'lr': 25 * self.train_config.lr},
+            {'params': param_large_lr_list, 'lr': self.train_config.lr_ratio * self.train_config.lr},
         ]
 
-        print('Total number of freeze params: {}'.format(
-            sum(p.numel() for p in self.model.parameters() if not p.requires_grad)))
-        print('Total number of params with small lr: {}'.format(
-            sum(p.numel() for p in param_small_lr_list if p.requires_grad)))
-        print('Total number of params with large lr: {}'.format(
-            sum(p.numel() for p in param_large_lr_list if p.requires_grad)))
+        print('Total number of freeze params: {:.1f} k'.format(
+            sum(p.numel() for p in self.model.parameters() if not p.requires_grad) / 1000))
+        print('Total number of params with small lr: {:.1f} k'.format(
+            sum(p.numel() for p in param_small_lr_list if p.requires_grad) / 1000))
+        print('Total number of params with large lr: {:.1f} k'.format(
+            sum(p.numel() for p in param_large_lr_list if p.requires_grad) / 1000))
 
         if self.train_config.optim_choice == 'lamb':
             self.optim = Lamb(
@@ -306,10 +327,8 @@ class OfflineTrainer:
             position_ids = np.concatenate(position_ids_list)
             labels = np.concatenate(labels_list)
 
-            # TODO: later fix gen_pretrain kind of functions
-            #  so that you don't have to put .T on all of these here
-            data_typle = ((token_ids.T, type_ids.T, position_ids.T), labels.T)
-            data_dict_cat_eps.update({type_key: data_typle})
+            data_tuple = (token_ids, type_ids, position_ids, labels)
+            data_dict_cat_eps.update({type_key: data_tuple})
 
         redundant_str = '/home/hadi/Documents/FTWP/DATA'
         print('Data loaded from:')
@@ -318,7 +337,63 @@ class OfflineTrainer:
             print('\n')
         except AttributeError:
             pass
+
         return data_dict_cat_eps
+
+    def _setup_datasets(self, data_dict):
+        train_datasets, valid_datasets, test_datasets = {}, {}, {}
+        pretrain_modes = []
+        for type_key, data_tuple in data_dict.items():
+            try:
+                mode_, _type = type_key.split('/')
+                pretrain_mode = mode_.split('-')[0]
+                pretrain_modes.append(pretrain_mode)
+                if _type == 'train':
+                    train_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
+                elif _type == 'valid':
+                    valid_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
+                elif _type == 'test':
+                    test_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
+                else:
+                    raise ValueError("Invalid game type encountered")
+            except IndexError:
+                continue
+
+        self.pretrain_modes = list(np.unique(pretrain_modes))
+
+        self.train_datasets = train_datasets
+        self.valid_datasets = valid_datasets
+        self.test_datasets = test_datasets
+
+    def _setup_dataloaders(self):
+        num_workers = int(np.floor(10 / len(self.pretrain_modes)))
+        train_dataloaders, valid_dataloaders, test_dataloaders = {}, {}, {}
+        for pretrain_mode in self.pretrain_modes:
+            train_dataloaders.update(
+                {pretrain_mode: DataLoader(
+                    self.train_datasets[pretrain_mode],
+                    batch_size=self.train_config.batch_size,
+                    shuffle=True, num_workers=num_workers,
+                )}
+            )
+            valid_dataloaders.update(
+                {pretrain_mode: DataLoader(
+                    self.valid_datasets[pretrain_mode],
+                    batch_size=self.train_config.batch_size,
+                    shuffle=True, num_workers=num_workers,
+                )}
+            )
+            test_dataloaders.update(
+                {pretrain_mode: DataLoader(
+                    self.test_datasets[pretrain_mode],
+                    batch_size=self.train_config.batch_size,
+                    shuffle=True, num_workers=num_workers,
+                )}
+            )
+
+        self.train_dataloaders = train_dataloaders
+        self.valid_dataloaders = valid_dataloaders
+        self.test_dataloaders = test_dataloaders
 
     def _batchify(self, data_dict):
         batched_data_dict = {}
@@ -327,10 +402,10 @@ class OfflineTrainer:
             inputs, labels = data_tuple
             assert inputs[0].shape == inputs[1].shape == inputs[2].shape == labels.shape, "something wrong"
 
-            num_samples = inputs[0].shape[1]
+            max_len, num_samples = inputs[0].shape
             num_batches = int(np.ceil(num_samples / self.train_config.batch_size))
 
-            empty_arr = np.empty((num_batches, inputs[0].shape[0], self.train_config.batch_size), dtype=int)
+            empty_arr = np.empty((num_batches, max_len, self.train_config.batch_size), dtype=int)
             batched_token_ids = empty_arr.copy()
             batched_type_ids = empty_arr.copy()
             batched_position_ids = empty_arr.copy()
@@ -349,20 +424,17 @@ class OfflineTrainer:
                 batched_position_ids[b] = inputs[2][:, batch_indices]
                 batched_labels[b] = labels[:, batch_indices]
 
+            batched_data_tuple = (batched_token_ids,
+                                  batched_type_ids,
+                                  batched_position_ids,
+                                  batched_labels)
+
             if self.data_on_cuda:
-                batched_data_tuple = (
-                    torch.tensor(batched_token_ids, dtype=torch.long, device=self.device),
-                    torch.tensor(batched_type_ids, dtype=torch.long, device=self.device),
-                    torch.tensor(batched_position_ids, dtype=torch.long, device=self.device),
-                    torch.tensor(batched_labels, dtype=torch.long, device=self.device),
-                )
+                batched_data_tuple = tuple(
+                    map(lambda z: torch.tensor(z,  dtype=torch.long, device=self.device), batched_data_tuple))
             else:
-                batched_data_tuple = (
-                    torch.tensor(batched_token_ids, dtype=torch.long),
-                    torch.tensor(batched_type_ids, dtype=torch.long),
-                    torch.tensor(batched_position_ids, dtype=torch.long),
-                    torch.tensor(batched_labels, dtype=torch.long),
-                )
+                batched_data_tuple = tuple(
+                    map(lambda z: torch.tensor(z, dtype=torch.long), batched_data_tuple))
 
             batched_data_dict.update({type_key: batched_data_tuple})
 

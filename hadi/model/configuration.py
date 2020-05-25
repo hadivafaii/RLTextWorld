@@ -8,16 +8,18 @@ class TransformerConfig:
         self,
             vocab_size=1024,
             type_vocab_size=3,
+            max_len=512,
+            max_position_embeddings=None,
             embedding_size=32,
             hidden_size=128,
             intermediate_size=512,
+            num_attention_heads=2,
             num_hidden_layers=3,
             decoder_hidden_size=None,
             decoder_intermediate_size=None,
             decoder_num_hidden_layers=None,
-            num_attention_heads=2,
-            max_position_embeddings=4096,  # 4096
-            tie_weights="True",
+            tie_weights=True,
+            fixed_pe=False,
             hidden_act="gelu",
             hidden_dropout_prob=0.0,
             attention_probs_dropout_prob=0.1,
@@ -34,29 +36,36 @@ class TransformerConfig:
 
         self.vocab_size = vocab_size
         self.type_vocab_size = type_vocab_size
-        self.embedding_size = embedding_size
+        self.max_len = max_len
 
+        if max_position_embeddings is None:
+            self.max_position_embeddings = max_len + 1
+        else:
+            self.max_position_embeddings = max_position_embeddings
+
+        self.embedding_size = embedding_size
         self.hidden_size = hidden_size
+        self.intermediate_size = intermediate_size
+        self.num_attention_heads = num_attention_heads
+        self.num_hidden_layers = num_hidden_layers
+
         if decoder_hidden_size is None:
             self.decoder_hidden_size = hidden_size
         else:
             self.decoder_hidden_size = decoder_hidden_size
 
-        self.intermediate_size = intermediate_size
         if decoder_intermediate_size is None:
             self.decoder_intermediate_size = intermediate_size
         else:
             self.decoder_intermediate_size = decoder_intermediate_size
 
-        self.num_hidden_layers = num_hidden_layers
         if decoder_num_hidden_layers is None:
             self.decoder_num_hidden_layers = num_hidden_layers
         else:
             self.decoder_num_hidden_layers = decoder_num_hidden_layers
 
-        self.num_attention_heads = num_attention_heads
-        self.max_position_embeddings = max_position_embeddings
         self.tie_weights = tie_weights
+        self.fixed_pe = fixed_pe
         self.hidden_act = hidden_act
         self.hidden_dropout_prob = hidden_dropout_prob
         self.attention_probs_dropout_prob = attention_probs_dropout_prob
@@ -229,7 +238,12 @@ class TrainConfig:
             log_freq: int = 10,
             chkpt_freq: int = 5,
             batch_size: int = 128,
+            multi_tasking: bool = True,
             loss_imbalance_lambda: float = 10.0,
+            runs_dir: str = '/home/hadi/Documents/FTWP/runs',
+            lr_ratio: float = 3.0,
+            large_lr_parameters_keywords: list = None,
+            freeze_parameters_keywords: list = None,
     ):
         super(TrainConfig).__init__()
 
@@ -246,4 +260,19 @@ class TrainConfig:
         self.log_freq = log_freq
         self.chkpt_freq = chkpt_freq
         self.batch_size = batch_size
+        self.lr_ratio = lr_ratio
+        self.multi_tasking = multi_tasking
         self.loss_imbalance_lambda = loss_imbalance_lambda
+        self.runs_dir = runs_dir
+
+        if large_lr_parameters_keywords is None:
+            large_lr_parameters_keywords = ['generators', 'discriminators']
+        else:
+            assert isinstance(large_lr_parameters_keywords, list), "Must provide a list of keywords"
+        self.large_lr_parameters_keywords = large_lr_parameters_keywords
+
+        if freeze_parameters_keywords is None:
+            freeze_parameters_keywords = []
+        else:
+            assert isinstance(freeze_parameters_keywords, list), "Must provide a list of keywords"
+        self.freeze_parameters_keywords = freeze_parameters_keywords
