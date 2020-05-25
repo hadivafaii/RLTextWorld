@@ -48,21 +48,21 @@ class OfflineTrainer:
             print("Using {:d} GPUS".format(torch.cuda.device_count()))
             self.model = nn.DataParallel(self.model, device_ids=cuda_devices)
 
-        self.pretrain_modes = None
+        self.pretrain_modes = list()
 
-        self.train_datasets = None
-        self.valid_datasets = None
-        self.test_datasets = None
+        self.train_datasets = dict()
+        self.valid_datasets = dict()
+        self.test_datasets = dict()
 
-        self.train_dataloaders = None
-        self.valid_dataloaders = None
-        self.test_dataloaders = None
+        self.train_dataloaders = dict()
+        self.valid_dataloaders = dict()
+        self.test_dataloaders = dict()
 
-        # Load data
+        # Load data and update datasets/loaders
         self._setup_datasets(self._load_data())
         self._setup_dataloaders()
 
-        self.writer = None
+        self.writer = SummaryWriter()
 
         self.optim = None
         self.optim_schedule = None
@@ -139,16 +139,16 @@ class OfflineTrainer:
                         loss_imbalance_lambda=self.train_config.loss_imbalance_lambda)
 
                 elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
-                    losses, extra_outputs = self.permuted_fwd(self.model)
+                    # losses, extra_outputs = self.permuted_fwd(self.model)
                     raise NotImplementedError
                 elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'PAIR_PRED']:
-                    losses, extra_outputs = self.pred_fwd(self.model)
+                    # losses, extra_outputs = self.pred_fwd(self.model)
                     raise NotImplementedError
                 elif pretrain_mode in ['ACT_ELIM']:
-                    losses, extra_outputs = self.act_elim_fwd(self.model)
+                    # losses, extra_outputs = self.act_elim_fwd(self.model)
                     raise NotImplementedError
                 elif pretrain_mode in ['ACT_GEN']:
-                    losses, extra_outputs = self.act_gen_fwd(self.model)
+                    # losses, extra_outputs = self.act_gen_fwd(self.model)
                     raise NotImplementedError
                 else:
                     raise ValueError("Invalid pretrain mode: {}".format(pretrain_mode))
@@ -203,7 +203,7 @@ class OfflineTrainer:
             msg1 = ""
             for k, v in pretrain_losses.items():
                 msg1 += "{}: {:.3f}, ".format(k, v.item())
-            msg1 += "tot_loss: {:.3f}".format(final_loss.item())
+            msg1 += "tot: {:.3f}".format(final_loss.item())
 
             desc1 = msg0 + '\t|\t' + msg1
             pbar.set_description(desc1)
@@ -270,8 +270,8 @@ class OfflineTrainer:
             sum(p.numel() for p in self.model.parameters() if not p.requires_grad) / 1000))
         print('Total number of params with small lr: {:.1f} k'.format(
             sum(p.numel() for p in param_small_lr_list if p.requires_grad) / 1000))
-        print('Total number of params with large lr: {:.1f} k'.format(
-            sum(p.numel() for p in param_large_lr_list if p.requires_grad) / 1000))
+        print('Total number of params with large lr (x {:.1f}): {:.1f} k'.format(
+            self.train_config.lr_ratio, sum(p.numel() for p in param_large_lr_list if p.requires_grad) / 1000))
 
         if self.train_config.optim_choice == 'lamb':
             self.optim = Lamb(
@@ -341,101 +341,49 @@ class OfflineTrainer:
         return data_dict_cat_eps
 
     def _setup_datasets(self, data_dict):
-        train_datasets, valid_datasets, test_datasets = {}, {}, {}
-        pretrain_modes = []
         for type_key, data_tuple in data_dict.items():
             try:
                 mode_, _type = type_key.split('/')
                 pretrain_mode = mode_.split('-')[0]
-                pretrain_modes.append(pretrain_mode)
+                self.pretrain_modes.append(pretrain_mode)
                 if _type == 'train':
-                    train_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
+                    self.train_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
                 elif _type == 'valid':
-                    valid_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
+                    self.valid_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
                 elif _type == 'test':
-                    test_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
+                    self.test_datasets.update({pretrain_mode: OfflineDataset(data_tuple, pretrain_mode)})
                 else:
                     raise ValueError("Invalid game type encountered")
             except IndexError:
                 continue
 
-        self.pretrain_modes = list(np.unique(pretrain_modes))
-
-        self.train_datasets = train_datasets
-        self.valid_datasets = valid_datasets
-        self.test_datasets = test_datasets
-
     def _setup_dataloaders(self):
-        num_workers = int(np.floor(10 / len(self.pretrain_modes)))
-        train_dataloaders, valid_dataloaders, test_dataloaders = {}, {}, {}
+        num_workers = int(np.floor(30 / len(self.pretrain_modes)))
         for pretrain_mode in self.pretrain_modes:
-            train_dataloaders.update(
+            self.train_dataloaders.update(
                 {pretrain_mode: DataLoader(
                     self.train_datasets[pretrain_mode],
                     batch_size=self.train_config.batch_size,
-                    shuffle=True, num_workers=num_workers,
+                    shuffle=True,
+                    pin_memory=True,
+                    num_workers=num_workers,
                 )}
             )
-            valid_dataloaders.update(
+            self.valid_dataloaders.update(
                 {pretrain_mode: DataLoader(
                     self.valid_datasets[pretrain_mode],
                     batch_size=self.train_config.batch_size,
-                    shuffle=True, num_workers=num_workers,
+                    shuffle=True,
+                    pin_memory=True,
+                    num_workers=num_workers,
                 )}
             )
-            test_dataloaders.update(
+            self.test_dataloaders.update(
                 {pretrain_mode: DataLoader(
                     self.test_datasets[pretrain_mode],
                     batch_size=self.train_config.batch_size,
-                    shuffle=True, num_workers=num_workers,
+                    shuffle=True,
+                    pin_memory=True,
+                    num_workers=num_workers,
                 )}
             )
-
-        self.train_dataloaders = train_dataloaders
-        self.valid_dataloaders = valid_dataloaders
-        self.test_dataloaders = test_dataloaders
-
-    def _batchify(self, data_dict):
-        batched_data_dict = {}
-
-        for type_key, data_tuple in data_dict.items():
-            inputs, labels = data_tuple
-            assert inputs[0].shape == inputs[1].shape == inputs[2].shape == labels.shape, "something wrong"
-
-            max_len, num_samples = inputs[0].shape
-            num_batches = int(np.ceil(num_samples / self.train_config.batch_size))
-
-            empty_arr = np.empty((num_batches, max_len, self.train_config.batch_size), dtype=int)
-            batched_token_ids = empty_arr.copy()
-            batched_type_ids = empty_arr.copy()
-            batched_position_ids = empty_arr.copy()
-            batched_labels = empty_arr.copy()
-
-            shuffled_indices = self.rng.permutation(num_samples)
-            inputs = tuple(map(lambda z: z[:, shuffled_indices], inputs))
-            labels = labels[:, shuffled_indices]
-
-            for b in range(num_batches):
-                batch_indices = slice(b * self.train_config.batch_size, (b + 1) * self.train_config.batch_size)
-                if b == num_batches - 1 and num_samples % self.train_config.batch_size != 0:
-                    batch_indices = slice(num_samples - self.train_config.batch_size, num_samples)
-                batched_token_ids[b] = inputs[0][:, batch_indices]
-                batched_type_ids[b] = inputs[1][:, batch_indices]
-                batched_position_ids[b] = inputs[2][:, batch_indices]
-                batched_labels[b] = labels[:, batch_indices]
-
-            batched_data_tuple = (batched_token_ids,
-                                  batched_type_ids,
-                                  batched_position_ids,
-                                  batched_labels)
-
-            if self.data_on_cuda:
-                batched_data_tuple = tuple(
-                    map(lambda z: torch.tensor(z,  dtype=torch.long, device=self.device), batched_data_tuple))
-            else:
-                batched_data_tuple = tuple(
-                    map(lambda z: torch.tensor(z, dtype=torch.long), batched_data_tuple))
-
-            batched_data_dict.update({type_key: batched_data_tuple})
-
-        return batched_data_dict
