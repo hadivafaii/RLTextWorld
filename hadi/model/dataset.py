@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 
 
 def transpose_send_to_cuda(data_tuple, device, dtype=torch.long):
-    return tuple(map(lambda z: z.T.to(device).type(dtype), data_tuple))
+    return tuple(map(lambda z: z.T.to(device=device, dtype=dtype, non_blocking=True), data_tuple))
 
 
 class OfflineDataset(Dataset):

@@ -26,17 +26,14 @@ class OfflineTrainer:
                  transformer,
                  train_config,
                  use_cuda=True,
-                 data_on_cuda=False,
                  seed=665,
                  ):
 
         torch.manual_seed(seed)
         np.random.seed(seed)
-        self.rng = np.random.RandomState(seed)
 
         cuda_condition = torch.cuda.is_available() and use_cuda
         self.device = torch.device("cuda" if cuda_condition else "cpu")
-        self.data_on_cuda = data_on_cuda
 
         self.model = transformer.to(self.device)
         self.train_config = train_config
