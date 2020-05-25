@@ -356,6 +356,8 @@ class OfflineTrainer:
             except IndexError:
                 continue
 
+        self.pretrain_modes = list(np.unique(self.pretrain_modes))
+
     def _setup_dataloaders(self):
         num_workers = int(np.floor(30 / len(self.pretrain_modes)))
         for pretrain_mode in self.pretrain_modes:

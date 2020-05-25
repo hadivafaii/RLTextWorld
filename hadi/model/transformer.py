@@ -242,21 +242,21 @@ class Transformer(nn.Module):
 
         self.pretrain_category_dict = {}
 
-        self.pretrain_category_dict.update(dict.fromkeys(['MLM', 'MOM'], 'MLM'))
-        self.pretrain_category_dict.update(dict.fromkeys(['ACT_PRED', 'OBS_PRED'], 'PRED'))
-        self.pretrain_category_dict.update(dict.fromkeys(['ACT_ELIM'], 'AE'))
-        self.pretrain_category_dict.update(dict.fromkeys(['ACT_GEN'], 'AG'))
+        self.pretrain_category_dict.update(dict.fromkeys(['MLM', 'MOM'], 'mlm'))
+        self.pretrain_category_dict.update(dict.fromkeys(['ACT_PRED', 'OBS_PRED'], 'pred'))
+        self.pretrain_category_dict.update(dict.fromkeys(['ACT_ELIM'], 'ae'))
+        self.pretrain_category_dict.update(dict.fromkeys(['ACT_GEN'], 'ag'))
 
         current_categories = list(np.unique([self.pretrain_category_dict[x] for x in data_config.pretrain_modes]))
 
         generator_dicts, discriminator_dicts = {}, {}
         for category in current_categories:
-            if category == 'MLM':
+            if category == 'mlm':
                 generator_dicts.update({category: Generator(config)})
                 discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
-            elif category in ['PRED', 'AE']:
+            elif category in ['pred', 'ae']:
                 discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
-            elif category == 'AG':
+            elif category == 'ag':
                 continue
             else:
                 raise ValueError("Invalid pretrain category, '{}', encountered in discriminator".format(category))
