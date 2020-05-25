@@ -22,7 +22,6 @@
     <list default="true" id="707fb08f-3aa6-4e95-aee1-f0eb2bb6487a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/training.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/model/transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/transformer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

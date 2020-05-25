@@ -114,12 +114,11 @@ class OfflineTrainer:
         for i in pbar:
             pretrain_losses = {}
             for pretrain_mode in self.pretrain_modes:
-                _iter = data_iterators[pretrain_mode]
                 try:
-                    data_tuple = next(_iter)
+                    data_tuple = next(data_iterators[pretrain_mode])
                 except StopIteration:
-                    _iter = iter(dataloader_dict[pretrain_mode])
-                    data_tuple = next(_iter)
+                    data_iterators[pretrain_mode] = iter(dataloader_dict[pretrain_mode])
+                    data_tuple = next(data_iterators[pretrain_mode])
 
                 batch_data_tuple = transpose_send_to_cuda(data_tuple, self.device)
 
