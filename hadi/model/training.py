@@ -25,14 +25,13 @@ class OfflineTrainer:
     def __init__(self,
                  transformer,
                  train_config,
-                 use_cuda=True,
                  seed=665,
                  ):
 
         torch.manual_seed(seed)
         np.random.seed(seed)
 
-        cuda_condition = torch.cuda.is_available() and use_cuda
+        cuda_condition = torch.cuda.is_available() and train_config.use_cuda
         self.device = torch.device("cuda" if cuda_condition else "cpu")
 
         self.model = transformer.to(self.device)
@@ -41,7 +40,7 @@ class OfflineTrainer:
         self.data_config = transformer.data_config
 
         # Distributed GPU training if CUDA can detect more than 1 GPU
-        if use_cuda and torch.cuda.device_count() > 1:
+        if train_config.use_cuda and torch.cuda.device_count() > 1:
             print("Using {:d} GPUS".format(torch.cuda.device_count()))
             self.model = nn.DataParallel(self.model, device_ids=cuda_devices)
 
@@ -84,7 +83,7 @@ class OfflineTrainer:
 
         epochs_range = range(nb_epochs) if isinstance(nb_epochs, int) else nb_epochs
         for epoch in epochs_range:
-            self.iteration(self.train_dataloaders, epoch=epoch, train=True)
+            self.iteration(self.train_dataloaders, epoch=epoch, train=True, comment=comment)
 
             if (epoch + 1) % self.train_config.chkpt_freq == 0:
                 print('Saving chkpt:{:d}'.format(epoch+1))
@@ -102,7 +101,7 @@ class OfflineTrainer:
             for mode in self.pretrain_modes:
                 self.iteration(self.test_data, mode)
 
-    def iteration(self, dataloader_dict, epoch=0, train=False):
+    def iteration(self, dataloader_dict, epoch=0, train=False, comment=None):
         cuml_loss = 0.0
         cuml_gen_corrects = 0.0
         cuml_disc_corrects = 0.0
@@ -158,7 +157,7 @@ class OfflineTrainer:
 
                 try:
                     percent_gen_corrects = 100.0 * (
-                                correct_prediction_stats['num_gen_corrects'] / correct_prediction_stats['tot_masked'])
+                                correct_prediction_stats['num_gen_cocommentrrects'] / correct_prediction_stats['tot_masked'])
                 except KeyError:
                     percent_gen_corrects = 0.0
 
@@ -182,14 +181,17 @@ class OfflineTrainer:
                     self.writer.add_scalar('{}/disc_corrects'.format(pretrain_mode), percent_disc_corrects, global_step)
 
                     # add optim state to writer
-                    log_lamb_rs(self.optim, self.writer, global_step)
+                    if self.train_config.optim_choice == 'adam_with_warmup':
+                        self.writer.add_scalar('lr', self.optim_schedule.current_lr, global_step)
+                    else:
+                        log_lamb_rs(self.optim, self.writer, global_step)
 
             final_loss = sum(x for x in pretrain_losses.values())
 
             # backward and optimization only in train
             if train:
                 if self.train_config.optim_choice == 'adam_with_warmup':
-                    # self.optim_schedule.zero_grad()
+                    self.optim_schedule.zero_grad()
                     final_loss.backward()
                     self.optim_schedule.step_and_update_lr()
                 else:
@@ -220,13 +222,7 @@ class OfflineTrainer:
                     self.model.get_word_embeddings(self.device),
                     metadata=list(self.model.nlp.i2w.values()),
                     global_step=global_step,
-                    tag='Word Emb')
-
-                self.writer.add_embedding(
-                    self.model.embeddings.position_embeddings.weight.data,
-                    metadata=range(self.model.config.max_position_embeddings),
-                    global_step=global_step,
-                    tag='Pos Emb')
+                    tag='{}/word_emb'.format(comment))
 
     def setup_optim(self):
         freeze_parameters_keywords = self.train_config.freeze_parameters_keywords
@@ -268,7 +264,7 @@ class OfflineTrainer:
             sum(p.numel() for p in self.model.parameters() if not p.requires_grad) / 1000))
         print('Total number of params with small lr: {:.1f} k'.format(
             sum(p.numel() for p in param_small_lr_list if p.requires_grad) / 1000))
-        print('Total number of params with large lr (x {:.1f}): {:.1f} k'.format(
+        print('Total number of params with large lr ({:.1f} x): {:.1f} k'.format(
             self.train_config.lr_ratio, sum(p.numel() for p in param_large_lr_list if p.requires_grad) / 1000))
 
         if self.train_config.optim_choice == 'lamb':
@@ -290,13 +286,19 @@ class OfflineTrainer:
 
         elif self.train_config.optim_choice == 'adam_with_warmup':
             self.optim = Adam(
-                params_dict,
-                lr=self.train_config.lr,
+                filter(lambda p: p.requires_grad, self.model.parameters()),
                 betas=self.train_config.betas,
                 weight_decay=self.train_config.weight_decay,
             )
             self.optim_schedule = ScheduledOptim(
-                self.optim, self.model.config.hidden_size, n_warmup_steps=self.train_config.warmup_steps)
+                self.optim,
+                self.model.config.hidden_size,
+                n_warmup_steps=self.train_config.warmup_steps,
+            )
+
+            print('\nUsing {} with {} warmup steps.  Large vs small lr doesnt apply. . . '.format(
+                self.train_config.optim_choice, self.train_config.warmup_steps))
+
         else:
             raise ValueError("Invalid optimizer choice: {}".format(train_config.optim_chioce))
 

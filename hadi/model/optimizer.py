@@ -130,6 +130,7 @@ class ScheduledOptim:
         self.n_warmup_steps = n_warmup_steps
         self.n_current_steps = 0
         self.init_lr = np.power(hidden_size, -0.5)
+        self.current_lr = None
 
     def step_and_update_lr(self):
         """Step with the inner optimizer"""
@@ -149,7 +150,7 @@ class ScheduledOptim:
         """Learning rate scheduling per step"""
 
         self.n_current_steps += 1
-        lr = self.init_lr * self._get_lr_scale()
+        self.current_lr = self.init_lr * self._get_lr_scale()
 
         for param_group in self._optimizer.param_groups:
-            param_group['lr'] = lr
+            param_group['lr'] = self.current_lr

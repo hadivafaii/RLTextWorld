@@ -16,6 +16,7 @@ class TransformerConfig:
             decoder_hidden_size=None,
             decoder_intermediate_size=None,
             decoder_num_hidden_layers=None,
+            unique_top_layers=True,
             tie_weights=True,
             fixed_pe=False,
             hidden_act="gelu",
@@ -56,6 +57,7 @@ class TransformerConfig:
         else:
             self.decoder_num_hidden_layers = decoder_num_hidden_layers
 
+        self.unique_top_layers = unique_top_layers
         self.tie_weights = tie_weights
         self.fixed_pe = fixed_pe
         self.hidden_act = hidden_act
@@ -218,11 +220,9 @@ class TrainConfig:
             weight_decay: float = 0.01,
             warmup_steps: int = 1000,
             use_cuda: bool = True,
-            cuda_devices=None,
             log_freq: int = 10,
             chkpt_freq: int = 5,
             batch_size: int = 128,
-            multi_tasking: bool = True,
             loss_imbalance_lambda: float = 10.0,
             runs_dir: str = '/home/hadi/Documents/FTWP/runs',
             lr_ratio: float = 3.0,
@@ -240,12 +240,10 @@ class TrainConfig:
         self.weight_decay = weight_decay
         self.warmup_steps = warmup_steps
         self.use_cuda = use_cuda
-        self.cuda_devices = cuda_devices
         self.log_freq = log_freq
         self.chkpt_freq = chkpt_freq
         self.batch_size = batch_size
         self.lr_ratio = lr_ratio
-        self.multi_tasking = multi_tasking
         self.loss_imbalance_lambda = loss_imbalance_lambda
         self.runs_dir = runs_dir
 

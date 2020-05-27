@@ -14,8 +14,8 @@ import torch.nn.functional as F
 from .embeddings import Embeddings
 from .preprocessing import get_nlp, preproc
 from .configuration import TransformerConfig, DataConfig
-import sys; sys.path.append('..')
-from utils.gen_pretrain_data import get_ranges
+# import sys; sys.path.append('..')
+# from utils.gen_pretrain_data import get_ranges
 
 
 class TransformerEncoderLayer(nn.Module):
@@ -224,12 +224,12 @@ class Transformer(nn.Module):
         self.encoder = TransformerEncoder(config, encoder_layer)
         self.encoder_pooler = Pooler(config.hidden_size)
 
+        if config.embedding_size != config.hidden_size:
+            self.encoder_embedding_mapping_in = nn.Linear(config.embedding_size, config.hidden_size)
+
         decoder_layer = TransformerDecoderLayer(config)
         self.decoder = TransformerDecoder(config, decoder_layer)
         self.decoder_pooler = Pooler(config.decoder_hidden_size)
-
-        if config.embedding_size != config.hidden_size:
-            self.encoder_embedding_mapping_in = nn.Linear(config.embedding_size, config.hidden_size)
 
         if config.embedding_size != config.decoder_hidden_size:
             self.decoder_embedding_mapping_in = nn.Linear(config.embedding_size, config.decoder_hidden_size)
@@ -250,16 +250,29 @@ class Transformer(nn.Module):
         current_categories = list(np.unique([self.pretrain_category_dict[x] for x in data_config.pretrain_modes]))
 
         generator_dicts, discriminator_dicts = {}, {}
-        for category in current_categories:
-            if category == 'mlm':
-                generator_dicts.update({category: Generator(config)})
-                discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
-            elif category in ['pred', 'ae']:
-                discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
-            elif category == 'ag':
-                continue
-            else:
-                raise ValueError("Invalid pretrain category, '{}', encountered in discriminator".format(category))
+        if config.unique_top_layers:
+            for pretrain_mode in data_config.pretrain_modes:
+                if pretrain_mode in ['MLM', 'MOM']:
+                    generator_dicts.update({pretrain_mode: Generator(config)})
+                    discriminator_dicts.update({pretrain_mode: Discriminator(config)})
+                elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'ACT_ELIM']:
+                    discriminator_dicts.update(
+                        {pretrain_mode: Discriminator(config, pretrain_category=self.pretrain_category_dict[pretrain_mode])})
+                elif pretrain_mode == 'ACT_GEN':
+                    continue
+                else:
+                    raise ValueError("Invalid pretrain mode, '{}', encountered in discriminator".format(pretrain_mode))
+        else:
+            for category in current_categories:
+                if category == 'mlm':
+                    generator_dicts.update({category: Generator(config)})
+                    discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
+                elif category in ['pred', 'ae']:
+                    discriminator_dicts.update({category: Discriminator(config, pretrain_category=category)})
+                elif category == 'ag':
+                    continue
+                else:
+                    raise ValueError("Invalid pretrain category, '{}', encountered in discriminator".format(category))
 
         self.generators = nn.ModuleDict(generator_dicts)
         self.discriminators = nn.ModuleDict(discriminator_dicts)
@@ -512,12 +525,12 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, config, pretrain_category):
+    def __init__(self, config, pretrain_category=None):
         super(Discriminator, self).__init__()
 
         self.config = config
 
-        if pretrain_category == 'AE':
+        if pretrain_category == 'ae':
             self.hidden_dim = config.decoder_hidden_size
         else:
             self.hidden_dim = config.hidden_size
