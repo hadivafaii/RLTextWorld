@@ -15,10 +15,10 @@ def act_gen_fwd(model):
     raise NotImplementedError
 
 
-def corrupted_fwd(model, masked_hiddens, masked_inputs, masked_labels,
-                  pretrain_mode, loss_imbalance_lambda=50, return_extras=False):
+def corrupted_fwd(model, masked_inputs, masked_labels, pretrain_mode, loss_imbalance_lambda=50, return_extras=False):
 
     masked_token_ids, masked_type_ids, masked_position_ids = masked_inputs
+    masked_hiddens, _ = model(src_inputs=masked_inputs)[0]
     _device = masked_hiddens.device
 
     if model.config.unique_top_layers:

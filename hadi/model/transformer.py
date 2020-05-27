@@ -230,7 +230,7 @@ class Transformer(nn.Module):
         decoder_layer = TransformerDecoderLayer(config)
         self.decoder = TransformerDecoder(config, decoder_layer)
         self.decoder_pooler = Pooler(config.decoder_hidden_size)
-
+        # TODO: remove decoder pooler (not necessary).
         if config.embedding_size != config.decoder_hidden_size:
             self.decoder_embedding_mapping_in = nn.Linear(config.embedding_size, config.decoder_hidden_size)
 
@@ -326,7 +326,7 @@ class Transformer(nn.Module):
                                        src_key_padding_mask=src_key_padding_mask,
                                        need_attention_weights=need_attention_weights)
         if need_pooler_outputs:
-            encoder_outputs += (self.encoder_pooler(encoder_outputs[0]),)
+            encoder_outputs += (self.pooler(encoder_outputs[0]),)
 
         if tgt_inputs is not None:
             # embed tgt_intputs
@@ -354,8 +354,6 @@ class Transformer(nn.Module):
                                            tgt_key_padding_mask=tgt_key_padding_mask,
                                            memory_key_padding_mask=memory_key_padding_mask,
                                            need_attention_weights=need_attention_weights)
-            if need_pooler_outputs:
-                decoder_outputs += (self.decoder_pooler(decoder_outputs[0]),)
 
         else:
             decoder_outputs = None
@@ -478,7 +476,6 @@ class Transformer(nn.Module):
                 game_type=data_config_dict['game_types'][0].split('/')[0],
                 game_spec=data_config_dict['game_spec'],
                 k=data_config_dict['k'],
-                mask_prob=data_config_dict['mask_prob'],
                 mlm_mask_prob=data_config_dict['mlm_mask_prob'],
                 mom_mask_prob=data_config_dict['mom_mask_prob'],
                 max_len=data_config_dict['max_len'],

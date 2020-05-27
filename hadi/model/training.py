@@ -83,7 +83,7 @@ class OfflineTrainer:
 
         epochs_range = range(nb_epochs) if isinstance(nb_epochs, int) else nb_epochs
         for epoch in epochs_range:
-            self.iteration(self.train_dataloaders, epoch=epoch, train=True, comment=comment)
+            self.iteration(self.train_dataloaders, epoch=epoch, train=True)
 
             if (epoch + 1) % self.train_config.chkpt_freq == 0:
                 print('Saving chkpt:{:d}'.format(epoch+1))
@@ -93,15 +93,15 @@ class OfflineTrainer:
         self.model.eval()
         with torch.no_grad():
             for mode in self.pretrain_modes:
-                self.iteration(self.valid_data, mode)
+                self.iteration(self.valid_dataloaders, mode)
 
     def test(self):
         self.model.eval()
         with torch.no_grad():
             for mode in self.pretrain_modes:
-                self.iteration(self.test_data, mode)
+                self.iteration(self.test_dataloaders, mode)
 
-    def iteration(self, dataloader_dict, epoch=0, train=False, comment=None):
+    def iteration(self, dataloader_dict, epoch=0, train=False):
         cuml_loss = 0.0
         cuml_gen_corrects = 0.0
         cuml_disc_corrects = 0.0
@@ -124,12 +124,9 @@ class OfflineTrainer:
                 batch_inputs = batch_data_tuple[:3]
                 batch_labels = batch_data_tuple[3]
 
-                batch_hiddens, _ = self.model(src_inputs=batch_inputs)[0]
-
                 if pretrain_mode in ['MLM', 'MOM']:
                     losses, correct_prediction_stats, _ = corrupted_fwd(
                         model=self.model,
-                        masked_hiddens=batch_hiddens,
                         masked_inputs=batch_inputs,
                         masked_labels=batch_labels,
                         pretrain_mode=pretrain_mode,
@@ -222,7 +219,7 @@ class OfflineTrainer:
                     self.model.get_word_embeddings(self.device),
                     metadata=list(self.model.nlp.i2w.values()),
                     global_step=global_step,
-                    tag='{}/word_emb'.format(comment))
+                    tag='word_emb')
 
     def setup_optim(self):
         freeze_parameters_keywords = self.train_config.freeze_parameters_keywords

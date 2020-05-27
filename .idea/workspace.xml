@@ -23,7 +23,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/configuration.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/configuration.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/forward.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/forward.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hadi/model/optimizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/optimizer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/training.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/training.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hadi/model/transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hadi/model/transformer.py" afterDir="false" />
     </list>
