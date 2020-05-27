@@ -69,7 +69,7 @@ def corrupted_fwd(model, masked_inputs, masked_labels, pretrain_mode, loss_imbal
     if return_extras:
         extra_outputs = {
             'generator_predictions': gen_preds,
-            'generator_sampled_labels': sampled_indxs[masked_labels != -100],
+            'generator_sampled_labels': sampled_indxs,
             'x_corrupt': x_corrupt, 'flat_indices': flat_indices,
             'discriminator_predictions': disc_preds,
             'discriminator_gold_labels': disc_labels,

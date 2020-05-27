@@ -154,7 +154,7 @@ class OfflineTrainer:
 
                 try:
                     percent_gen_corrects = 100.0 * (
-                                correct_prediction_stats['num_gen_cocommentrrects'] / correct_prediction_stats['tot_masked'])
+                                correct_prediction_stats['num_gen_corrects'] / correct_prediction_stats['tot_masked'])
                 except KeyError:
                     percent_gen_corrects = 0.0
 
