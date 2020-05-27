@@ -552,17 +552,14 @@ class Discriminator(nn.Module):
         x_masked_flat = masked_token_ids.flatten()
         x_corrupt_flat = corrupted_token_ids.flatten()
 
-        labels = np.ones(len(x_corrupt_flat))
-        unk_indices = np.where(x_masked_flat == self.config.unk_id)[0]
-        assert len(unk_indices) == len(generator_replaced_labels) == len(gold_labels), "Otherwise something wrong"
-        remaining_fake_indices = np.delete(unk_indices, np.where(generator_replaced_labels == gold_labels)[0])
-        labels[remaining_fake_indices] = 0
+        labels = torch.ones(len(x_corrupt_flat))
+        labels[x_masked_flat == self.config.unk_id] = 0
+        labels[generator_replaced_labels.flatten() == gold_labels.flatten()] = 1
 
-        _ignore_indices = [self.config.pad_id]     # discriminator loss will not run on these
-        flat_indices = [tup[0] for tup in enumerate(x_corrupt_flat) if tup[1] not in _ignore_indices]
-        final_discriminator_labels = labels[flat_indices]
+        flat_indices = (x_corrupt_flat != self.config.pad_id).nonzero().flatten()
+        final_discriminator_labels = labels[flat_indices].float()
 
-        return torch.tensor(final_discriminator_labels, dtype=torch.float), flat_indices
+        return final_discriminator_labels, flat_indices
 
 
 class Language(object):
@@ -570,7 +567,8 @@ class Language(object):
         lang_load_file = pjoin(data_config.lang_dir, 'lang_data_max_len={:d}.npy'.format(data_config.max_len))
         lang_data_all = np.load(lang_load_file, allow_pickle=True).item()
 
-        # TODO: different epssilons have different dictionaries so multiple epsilon scenarios are not going to work as is.
+        # TODO: different epssilons have different dictionaries so
+        #  multiple epsilon scenarios are not going to work as is.
 
         max_vocab_size = 0
         winnder_eps = 1.00

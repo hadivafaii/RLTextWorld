@@ -1,17 +1,17 @@
 import torch
-import sys; sys.path.append('..')
-from utils.utils import to_np
+# import sys; sys.path.append('..')
+# from utils.utils import to_np
 
 
-def pred_fwd(model):
+def pred_fwd():
     raise NotImplementedError
 
 
-def act_elim_fwd(model):
+def act_elim_fwd():
     raise NotImplementedError
 
 
-def act_gen_fwd(model):
+def act_gen_fwd():
     raise NotImplementedError
 
 
@@ -33,9 +33,9 @@ def corrupted_fwd(model, masked_inputs, masked_labels, pretrain_mode, loss_imbal
     generator_loss = model.generators[key].loss_fn(gen_preds, masked_labels.flatten())
 
     x_corrupt = model.generators[key].get_x_corrupt(
-        x_masked=to_np(masked_token_ids),
-        labels=to_np(masked_labels),
-        sampled_indxs=to_np(sampled_indxs))
+        x_masked=masked_token_ids,
+        labels=masked_labels,
+        sampled_indxs=sampled_indxs)
 
     corrupt_inputs = (x_corrupt, masked_type_ids, masked_position_ids)
     corrupt_inputs = tuple(
@@ -48,10 +48,10 @@ def corrupted_fwd(model, masked_inputs, masked_labels, pretrain_mode, loss_imbal
     corrupt_hiddens, _ = model(src_inputs=corrupt_inputs)[0]
 
     disc_labels, flat_indices = model.discriminators[key].get_discriminator_labels(
-        corrupted_token_ids=to_np(x_corrupt),
-        masked_token_ids=to_np(masked_token_ids),
-        generator_replaced_labels=to_np(sampled_indxs[masked_labels != -100]),
-        gold_labels=to_np(masked_labels[masked_labels != -100]))
+        corrupted_token_ids=x_corrupt,
+        masked_token_ids=masked_token_ids,
+        generator_replaced_labels=sampled_indxs,
+        gold_labels=masked_labels)
 
     disc_preds = model.discriminators[key](corrupt_hiddens, flat_indices)
     discriminator_loss = model.discriminators[key].loss_fn(disc_preds, disc_labels.to(_device))
