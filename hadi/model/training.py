@@ -58,7 +58,7 @@ class OfflineTrainer:
         self._setup_datasets(self._load_data())
         self._setup_dataloaders()
 
-        self.writer = SummaryWriter()
+        self.writer = None
 
         self.optim = None
         self.optim_schedule = None

@@ -243,7 +243,7 @@ def _get_masked_input(x, ranges, unk_id=3):
 def compute_type_position_ids(x, config, starting_position_ids=None):
     # TODO: this function is absolutely fucking not necessary
     if starting_position_ids is None:
-        starting_position_ids = np.one(len(x))
+        starting_position_ids = np.ones(len(x))
 
     position_ids = np.concatenate(
         [np.expand_dims(np.pad(np.arange(

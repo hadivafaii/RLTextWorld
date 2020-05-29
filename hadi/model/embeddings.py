@@ -65,14 +65,3 @@ class Embeddings(nn.Module):
         embeddings = self.dropout(embeddings)
 
         return embeddings   # (S, N, H)
-
-        # embeddings = (
-        #    np.sqrt(self.embedding_size) * (token_embeddings + type_embeddings)
-        #    + position_embeddings
-        # )
-
-        # this lead to an interesting phenomenon:
-        # gold: see     predicted: here
-        # gold: here    predicted: see
-
-        # Holy shit the positional embeddings are important! After fixing this my models fit much better

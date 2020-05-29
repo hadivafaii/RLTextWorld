@@ -76,14 +76,14 @@ class TransformerConfig:
 class DataConfig:
     def __init__(
             self,
-            pretrain_modes='ACT_ENTITY',
-            game_type='custom',
-            game_spec='b-small',
+            pretrain_modes='MLM',
+            game_type='tw_cooking',
+            game_spec='',
             k=3,
             mlm_mask_prob=0.15,
-            mom_mask_prob=None,
+            mom_mask_prob=0.30,
             max_len=512,
-            eps=0.8,
+            eps=1.00,
             train_valid_test=True,
             base_dir='Documents/FTWP/DATA',
             model_save_dir='Documents/FTWP/SAVED_MODELS',
@@ -175,6 +175,8 @@ class DataConfig:
                 pretrain_dir = 'mask_prob={:.2f}'.format(mlm_mask_prob)
             elif mode == 'MOM':
                 pretrain_dir = 'mask_prob={:.2f}'.format(mom_mask_prob)
+            elif mode in ['ACT_PRED', 'OBS_PRED', 'ACT_ELIM', 'ACT_GEN']:
+                pretrain_dir = 'other'
             else:
                 raise ValueError('incorrect pretrain type.  allowed opetions: \n{}'.format(_allowed_modes))
 
