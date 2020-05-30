@@ -256,8 +256,6 @@ if __name__ == "__main__":
 
     game_files = os.listdir(load_dir)
     game_files = [pjoin(load_dir, g) for g in game_files if '.ulx' in g]
-    # TODO: Remove this, for now:
-    game_files = game_files[:10]
 
     tokenizer = get_nlp().tokenizer
 
