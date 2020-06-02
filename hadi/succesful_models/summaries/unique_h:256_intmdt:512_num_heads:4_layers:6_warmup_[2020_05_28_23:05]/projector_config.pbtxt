@@ -1,0 +1,55 @@
+embeddings {
+tensor_name: "word_emb:04927"
+tensor_path: "04927/word_emb/tensors.tsv"
+metadata_path: "04927/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:09855"
+tensor_path: "09855/word_emb/tensors.tsv"
+metadata_path: "09855/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:14783"
+tensor_path: "14783/word_emb/tensors.tsv"
+metadata_path: "14783/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:19711"
+tensor_path: "19711/word_emb/tensors.tsv"
+metadata_path: "19711/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:24639"
+tensor_path: "24639/word_emb/tensors.tsv"
+metadata_path: "24639/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:29567"
+tensor_path: "29567/word_emb/tensors.tsv"
+metadata_path: "29567/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:34495"
+tensor_path: "34495/word_emb/tensors.tsv"
+metadata_path: "34495/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:39423"
+tensor_path: "39423/word_emb/tensors.tsv"
+metadata_path: "39423/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:44351"
+tensor_path: "44351/word_emb/tensors.tsv"
+metadata_path: "44351/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:49279"
+tensor_path: "49279/word_emb/tensors.tsv"
+metadata_path: "49279/word_emb/metadata.tsv"
+}
+embeddings {
+tensor_name: "word_emb:54207"
+tensor_path: "54207/word_emb/tensors.tsv"
+metadata_path: "54207/word_emb/metadata.tsv"
+}

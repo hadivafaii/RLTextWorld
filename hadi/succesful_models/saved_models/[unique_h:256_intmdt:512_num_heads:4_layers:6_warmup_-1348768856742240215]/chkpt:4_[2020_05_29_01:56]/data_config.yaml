@@ -1,0 +1,36 @@
+base_dirs:
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/train/
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/valid/
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/test/
+epsilons:
+- 1.0
+game_spec: ''
+game_types:
+- tw_cooking/train
+- tw_cooking/valid
+- tw_cooking/test
+games_dirs:
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/train/games
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/valid/games
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/test/games
+k: 3
+lang_dir: /home/hadi/Documents/FTWP/DATA/tw_cooking/lang_data
+max_len: 512
+mlm_mask_prob: 0.15
+model_save_dir: /home/hadi/Documents/FTWP/SAVED_MODELS
+mom_mask_prob: 0.3
+pretrain_dirs:
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/train/pretraining_data/mask_prob=0.15
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/valid/pretraining_data/mask_prob=0.15
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/test/pretraining_data/mask_prob=0.15
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/train/pretraining_data/mask_prob=0.30
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/valid/pretraining_data/mask_prob=0.30
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/test/pretraining_data/mask_prob=0.30
+pretrain_modes:
+- MLM
+- MOM
+processed_dirs:
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/train/processed_trajectories
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/valid/processed_trajectories
+- /home/hadi/Documents/FTWP/DATA/tw_cooking/test/processed_trajectories
+train_valid_test: true

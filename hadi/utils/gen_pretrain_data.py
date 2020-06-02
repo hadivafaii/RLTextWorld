@@ -241,7 +241,6 @@ def _get_masked_input(x, ranges, unk_id=3):
 
 
 def compute_type_position_ids(x, config, starting_position_ids=None):
-    # TODO: this function is absolutely fucking not necessary
     if starting_position_ids is None:
         starting_position_ids = np.ones(len(x))
 
@@ -500,12 +499,12 @@ if __name__ == "__main__":
     assert 0 < args.mask_prob < 1, "mask_prob should be in (0, 1) interval"
 
     sys.path.append("..")
-    from model.preprocessing import get_nlp, preproc
     from model.configuration import DataConfig, TransformerConfig
 
     config = TransformerConfig()
     data_config = DataConfig(pretrain_modes=args.pretrain_mode, game_type=args.game_type,
-                             game_spec=args.game_spec, k=args.k, mask_prob=args.mask_prob, train_valid_test=True)
+                             game_spec=args.game_spec, k=args.k, train_valid_test=True,
+                             mlm_mask_prob=args.mask_prob, mom_mask_prob=args.mask_prob)
 
     if args.game_type.split('/')[1] == 'train':
         load_dir = data_config.processed_dirs[0]
@@ -579,6 +578,7 @@ if __name__ == "__main__":
                             for tok_id in ent_tup:
                                 bag_of_object_tokens.append(tok_id)
                         bag_of_object_tokens = np.unique(bag_of_object_tokens)
+                        # TODO: delete "of" from here
 
                     else:
                         conversion_dict = lang_data['{:s}2indx'.format(args.pretrain_mode[4:].lower())]

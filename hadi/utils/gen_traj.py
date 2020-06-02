@@ -191,7 +191,7 @@ if __name__ == "__main__":
 
     import sys
     sys.path.append("..")
-    from model.preprocessing import get_nlp, preproc
+    from model.preprocessing import get_tokenizer, preproc
     from model.configuration import DataConfig
 
     data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec, train_valid_test=True)
@@ -233,7 +233,7 @@ if __name__ == "__main__":
         msg = '[PROGRESS] max_steps: {:d},   episodes: {:d},   batch_size: {:d}'
         print(msg.format(args.max_steps, episodes, args.batch_size))
 
-    tokenizer = get_nlp().tokenizer
+    tokenizer = get_tokenizer()
 
     start_time = time()
     raw_trajectories = generate_trajectory(

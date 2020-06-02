@@ -16,12 +16,11 @@ def update_language(data_list, w2i):
                 for word in current_data[i][0]:
                     if word not in w2i:
                         w2i.update({word: len(w2i)})
-
     i2w = {w2i[tok]: tok for tok in w2i}
     return w2i, i2w
 
 
-def _get_traj_so_far(env_id, num_steps, tokenizer):
+def _get_traj_so_far3(env_id, num_steps, tokenizer):
     env = gym.make(env_id)
     obs, infos = env.reset()
 
@@ -44,7 +43,109 @@ def _get_traj_so_far(env_id, num_steps, tokenizer):
     return envs, traj, current_adm_cmds
 
 
-def _create_pred_data(envs, traj_so_far, current_adm_cmds, walkthrough_cmd, tokenizer):
+def _get_traj_so_far(game_path, num_steps, tokenizer):
+    requested_infos = EnvInfos(admissible_commands=True, game=True)
+    env_id = textworld.gym.register_games(
+        [game_path],
+        batch_size=None,
+        request_infos=requested_infos,
+        max_episode_steps=100)
+    env = gym.make(env_id)
+    obs, infos = env.reset()
+
+    traj = ['[OBS]'] + preproc(obs, tokenizer)
+    walkthrough = infos['game'].walkthrough
+
+    for i in range(num_steps):
+        obs, _, _, infos = env.step(walkthrough[i])
+        traj.extend(['[ACT]'] + preproc(walkthrough[i], tokenizer) +
+                    ['[OBS]'] + preproc(obs, tokenizer))
+
+    current_adm_cmds = infos['admissible_commands']
+    current_adm_cmds.remove("look")
+    branch_size = len(current_adm_cmds)
+
+    env_id = textworld.gym.register_games(
+        [game_path] * branch_size,
+        batch_size=branch_size,
+        request_infos=requested_infos,
+        max_episode_steps=100)
+
+    envs = gym.make(env_id)
+    envs.reset()
+
+    for i in range(num_steps):
+        cmds = [walkthrough[i]] * branch_size
+        _ = envs.step(cmds)
+
+    return envs, traj, current_adm_cmds
+
+
+def _create_pred_data(env, traj_so_far, current_adm_cmds, walkthrough_cmd, tokenizer):
+    if walkthrough_cmd not in current_adm_cmds:
+        return None, False
+
+    it_is_done = False
+    outputs = ()
+
+    next_states = []
+    walkthrough_obs = None
+
+    obs, _, done, infos = env.step(current_adm_cmds)
+
+    for cc, dd, oo in zip(current_adm_cmds, done, obs):
+        if cc == walkthrough_cmd:
+            walkthrough_obs = oo
+            if dd:
+                it_is_done = True
+        else:
+            if "go" in walkthrough_cmd and "go" in cc:
+                continue
+            else:
+                next_states.append(oo)
+
+    obs_pred_trajs = []
+    obs_pred_labels = []
+    for fake_obs in next_states:
+        obs_pred_trajs.append(
+            traj_so_far
+            + ['[ACT]'] + preproc(walkthrough_cmd, tokenizer)
+            + ['[OBS]'] + preproc(fake_obs, tokenizer)
+        )
+        obs_pred_labels.append(0)
+
+    obs_pred_trajs.append(
+        traj_so_far
+        + ['[ACT]'] + preproc(walkthrough_cmd, tokenizer)
+        + ['[OBS]'] + preproc(walkthrough_obs, tokenizer)
+    )
+    obs_pred_labels.append(1)
+
+    assert len(obs_pred_trajs) == len(obs_pred_labels), "must have same lengths"
+    outputs += ([obs_pred_trajs, obs_pred_labels],)
+
+    act_pred_trajs = []
+    act_pred_labels = []
+    for cmd in current_adm_cmds:
+        if "go" in walkthrough_cmd and "go" in cmd and cmd != walkthrough_cmd:
+            continue
+        act_pred_trajs.append(
+            traj_so_far
+            + ['[ACT]'] + preproc(cmd, tokenizer)
+            + ['[OBS]'] + preproc(walkthrough_obs, tokenizer)
+        )
+        if cmd == walkthrough_cmd:
+            act_pred_labels.append(1)
+        else:
+            act_pred_labels.append(0)
+
+    assert len(act_pred_trajs) == len(act_pred_labels), "must have same lengths"
+    outputs += ([act_pred_trajs, act_pred_labels],)
+
+    return outputs, it_is_done
+
+
+def _create_pred_data3(envs, traj_so_far, current_adm_cmds, walkthrough_cmd, tokenizer):
     if walkthrough_cmd not in current_adm_cmds:
         return None, False
 
@@ -108,11 +209,12 @@ def _create_pred_data(envs, traj_so_far, current_adm_cmds, walkthrough_cmd, toke
 
 def extract_pred_data(game_path, tokenizer):
     assert isinstance(game_path, str), "Must be path to an individual game"
-    requested_infos = EnvInfos(moves=True, admissible_commands=True, game=True)
+
+    requested_infos = EnvInfos(admissible_commands=True, game=True)
     env_id = textworld.gym.register_games([game_path], request_infos=requested_infos, max_episode_steps=100)
     env = gym.make(env_id)
 
-    obs, infos = env.reset()
+    _, infos = env.reset()
     walkthrough = infos['game'].walkthrough
 
     obs_pred_data = []
@@ -122,15 +224,15 @@ def extract_pred_data(game_path, tokenizer):
     steps_so_far = 0
 
     while not done:
-        envs, traj_so_far, current_adm_cmds = _get_traj_so_far(env_id, steps_so_far, tokenizer)
-        assert len(envs) == len(current_adm_cmds), "otherwise sth wrong"
+        envs, traj_so_far, current_adm_cmds = _get_traj_so_far(game_path, steps_so_far, tokenizer)
+        assert envs.batch_size == len(current_adm_cmds), "otherwise sth wrong"
 
         if steps_so_far >= len(walkthrough):
             # print("True/False for done kind of weridness encountered, moving on")
             break
 
         data, is_it_done = _create_pred_data(
-            envs=envs,
+            env=envs,
             traj_so_far=traj_so_far,
             current_adm_cmds=current_adm_cmds,
             walkthrough_cmd=walkthrough[steps_so_far],
@@ -220,7 +322,7 @@ if __name__ == "__main__":
 
     import sys
     sys.path.append("..")
-    from model.preprocessing import get_nlp, preproc
+    from model.preprocessing import get_tokenizer, preproc
     from model.configuration import TransformerConfig, DataConfig
     from .gen_pretrain_data import save_data, compute_type_position_ids
 
@@ -248,7 +350,6 @@ if __name__ == "__main__":
     else:
         raise ValueError("Invalid game type entered (e.g. tw_cooking/train is correct)")
     os.makedirs(save_dir, exist_ok=True)
-    _game_variants = ['train', 'valid', 'test']
 
     lang_dir_file = pjoin(data_config.lang_dir, 'lang_data_max_len={:d}.npy'.format(data_config.max_len))
     lang_data_all = np.load(lang_dir_file, allow_pickle=True).item()
@@ -256,27 +357,28 @@ if __name__ == "__main__":
 
     game_files = os.listdir(load_dir)
     game_files = [pjoin(load_dir, g) for g in game_files if '.ulx' in g]
+    # TODO: temporary
+    game_files = game_files[:5]
 
-    tokenizer = get_nlp().tokenizer
+    tokenizer = get_tokenizer()
 
     obs_pred_all = []
     obs_lbls_all = []
     act_pred_all = []
     act_lbls_all = []
     for game in tqdm(game_files):
+        # extract data
         obs_pred_data, act_pred_data = extract_pred_data(game, tokenizer)
 
         # load, update, and save language data
         lang_data_all = np.load(lang_dir_file, allow_pickle=True).item()
         current_lang_data = lang_data_all['eps={:.2f}'.format(data_config.epsilons[0])]
-        w2i, i2w = update_language(
-            data_list=[obs_pred_data, act_pred_data],
-            w2i=current_lang_data['w2i'],
-        )
+        w2i, i2w = update_language(data_list=[obs_pred_data, act_pred_data], w2i=current_lang_data['w2i'])
         current_lang_data['w2i'] = w2i
         current_lang_data['i2w'] = i2w
         np.save(lang_dir_file, {'eps={:.2f}'.format(data_config.epsilons[0]): current_lang_data})
 
+        # process the extracted data using updated language
         (obs_pred, obs_lbls), (act_pred, act_lbls) = process_pred_data(obs_pred_data, act_pred_data,
                                                                        w2i, data_config, config)
 

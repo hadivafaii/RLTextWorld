@@ -15,7 +15,7 @@ def act_gen_fwd():
     raise NotImplementedError
 
 
-def corrupted_fwd(model, masked_inputs, masked_labels, pretrain_mode, loss_imbalance_lambda=50, return_extras=False):
+def mlm_fwd(model, masked_inputs, masked_labels, pretrain_mode, loss_imbalance_lambda=50, return_extras=False):
 
     masked_token_ids, masked_type_ids, masked_position_ids = masked_inputs
     masked_hiddens, _ = model(src_inputs=masked_inputs)[0]

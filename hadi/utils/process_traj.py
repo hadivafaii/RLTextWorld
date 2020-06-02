@@ -78,7 +78,7 @@ def _exract_data_for_modeling(seq_, segment_, max_len):
     return sequences, segments, positions, masks
 
 
-def process_data(data_files, lang_data=None, max_len=512, do_plot=False, verbose=False):
+def process_data(data_files, tokenizer, lang_data=None, max_len=512, do_plot=False, verbose=False):
     if type(data_files) is not list:
         data_files = [data_files]
 
@@ -142,7 +142,6 @@ def process_data(data_files, lang_data=None, max_len=512, do_plot=False, verbose
             w2i.update({tok: len(w2i)})
 
     # update w2i to add extra entities and verbose
-    tokenizer = get_nlp().tokenizer
 
     for entity in list(entity_counts.keys()):
         entity_tokens = preproc(entity, tokenizer)
@@ -323,7 +322,7 @@ if __name__ == "__main__":
     import sys
     from tqdm import tqdm
     sys.path.append("..")
-    from model.preprocessing import get_nlp, preproc
+    from model.preprocessing import get_tokenizer, preproc
     from model.configuration import DataConfig
 
     data_config = DataConfig(game_type=args.game_type, game_spec=args.game_spec, train_valid_test=True)
@@ -357,6 +356,7 @@ if __name__ == "__main__":
 
             traj_data_, lang_data_ = process_data(
                 data_files=data_files,
+                tokenizer=get_tokenizer(),
                 lang_data=current_lang_data,
                 max_len=args.max_len,
                 do_plot=False, verbose=False)

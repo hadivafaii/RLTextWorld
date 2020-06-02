@@ -7,7 +7,7 @@ class TransformerConfig:
         self,
             vocab_size=1024,
             type_vocab_size=3,
-            max_position_embeddings=512 + 1,
+            max_position_embeddings=512+1,
             embedding_size=32,
             hidden_size=128,
             intermediate_size=512,

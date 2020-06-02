@@ -12,7 +12,7 @@ from torch import nn
 import torch.nn.functional as F
 
 from .embeddings import Embeddings
-from .preprocessing import get_nlp, preproc
+from .preprocessing import get_tokenizer, preproc
 from .configuration import TransformerConfig, DataConfig
 # import sys; sys.path.append('..')
 # from utils.gen_pretrain_data import get_ranges
@@ -334,9 +334,10 @@ class Transformer(nn.Module):
             if self.config.embedding_size != self.config.decoder_hidden_size:
                 tgt_embedded = self.decoder_embedding_mapping_in(tgt_embedded)  # (T, N, H_dec)
 
+            # memory: (L, N, H_enc)
             memory = encoder_outputs[0]
             if self.config.hidden_size != self.config.decoder_hidden_size:
-                memory = self.decoder_src_mapping_in(memory)
+                memory = self.decoder_src_mapping_in(memory)    # memory: (L, N, H_dec)
 
             if src_embedded.size(1) != tgt_embedded.size(1):
                 raise RuntimeError("the batch number of src and tgt must be equal")
@@ -595,7 +596,7 @@ class Language(object):
         self.indx2act = lang_data['indx2act']
 
         self.data_config = data_config
-        self.tokenizer = get_nlp().tokenizer
+        self.tokenizer = get_tokenizer()
 
     def add_word(self, word):
         if word in self.w2i:

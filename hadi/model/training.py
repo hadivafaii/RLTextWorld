@@ -125,7 +125,7 @@ class OfflineTrainer:
                 batch_labels = batch_data_tuple[3]
 
                 if pretrain_mode in ['MLM', 'MOM']:
-                    losses, correct_prediction_stats, _ = corrupted_fwd(
+                    losses, correct_prediction_stats, _ = mlm_fwd(
                         model=self.model,
                         masked_inputs=batch_inputs,
                         masked_labels=batch_labels,
