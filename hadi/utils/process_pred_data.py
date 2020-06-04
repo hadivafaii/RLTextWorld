@@ -102,6 +102,8 @@ if __name__ == "__main__":
     lang_dir_file = pjoin(data_config.lang_dir, 'lang_data_max_len={:d}.npy'.format(data_config.max_len))
 
     for gvar_id, game_var in enumerate(_game_variants):
+        if game_var != 'test':
+            continue
         load_dir = pjoin(data_config.base_dirs[gvar_id], 'raw_pred_data')
         save_dir = data_config.pretrain_dirs[gvar_id]
         os.makedirs(save_dir, exist_ok=True)
@@ -111,9 +113,9 @@ if __name__ == "__main__":
         obs_lbls_all = []
         act_pred_all = []
         act_lbls_all = []
-        num_iters = len(os.listdir(load_dir))
-        for i in range(num_iters):
-            loaded_data_list = np.load(pjoin(load_dir, "iter={:d}.npy".format(i)), allow_pickle=True)
+        file_names = os.listdir(load_dir)
+        for file in tqdm(file_names, desc='processing {:s} . . . '.format(game_var)):
+            loaded_data_list = np.load(pjoin(load_dir, file), allow_pickle=True)
             for item in loaded_data_list:
                 obs_pred_data, act_pred_data = item
 

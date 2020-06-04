@@ -132,10 +132,7 @@ class OfflineTrainer:
                         pretrain_mode=pretrain_mode,
                         loss_imbalance_lambda=self.train_config.loss_imbalance_lambda)
 
-                elif pretrain_mode in ['ACT_ORDER', 'OBS_ORDER']:
-                    # losses, extra_outputs = self.permuted_fwd(self.model)
-                    raise NotImplementedError
-                elif pretrain_mode in ['ACT_PRED', 'OBS_PRED', 'PAIR_PRED']:
+                elif pretrain_mode in ['ACT_PRED', 'OBS_PRED']:
                     # losses, extra_outputs = self.pred_fwd(self.model)
                     raise NotImplementedError
                 elif pretrain_mode in ['ACT_ELIM']:

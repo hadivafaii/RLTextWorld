@@ -2,11 +2,6 @@
 # game type is string, eg: tw_cooking_train. num_groups is integer larger than 0. e.g.: 20
 game_type=$1
 num_groups=$2
-game_spec=$3
-
-if [[ $game_type =~ "tw_cooking" ]]; then
-   game_spec=""
-fi
 
 # where python scripts are at
 cd ..
@@ -24,7 +19,7 @@ do_it () {
     if [ $# -eq 3 ]; then # game spec was given
       screen -S "iter_${ii}" -X stuff "python3 -m utils.gen_pred_data $1 ${ii} $2 --game_spec $3 ^M"
     else
-      screen -S "iter_${ii}" -X stuff "python3 -m utils.gen_pred_data $1 ${ii} $2 ^M"
+      screen -S "iter_${ii}" -X stuff "echo ${ii} ^M"
     fi
   done
 }

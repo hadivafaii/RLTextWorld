@@ -261,13 +261,15 @@ if __name__ == "__main__":
     game_files = os.listdir(load_dir)
     game_files = [pjoin(load_dir, g) for g in game_files if '.ulx' in g]
 
-    group_size = int(np.ceil(len(game_files) / args.num_groups))
+    group_size = int(np.round(len(game_files) / args.num_groups))
 
     a = args.iter * group_size
     b = (args.iter + 1) * group_size
 
     game_files = game_files[a:b]
     num_games = len(game_files)
+
+    print('[PROGRESS] data generation initiated using games {:d}:{:d}.'.format(a, b))
 
     tokenizer = get_tokenizer()
 
